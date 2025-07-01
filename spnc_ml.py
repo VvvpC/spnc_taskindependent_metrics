@@ -31,6 +31,9 @@ CANDIDATES = [
     
     Path(r"C:\Users\tom\Desktop\Repository"),
     Path(r"C:\Users\Chen\Desktop\Repository"),
+    Path(r"/Users/vvvp/Desktop/machine_learning_library"),
+    
+
 ]
 searchpaths = [p for p in CANDIDATES if p.exists()]
 #tuple of repos

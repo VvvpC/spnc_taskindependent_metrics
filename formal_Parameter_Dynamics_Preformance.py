@@ -447,7 +447,7 @@ def test_one_reservoir(reservoir_params, **kwargs):
 
 if __name__ == "__main__":
     # 设定reservoir_params
-    reservoir_params = ReservoirParams(h=0.4055105807072985, m0=0.004305768634622887, Nvirt=125, beta_prime= 41.7965657362074, params={'gamma': 0.06707779187420466, 'theta': 0.09581885346062773, 'Nvirt': 125})
+    reservoir_params = ReservoirParams(h=0.4055105807072985, m0=0.004305768634622887, Nvirt=20, beta_prime= 41.7965657362074, params={'gamma': 0.06707779187420466, 'theta': 0.09581885346062773, 'Nvirt': 20})
 
     # 执行test_one_reservoir任务
     result = test_one_reservoir(reservoir_params)
