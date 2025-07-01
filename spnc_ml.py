@@ -31,8 +31,8 @@ CANDIDATES = [
     
     Path(r"C:\Users\tom\Desktop\Repository"),
     Path(r"C:\Users\Chen\Desktop\Repository"),
-    Path(r"/Users/vvvp/Desktop/machine_learning_library"),
-    
+    Path(r"/Users/vvvp./Desktop"),
+   
 
 ]
 searchpaths = [p for p in CANDIDATES if p.exists()]
