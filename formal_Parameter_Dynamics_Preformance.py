@@ -193,7 +193,7 @@ def RunSpnc(signal,Nin,Nout,Nvirt,m0,transform, params,**kwargs):
 
 # ------------------------ Reservoir Parameters Dictionary --------------------------
 
-class ReservoirParams:
+class  ReservoirParams:
     def __init__(self, **kwargs):
             # Reservoir parameters 
             self.h = 0.4473502275692851
@@ -386,6 +386,7 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
 
 # ##########
 # KRandGR task function
+
 # ##########
 
 
@@ -423,6 +424,40 @@ def evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
                             transform, reservoir_params.params,
                             seed_NARMA=1234, fixed_mask=True, return_NRMSE=True)
     return {'NRMSE': NRMSE}
+
+# ##########
+# test one reservoir with given parameters
+# ##########
+
+def test_one_reservoir(reservoir_params, **kwargs):
+
+# 执行MC任务
+    MC = evaluate_MC(reservoir_params, signal_len=550, **kwargs)
+# 执行KRandGR任务
+
+    krgr_result = evaluate_KRandGR(reservoir_params, Nreadouts=reservoir_params.Nvirt, Nwash=7, **kwargs)
+    KR = krgr_result['KR']
+    GR = krgr_result['GR']
+    print(KR, GR)   
+
+# 返回MC和KR,GR
+    return {'MC': MC, 'KR': KR, 'GR': GR}
+    
+# 执行test_one_reservoir任务
+
+if __name__ == "__main__":
+    # 设定reservoir_params
+    reservoir_params = ReservoirParams(h=0.4055105807072985, m0=0.004305768634622887, Nvirt=125, beta_prime= 41.7965657362074, params={'gamma': 0.06707779187420466, 'theta': 0.09581885346062773, 'Nvirt': 125})
+
+    # 执行test_one_reservoir任务
+    result = test_one_reservoir(reservoir_params)
+    print(result)
+
+
+
+
+
+
 
 
 # ##########
@@ -788,10 +823,10 @@ def evaluate_and_save_single_reservoir(params, save_dir="./Results/SingleTests")
     return record
 
 # Example usage of evaluate_and_save_single_reservoir
-if __name__ == "__main__":
-    params = ReservoirParams(
-        h=0.4431531552026543, m0=0.005641983615625242, Nvirt=315, beta_prime=40.66463236801917,
-        params={'theta': 0.4198538148599367, 'gamma': 0.017005257078706242, 'Nvirt': 315}
-    )
-    res = evaluate_and_save_single_reservoir(params)
-    print(res)
+# if __name__ == "__main__":
+#     params = ReservoirParams(
+#         h=0.4431531552026543, m0=0.005641983615625242, Nvirt=315, beta_prime=40.66463236801917,
+#         params={'theta': 0.4198538148599367, 'gamma': 0.017005257078706242, 'Nvirt': 315}
+#     )
+#     res = evaluate_and_save_single_reservoir(params)
+#     print(res)

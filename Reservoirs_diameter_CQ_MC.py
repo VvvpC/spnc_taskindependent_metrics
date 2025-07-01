@@ -223,13 +223,47 @@ class ReservoirBetaGammaEvaluator:
     Custom evaluator for beta_prime and gamma coupled evaluation
     """
     def __init__(self, task, beta_prime_range, result_keys, result_labels, 
-                 reservoir_params=None, extra_args=None):
+                 reservoir_params=None, extra_args=None, 
+                 use_gamma_calculation=True, gamma_range=None):
+        """
+        初始化评估器
+        
+        Parameters:
+        -----------
+        task : callable
+            评估任务函数
+        beta_prime_range : array-like
+            beta_prime参数范围
+        result_keys : list
+            结果字典的键列表
+        result_labels : list
+            结果标签列表
+        reservoir_params : ReservoirParams, optional
+            储层参数对象
+        extra_args : dict, optional
+            额外参数
+        use_gamma_calculation : bool, default=True
+            是否使用calculate_gamma_from_beta_prime函数自动计算gamma
+        gamma_range : array-like, optional
+            手动指定的gamma范围（当use_gamma_calculation=False时必需）
+        """
         self.task = task
         self.beta_prime_range = beta_prime_range
         self.result_keys = result_keys
         self.result_labels = result_labels
         self.reservoir_params = reservoir_params 
         self.extra_args = extra_args or {}
+        self.use_gamma_calculation = use_gamma_calculation
+        
+        # 验证gamma_range
+        if not use_gamma_calculation:
+            if gamma_range is None:
+                raise ValueError("gamma_range must be provided when use_gamma_calculation=False")
+            if len(gamma_range) != len(beta_prime_range):
+                raise ValueError(f"gamma_range length ({len(gamma_range)}) must match beta_prime_range length ({len(beta_prime_range)})")
+            self.gamma_range = gamma_range
+        else:
+            self.gamma_range = None
 
     def evaluate(self, save_dir='./results', plot=False, verbose=False, filename_prefix=None):
         import os
@@ -237,20 +271,28 @@ class ReservoirBetaGammaEvaluator:
         import matplotlib.pyplot as plt
         import tqdm
         
-        # Calculate gamma values for each beta_prime
-        gamma_range = calculate_gamma_from_beta_prime(self.beta_prime_range)
+        # 根据开关决定如何获取gamma值
+        if self.use_gamma_calculation:
+            # 自动计算gamma值
+            gamma_range = calculate_gamma_from_beta_prime(self.beta_prime_range)
+            print(f"Using automatic gamma calculation: γ = 9.66e-5β² - 8.8e-3β + 0.248")
+        else:
+            # 使用手动提供的gamma值
+            gamma_range = self.gamma_range
+            print(f"Using manually provided gamma values")
         
         # Initialize result dictionary
         result_dict = {
             'beta_prime': self.beta_prime_range,
-            'gamma': gamma_range
+            'gamma': gamma_range,
+            'gamma_calculation_method': 'automatic' if self.use_gamma_calculation else 'manual'
         }
         for key in self.result_keys:
             result_dict[key] = []
 
         print(f"Starting beta_prime + gamma coupled evaluation...")
         print(f"Beta_prime range: {self.beta_prime_range}")
-        print(f"Calculated gamma range: {gamma_range}")
+        print(f"Gamma range: [{', '.join([f'{x:.8f}' for x in gamma_range])}]")
 
         for i, (beta_val, gamma_val) in enumerate(tqdm.tqdm(zip(self.beta_prime_range, gamma_range), 
                                                             total=len(self.beta_prime_range),
@@ -374,23 +416,43 @@ def run_reservoir_beta_gamma_evaluation(
     plot=True,
     verbose=False,
     extra_args=None,
-    filename_prefix=None
+    filename_prefix=None,
+    use_gamma_calculation=True,
+    gamma_range=None
 ):
     """
     Run reservoir evaluation with coupled beta_prime and gamma parameters
     
     Parameters:
-    - task_type: 'MC', 'CQ', or 'MC_CQ'
-    - beta_prime_range: array of beta_prime values to evaluate
-    - reservoir_params: ReservoirSizeParams object
-    - result_dir: directory to save results
-    - plot: whether to show plots
-    - verbose: whether to print detailed info
-    - extra_args: additional arguments for task functions
-    - filename_prefix: prefix for output files
+    -----------
+    task_type : str
+        'MC', 'CQ', or 'MC_CQ'
+    beta_prime_range : array-like
+        array of beta_prime values to evaluate
+    reservoir_params : ReservoirSizeParams object
+        储层参数对象
+    result_dir : str
+        directory to save results
+    plot : bool
+        whether to show plots
+    verbose : bool
+        whether to print detailed info
+    extra_args : dict
+        additional arguments for task functions
+    filename_prefix : str
+        prefix for output files
+    use_gamma_calculation : bool, default=True
+        是否使用自动gamma计算公式
+    gamma_range : array-like, optional
+        手动指定的gamma范围（当use_gamma_calculation=False时必需）
     
-    The gamma values are automatically calculated using:
+    Notes:
+    ------
+    当use_gamma_calculation=True时，gamma值自动通过以下公式计算:
     gamma = 9.66e-5*beta_prime^2 - 8.8e-3*beta_prime + 0.248
+    
+    当use_gamma_calculation=False时，必须提供gamma_range参数，
+    且其长度必须与beta_prime_range相同。
     """
     
     # Map task types to evaluation functions
@@ -409,19 +471,22 @@ def run_reservoir_beta_gamma_evaluation(
     if reservoir_params is None:
         reservoir_params = ReservoirSizeParams()
 
-    # Use the custom ReservoirBetaGammaEvaluator
+    # Use the custom ReservoirBetaGammaEvaluator with new parameters
     evaluator = ReservoirBetaGammaEvaluator(
         task=task,
         beta_prime_range=beta_prime_range,
         result_keys=result_keys,
         result_labels=result_labels,
         reservoir_params=reservoir_params,
-        extra_args=extra_args or {}
+        extra_args=extra_args or {},
+        use_gamma_calculation=use_gamma_calculation,
+        gamma_range=gamma_range
     )
     
     # Set default filename prefix if not provided
     if filename_prefix is None:
-        filename_prefix = f"beta_gamma_coupled_{task.__name__}"
+        method_suffix = "auto_gamma" if use_gamma_calculation else "manual_gamma"
+        filename_prefix = f"beta_gamma_coupled_{method_suffix}_{task.__name__}"
     
     return evaluator.evaluate(
         save_dir=result_dir, 
@@ -434,59 +499,50 @@ def run_reservoir_beta_gamma_evaluation(
 
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 30
-    beta_prime_range = np.arange(20, 40.5, 0.5)  # Range of beta_prime values to test
-    
+    ref_beta_prime = 41.7965657362074
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirSizeParams(
         ref_beta_prime=ref_beta_prime,
-        h=0.4,
-        Nvirt=400,
-        m0=0.003,
+        h=0.4055105807072985,
+        Nvirt=125,
+        m0=0.004305768634622887,
         params={
-            'theta': 0.3,
-            'gamma': 0.113,  # This will be overridden by the equation
+            'theta': 0.09581885346062773,
+            'gamma': 0.06707779187420466,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt': 400,
+            'Nvirt':125,
         }
     )
     
-    print("=" * 60)
-    print("Reservoir Size Evaluation: MC and CQ vs Beta Prime")
-    print(f"Reference beta_prime: {ref_beta_prime}")
-    print(f"Beta prime range: {beta_prime_range}")
-    print("=" * 60)
-    
-    # # Option 1: Original evaluation (single beta_prime variation)
-    # results_single = run_reservoir_size_evaluation(
+    beta_prime_range = np.array([20, 30, 41.7965657362074, 50])  # Range of beta_prime values to test
+
+    # 给定gamma数组
+    # gamma_range = np.array([0.1, 0.12, 0.08])  # 必须与beta_prime_range长度相同
+    # results_manual = run_reservoir_beta_gamma_evaluation(
     #     task_type='MC_CQ',
     #     beta_prime_range=beta_prime_range,
     #     reservoir_params=reservoir_params,
     #     result_dir="./results",
-    #     plot=False,
-    #     verbose=True,
-    #     filename_prefix="homogeneous_reservoir_size"
+    #     plot=True,
+    #     verbose=False,
+    #     use_gamma_calculation=False,  # 使用手动指定
+    #     gamma_range=gamma_range
     # )
-    
-    # print("\n" + "=" * 60)
-    # print("Beta Prime + Gamma Coupled Evaluation")
-    # print("Gamma = 9.66e-5*beta_prime^2 - 8.8e-3*beta_prime + 0.248")
-    # print("=" * 60)
-    
-    # Option 2: New coupled beta_prime + gamma evaluation
-    results_coupled = run_reservoir_beta_gamma_evaluation(
+
+    # 固定gamma值
+    fixed_gamma = 0.06707779187420466
+    gamma_range = np.full(len(beta_prime_range), fixed_gamma)  # 创建固定值数组
+    results_fixed = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
         beta_prime_range=beta_prime_range,
         reservoir_params=reservoir_params,
         result_dir="./results",
         plot=True,
         verbose=False,
-        filename_prefix="beta_gamma_coupled"
+        use_gamma_calculation=False,
+        gamma_range=gamma_range,
+        filename_prefix="beta_gamma_fixed"
     )
-    
-    print("\nEvaluation completed!")
-    # print(f"Single parameter results keys: {list(results_single.keys())}")
-    print(f"Coupled parameter results keys: {list(results_coupled.keys())}")
     
     # # Print comparison summary
     # print("\nComparison Summary:")
