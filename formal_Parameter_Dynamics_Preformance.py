@@ -10,8 +10,8 @@ This script contains a framework for evaluating the MC, KRandGR and computationa
 
 # import necessary libraries
 import os
-# import torch 
-# import torch.nn as nn
+import torch 
+import torch.nn as nn
 from spnc import spnc_anisotropy
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ CANDIDATES = [
     
     Path(r"C:\Users\tom\Desktop\Repository"),
     Path(r"C:\Users\Chen\Desktop\Repository"),
-    Path(r"Users/vvvp/Desktop"),
+    Path(r"/Users/vvvp./Desktop"),
 ]
 searchpaths = [p for p in CANDIDATES if p.exists()]
 
