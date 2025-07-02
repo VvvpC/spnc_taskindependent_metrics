@@ -57,8 +57,7 @@ class Standard_reservoir:
             self.reservoir_params.m0,
             transform,
             self.reservoir_params.params,
-            fixed_mask=True,
-            seed_mask=1234
+
         )
         
         MC = linear_MC(signal, Output, splits=[0.2, 0.6], delays=10)
@@ -88,8 +87,7 @@ class Standard_reservoir:
             output = RunSpnc(
                 input_row, 1, len(input_row), self.reservoir_params.Nvirt,
                 self.reservoir_params.m0, transforms, self.reservoir_params.params,
-                fixed_mask=True,
-                seed_mask=1234
+
             )
             outputs.append(output)
             
@@ -160,8 +158,7 @@ class Hetero_reservoir:
             self.reservoir_params.m0,
             transform_with_constant_rate,
             self.reservoir_params.params,
-            fixed_mask=True,
-            seed_mask=1234
+
         )
         
         MC = linear_MC(signal, Output, splits=[0.2, 0.6], delays=10)
@@ -198,8 +195,7 @@ class Hetero_reservoir:
                 input_row, 1, len(input_row), self.reservoir_params.Nvirt,
                 self.reservoir_params.m0, transform_with_constant_rate, 
                 self.reservoir_params.params,
-                fixed_mask=True,
-                seed_mask=1234
+
             )
             outputs.append(output)
         
@@ -282,21 +278,7 @@ def print_reservoir_inputs(reservoir_instance, reservoir_name):
     print(f"  KR/GR inputs shape: {inputs.shape}")
     print(f"  First input sequence (first 10 values): {inputs[0][:10]}")
     
-    # Transform function information
-    print(f"\nTransform Function:")
-    if isinstance(reservoir_instance, Standard_reservoir):
-        print(f"  Transform: gen_signal_slow_delayed_feedback")
-        print(f"  RunSpnc parameters:")
-        print(f"    fixed_mask: False (default)")
-        print(f"    seed_mask: None (default)")
-    else:  # Hetero_reservoir
-        print(f"  Transform: get_signal_slow_delayed_feedback_heteroRes_sameinput")
-        print(f"  Transform uses ref_beta_prime: {reservoir_instance.ref_beta_prime}")
-        print(f"  Transform uses h: {params.h}")
-        print(f"  RunSpnc parameters:")
-        print(f"    fixed_mask: True")
-        print(f"    seed_mask: 1234")
-    
+
     print(f"{'='*60}")
 
 
