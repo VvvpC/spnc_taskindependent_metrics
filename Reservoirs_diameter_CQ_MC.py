@@ -75,8 +75,8 @@ def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
         reservoir_params.m0,
         transform_with_constant_rate,
         reservoir_params.params,
-        fixed_mask=True,
-        seed_mask=1234
+        # fixed_mask=True,
+        # seed_mask=1234
     )
 
     MC = linear_MC(signal, Output, splits=[0.2, 0.6], delays=10)
@@ -115,8 +115,8 @@ def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
             input_row, 1, len(input_row), reservoir_params.Nvirt,
             reservoir_params.m0, transform_with_constant_rate, 
             reservoir_params.params,
-            fixed_mask=True,
-            seed_mask=1234
+            # fixed_mask=True,
+            # seed_mask=1234
         )
         outputs.append(output)
     
@@ -499,22 +499,33 @@ def run_reservoir_beta_gamma_evaluation(
 
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 41.7965657362074
+    ref_beta_prime = 30
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirSizeParams(
         ref_beta_prime=ref_beta_prime,
-        h=0.4055105807072985,
-        Nvirt=125,
-        m0=0.004305768634622887,
+        h=0.4,
+        Nvirt=400,
+        m0=0.003,
         params={
-            'theta': 0.09581885346062773,
-            'gamma': 0.06707779187420466,  # This will be overridden by the equation
+            'theta': 0.3,
+            'gamma': 0.113,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt':125,
+            'Nvirt':400,
         }
     )
     
-    beta_prime_range = np.array([20, 30, 41.7965657362074, 50])  # Range of beta_prime values to test
+    beta_prime_range = np.arange(20, 40.5, 0.5)  # Range of beta_prime values to test
+
+    results_auto = run_reservoir_beta_gamma_evaluation(
+        task_type='MC_CQ',
+        beta_prime_range=beta_prime_range,
+        reservoir_params=reservoir_params,
+        result_dir="./results",
+        plot=True,
+        verbose=False,
+        use_gamma_calculation=True,
+        filename_prefix="beta_gamma_auto"
+    )
 
     # 给定gamma数组
     # gamma_range = np.array([0.1, 0.12, 0.08])  # 必须与beta_prime_range长度相同
@@ -529,20 +540,20 @@ if __name__ == "__main__":
     #     gamma_range=gamma_range
     # )
 
-    # 固定gamma值
-    fixed_gamma = 0.06707779187420466
-    gamma_range = np.full(len(beta_prime_range), fixed_gamma)  # 创建固定值数组
-    results_fixed = run_reservoir_beta_gamma_evaluation(
-        task_type='MC_CQ',
-        beta_prime_range=beta_prime_range,
-        reservoir_params=reservoir_params,
-        result_dir="./results",
-        plot=True,
-        verbose=False,
-        use_gamma_calculation=False,
-        gamma_range=gamma_range,
-        filename_prefix="beta_gamma_fixed"
-    )
+    # # 固定gamma值
+    # fixed_gamma = 0.06707779187420466
+    # gamma_range = np.full(len(beta_prime_range), fixed_gamma)  # 创建固定值数组
+    # results_fixed = run_reservoir_beta_gamma_evaluation(
+    #     task_type='MC_CQ',
+    #     beta_prime_range=beta_prime_range,
+    #     reservoir_params=reservoir_params,
+    #     result_dir="./results",
+    #     plot=True,
+    #     verbose=False,
+    #     use_gamma_calculation=False,
+    #     gamma_range=gamma_range,
+    #     filename_prefix="beta_gamma_fixed"
+    # )
     
     # # Print comparison summary
     # print("\nComparison Summary:")

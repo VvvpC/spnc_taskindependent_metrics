@@ -144,6 +144,7 @@ Generate input with more equal figures for KRandGR, last 7  columns are GR input
 
 Here Nwash = 7 for KR, rest of 7 columns are GR
 
+
 '''
 def gen_KR_GR_input(Nreadouts, Nwash=7, seed=1234):
     rng = np.random.default_rng(seed) 
@@ -391,7 +392,7 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
 # ##########
 
 
-def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
+def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     
     Nreadouts= reservoir_params.Nvirt
 
@@ -436,7 +437,7 @@ def test_one_reservoir(reservoir_params, **kwargs):
     MC = evaluate_MC(reservoir_params, signal_len=550, **kwargs)
 # 执行KRandGR任务
 
-    krgr_result = evaluate_KRandGR(reservoir_params, Nreadouts=reservoir_params.Nvirt, Nwash=7, **kwargs)
+    krgr_result = evaluate_KRandGR(reservoir_params, Nreadouts=reservoir_params.Nvirt, Nwash=10, **kwargs)
     KR = krgr_result['KR']
     GR = krgr_result['GR']
     print(KR, GR)   
@@ -446,13 +447,13 @@ def test_one_reservoir(reservoir_params, **kwargs):
     
 # 执行test_one_reservoir任务
 
-if __name__ == "__main__":
-    # 设定reservoir_params
-    reservoir_params = ReservoirParams(h=0.4055105807072985, m0=0.004305768634622887, Nvirt=20, beta_prime= 41.7965657362074, params={'gamma': 0.06707779187420466, 'theta': 0.09581885346062773, 'Nvirt': 20})
+# if __name__ == "__main__":
+#     # 设定reservoir_params
+#     reservoir_params = ReservoirParams(h=0.4055105807072985, m0=0.004305768634622887, Nvirt=20, beta_prime= 41.7965657362074, params={'gamma': 0.06707779187420466, 'theta': 0.09581885346062773, 'Nvirt': 20})
 
-    # 执行test_one_reservoir任务
-    result = test_one_reservoir(reservoir_params)
-    print(result)
+#     # 执行test_one_reservoir任务
+#     result = test_one_reservoir(reservoir_params)
+#     print(result)
 
 
 

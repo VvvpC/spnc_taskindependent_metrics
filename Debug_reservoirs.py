@@ -57,6 +57,8 @@ class Standard_reservoir:
             self.reservoir_params.m0,
             transform,
             self.reservoir_params.params,
+            fixed_mask=True,
+            seed_mask=111,
 
         )
         
@@ -87,6 +89,8 @@ class Standard_reservoir:
             output = RunSpnc(
                 input_row, 1, len(input_row), self.reservoir_params.Nvirt,
                 self.reservoir_params.m0, transforms, self.reservoir_params.params,
+                fixed_mask=True,
+                seed_mask=111,
 
             )
             outputs.append(output)
@@ -158,6 +162,8 @@ class Hetero_reservoir:
             self.reservoir_params.m0,
             transform_with_constant_rate,
             self.reservoir_params.params,
+            fixed_mask=True,
+            seed_mask=111,
 
         )
         
@@ -165,7 +171,7 @@ class Hetero_reservoir:
         
         return {'MC': MC}
     
-    def evaluate_KR_GR(self, Nreadouts=50, Nwash=7, **kwargs):
+    def evaluate_KR_GR(self, Nreadouts=50, Nwash=10, **kwargs):
         """
         Evaluate KR and GR using heteroRes_sameinput transform.
         """
@@ -195,6 +201,8 @@ class Hetero_reservoir:
                 input_row, 1, len(input_row), self.reservoir_params.Nvirt,
                 self.reservoir_params.m0, transform_with_constant_rate, 
                 self.reservoir_params.params,
+                fixed_mask=True,
+                seed_mask=111,
 
             )
             outputs.append(output)
@@ -266,7 +274,7 @@ def print_reservoir_inputs(reservoir_instance, reservoir_name):
     # KR/GR calculation inputs
     print(f"\nKR/GR Calculation Inputs:")
     Nreadouts = params.Nvirt
-    Nwash = 7
+    Nwash = 10
     seed_krgr = 1234
     print(f"  Nreadouts: {Nreadouts}")
     print(f"  Nwash: {Nwash}")
@@ -289,7 +297,7 @@ if __name__ == "__main__":
         m0=0.004305768634622887, 
         Nvirt=125, 
         beta_prime=41.7965657362074, 
-        params={
+        params={ 
             'gamma': 0.06707779187420466, 
             'theta': 0.09581885346062773, 
             'Nvirt': 125
