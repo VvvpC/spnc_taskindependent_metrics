@@ -4,7 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import pearsonr, spearmanr
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -16,7 +18,7 @@ class ParameterCorrelationAnalyzer:
     def __init__(self, data_path: str = "results/ParetoFront_"):
         """
         初始化分析器
-        
+
         Args:
             data_path: 数据文件夹路径
         """
@@ -166,12 +168,12 @@ class ParameterCorrelationAnalyzer:
         
         # 相关性分析
         pearson_result = pearsonr(param_data[param1], param_data[param2])
-        pearson_corr = float(pearson_result.statistic)
-        pearson_p = float(pearson_result.pvalue)
+        pearson_corr = float(pearson_result[0])
+        pearson_p = float(pearson_result[1])
         
         spearman_result = spearmanr(param_data[param1], param_data[param2])
-        spearman_corr = float(spearman_result.statistic)
-        spearman_p = float(spearman_result.pvalue)
+        spearman_corr = float(spearman_result[0])
+        spearman_p = float(spearman_result[1])
         
         results = {
             'param1': param1,
@@ -204,58 +206,501 @@ class ParameterCorrelationAnalyzer:
         
         return results
     
+    def perform_pca_analysis(self, variables: Optional[List[str]] = None, 
+                           n_components: int = 2) -> Dict:
+        """
+        执行主成分分析
+        
+        Args:
+            variables: 要分析的变量列表，如果为None则使用所有数值变量
+            n_components: 主成分数量
+            
+        Returns:
+            PCA分析结果字典
+        """
+        if self.data is None:
+            self.load_all_data()
+        
+        # 选择变量
+        if variables is None:
+            numeric_data = self.data.select_dtypes(include=[np.number]).dropna()
+        else:
+            numeric_data = self.data[variables].dropna()
+        
+        if len(numeric_data) == 0:
+            raise ValueError("没有可用于PCA分析的数据")
+        
+        # 标准化数据
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(numeric_data)
+        
+        # 执行PCA
+        pca = PCA(n_components=n_components)
+        pca_result = pca.fit_transform(scaled_data)
+        
+        # 计算特征重要性
+        feature_importance = pd.DataFrame(
+            pca.components_.T,
+            columns=[f'PC{i+1}' for i in range(n_components)],
+            index=numeric_data.columns
+        )
+        
+        results = {
+            'pca_data': pca_result,
+            'explained_variance_ratio': pca.explained_variance_ratio_,
+            'cumulative_variance_ratio': np.cumsum(pca.explained_variance_ratio_),
+            'feature_importance': feature_importance,
+            'original_features': numeric_data.columns.tolist(),
+            'scaler': scaler,
+            'pca_model': pca
+        }
+        
+        print(f"PCA分析完成:")
+        print(f"主成分数量: {n_components}")
+        print(f"解释方差比例: {pca.explained_variance_ratio_}")
+        print(f"累积解释方差: {np.cumsum(pca.explained_variance_ratio_)}")
+        
+        return results
+    
+    def plot_pca_scatter(self, pca_results: Dict, color_by: Optional[str] = None) -> None:
+        """
+        绘制PCA散点图
+        
+        Args:
+            pca_results: PCA分析结果
+            color_by: 用于着色的变量名
+        """
+        pca_data = pca_results['pca_data']
+        explained_var = pca_results['explained_variance_ratio']
+        
+        plt.figure(figsize=(10, 8))
+        
+        if color_by and color_by in self.data.columns:
+            color_data = self.data[color_by].iloc[:len(pca_data)]
+            scatter = plt.scatter(pca_data[:, 0], pca_data[:, 1], 
+                                c=color_data, cmap='viridis', alpha=0.7)
+            plt.colorbar(scatter, label=color_by)
+        else:
+            plt.scatter(pca_data[:, 0], pca_data[:, 1], alpha=0.7)
+        
+        plt.xlabel(f'PC1 ({explained_var[0]:.1%} variance)')
+        plt.ylabel(f'PC2 ({explained_var[1]:.1%} variance)')
+        plt.title('PCA Analysis - First Two Principal Components')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+    
+    def plot_pca_feature_importance(self, pca_results: Dict) -> None:
+        """
+        绘制PCA特征重要性图
+        
+        Args:
+            pca_results: PCA分析结果
+        """
+        feature_importance = pca_results['feature_importance']
+        n_components = feature_importance.shape[1]
+        
+        fig, axes = plt.subplots(1, n_components, figsize=(15, 6))
+        if n_components == 1:
+            axes = [axes]
+        
+        for i in range(n_components):
+            pc_name = f'PC{i+1}'
+            importance = feature_importance[pc_name].abs().sort_values(ascending=True)
+            
+            ax = axes[i] if n_components > 1 else axes[0]
+            ax.barh(range(len(importance)), importance.values)
+            ax.set_yticks(range(len(importance)))
+            ax.set_yticklabels(importance.index)
+            ax.set_xlabel('Absolute Loading')
+            ax.set_title(f'{pc_name} Feature Importance')
+            ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.show()
+    
+    def plot_correlation_heatmap(self, variables: Optional[List[str]] = None, 
+                                figsize: tuple = (12, 10)) -> None:
+        """
+        绘制相关性热图
+        
+        Args:
+            variables: 要包含的变量列表
+            figsize: 图形大小
+        """
+        if self.data is None:
+            self.load_all_data()
+        
+        if variables is None:
+            numeric_data = self.data.select_dtypes(include=[np.number])
+        else:
+            numeric_data = self.data[variables]
+        
+        correlation_matrix = numeric_data.corr()
+        
+        plt.figure(figsize=figsize)
+        mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+        sns.heatmap(correlation_matrix, 
+                   mask=mask,
+                   annot=True, 
+                   cmap='RdBu_r', 
+                   center=0,
+                   square=True,
+                   fmt='.3f',
+                   cbar_kws={"shrink": .8})
+        
+        plt.title('参数相关性矩阵热图', fontsize=16, pad=20)
+        plt.tight_layout()
+        plt.show()
+    
+    def plot_correlation_bar(self, target_var: str, variables: Optional[List[str]] = None,
+                           top_n: int = 10) -> None:
+        """
+        绘制相关性条形图
+        
+        Args:
+            target_var: 目标变量
+            variables: 要分析的变量列表
+            top_n: 显示前N个相关性最强的变量
+        """
+        correlations = self.calculate_correlations(target_var, variables)
+        
+        # 提取相关系数并排序
+        corr_data = [(var, data['pearson_correlation']) 
+                    for var, data in correlations.items()]
+        corr_data.sort(key=lambda x: abs(x[1]), reverse=True)
+        
+        if top_n:
+            corr_data = corr_data[:top_n]
+        
+        vars_list, corr_values = zip(*corr_data)
+        colors = ['red' if x < 0 else 'blue' for x in corr_values]
+        
+        plt.figure(figsize=(12, 8))
+        bars = plt.barh(range(len(vars_list)), corr_values, color=colors, alpha=0.7)
+        plt.yticks(range(len(vars_list)), vars_list)
+        plt.xlabel('Pearson相关系数')
+        plt.title(f'{target_var} 相关性排序图')
+        plt.axvline(x=0, color='black', linestyle='-', alpha=0.3)
+        plt.grid(True, alpha=0.3)
+        
+        # 添加数值标签
+        for i, (bar, val) in enumerate(zip(bars, corr_values)):
+            plt.text(val + 0.01 if val > 0 else val - 0.01, i, f'{val:.3f}', 
+                    va='center', ha='left' if val > 0 else 'right')
+        
+        plt.tight_layout()
+        plt.show()
+    
+    def plot_scatter_matrix(self, variables: List[str], target_var: Optional[str] = None) -> None:
+        """
+        绘制散点图矩阵
+        
+        Args:
+            variables: 要分析的变量列表
+            target_var: 用于着色的目标变量
+        """
+        if self.data is None:
+            self.load_all_data()
+        
+        data_subset = self.data[variables].dropna()
+        
+        if target_var and target_var in self.data.columns:
+            color_data = self.data[target_var].iloc[:len(data_subset)]
+            pd.plotting.scatter_matrix(data_subset, c=color_data, 
+                                     figsize=(15, 15), alpha=0.7, cmap='viridis')
+        else:
+            pd.plotting.scatter_matrix(data_subset, figsize=(15, 15), alpha=0.7)
+        
+        plt.suptitle('变量散点图矩阵', fontsize=16)
+        plt.tight_layout()
+        plt.show()
+    
+    def plot_pair_correlations(self, param1: str, param2: str, 
+                             color_by: Optional[str] = None) -> None:
+        """
+        绘制参数对相关性图（含多种视图）
+        
+        Args:
+            param1: 第一个参数名
+            param2: 第二个参数名
+            color_by: 用于着色的第三个参数名
+        """
+        if self.data is None:
+            self.load_all_data()
+        
+        required_params = [param1, param2]
+        if color_by:
+            required_params.append(color_by)
+        
+        for param in required_params:
+            if param not in self.data.columns:
+                print(f"错误：参数 '{param}' 不存在于数据中")
+                return
+        
+        param_data = self.data[required_params].dropna()
+        
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        
+        # 1. 基本散点图
+        if color_by:
+            scatter = axes[0,0].scatter(param_data[param1], param_data[param2], 
+                                      c=param_data[color_by], cmap='viridis', alpha=0.7)
+            plt.colorbar(scatter, ax=axes[0,0], label=color_by)
+        else:
+            axes[0,0].scatter(param_data[param1], param_data[param2], alpha=0.7)
+        
+        # 添加趋势线
+        z = np.polyfit(param_data[param1], param_data[param2], 1)
+        p = np.poly1d(z)
+        x_trend = np.linspace(param_data[param1].min(), param_data[param1].max(), 100)
+        axes[0,0].plot(x_trend, p(x_trend), "r--", alpha=0.8, linewidth=2)
+        
+        # 添加相关系数
+        corr = param_data[param1].corr(param_data[param2])
+        axes[0,0].text(0.05, 0.95, f'r = {corr:.4f}', transform=axes[0,0].transAxes,
+                      bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        axes[0,0].set_xlabel(param1)
+        axes[0,0].set_ylabel(param2)
+        axes[0,0].set_title('散点图 + 趋势线')
+        axes[0,0].grid(True, alpha=0.3)
+        
+        # 2. 六边形分布图
+        axes[0,1].hexbin(param_data[param1], param_data[param2], gridsize=20, cmap='Blues')
+        axes[0,1].set_xlabel(param1)
+        axes[0,1].set_ylabel(param2)
+        axes[0,1].set_title('六边形密度图')
+        
+        # 3. 参数1的分布
+        axes[1,0].hist(param_data[param1], bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+        axes[1,0].set_xlabel(param1)
+        axes[1,0].set_ylabel('频次')
+        axes[1,0].set_title(f'{param1} 分布')
+        axes[1,0].grid(True, alpha=0.3)
+        
+        # 4. 参数2的分布
+        axes[1,1].hist(param_data[param2], bins=30, alpha=0.7, color='lightcoral', edgecolor='black')
+        axes[1,1].set_xlabel(param2)
+        axes[1,1].set_ylabel('频次')
+        axes[1,1].set_title(f'{param2} 分布')
+        axes[1,1].grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.show()
+    
+    # def plot_correlation_network(self, variables: Optional[List[str]] = None, 
+    #                            threshold: float = 0.3) -> None:
+    #     """
+    #     绘制相关性网络图（需要networkx库）
+        
+    #     Args:
+    #         variables: 要分析的变量列表
+    #         threshold: 相关性阈值，只显示超过此值的连接
+    #     """
+    #     try:
+    #         import networkx as nx
+    #     except ImportError:
+    #         print("需要安装networkx库: pip install networkx")
+    #         return
+        
+    #     if self.data is None:
+    #         self.load_all_data()
+        
+    #     if variables is None:
+    #         numeric_data = self.data.select_dtypes(include=[np.number])
+    #     else:
+    #         numeric_data = self.data[variables]
+        
+    #     corr_matrix = numeric_data.corr()
+        
+    #     # 创建网络图
+    #     G = nx.Graph()
+        
+    #     # 添加节点
+    #     for var in corr_matrix.columns:
+    #         G.add_node(var)
+        
+    #     # 添加边（超过阈值的相关性）
+    #     for i, var1 in enumerate(corr_matrix.columns):
+    #         for j, var2 in enumerate(corr_matrix.columns):
+    #             if i < j:  # 避免重复
+    #                 corr_val = abs(corr_matrix.iloc[i, j])
+    #                 if corr_val >= threshold:
+    #                     G.add_edge(var1, var2, weight=corr_val)
+        
+    #     plt.figure(figsize=(12, 10))
+    #     pos = nx.spring_layout(G, k=1, iterations=50)
+        
+    #     # 绘制节点
+    #     nx.draw_networkx_nodes(G, pos, node_color='lightblue', 
+    #                           node_size=1500, alpha=0.7)
+        
+    #     # 绘制边，粗细表示相关性强度
+    #     edges = G.edges()
+    #     weights = [G[u][v]['weight'] * 3 for u, v in edges]
+    #     nx.draw_networkx_edges(G, pos, width=weights, alpha=0.6)
+        
+    #     # 绘制标签
+    #     nx.draw_networkx_labels(G, pos, font_size=10)
+        
+    #     plt.title(f'相关性网络图 (阈值: {threshold})')
+    #     plt.axis('off')
+    #     plt.tight_layout()
+    #     plt.show()
 
 
-def main():
+def run_correlation_analysis():
     """
-    主函数：执行完整的相关性分析
+    执行相关性分析和可视化
     """
     # 创建分析器实例
     analyzer = ParameterCorrelationAnalyzer()
     analyzer.load_all_data()
 
-    analyzer.data['KR_GR_ratio'] = analyzer.data['calculated_KR'] / analyzer.data['calculated_GR']
-    analyzer.data['task_balance'] = analyzer.data['TI46_accuracy'] / analyzer.data['NARMA10_NRMSE']
-    analyzer.data['MC_KR_ratio'] = analyzer.data['calculated_MC'] / analyzer.data['calculated_KR']
-    analyzer.data['MC_GR_ratio'] = analyzer.data['calculated_MC'] / analyzer.data['calculated_GR']
-    analyzer.data['MC_CQ_ratio'] = analyzer.data['calculated_MC'] / analyzer.data['calculated_CQ']
-    analyzer.data['MC_density'] = analyzer.data['calculated_MC'] / analyzer.data['Nvirt']
-    analyzer.data['CQ_density'] = analyzer.data['calculated_CQ'] / analyzer.data['Nvirt']
-    analyzer.data['GR_density'] = analyzer.data['calculated_GR'] / analyzer.data['Nvirt']
-    analyzer.data['KR_density'] = analyzer.data['calculated_KR'] / analyzer.data['Nvirt']
-
-
-
-
+    # 优雅地创建派生特征
+    derived_features = {
+        'KR_GR_ratio': ('calculated_KR', 'calculated_GR'),
+        'task_balance': ('TI46_accuracy', 'NARMA10_NRMSE'),
+        'MC_KR_ratio': ('calculated_MC', 'calculated_KR'),
+        'MC_GR_ratio': ('calculated_MC', 'calculated_GR'),
+        'MC_CQ_ratio': ('calculated_MC', 'calculated_CQ'),
+        'MC_density': ('calculated_MC', 'Nvirt'),
+        'CQ_density': ('calculated_CQ', 'Nvirt'),
+        'GR_density': ('calculated_GR', 'Nvirt'),
+        'KR_density': ('calculated_KR', 'Nvirt'),
+    }
+    
+    for feature_name, (num, den) in derived_features.items():
+        if num in analyzer.data.columns and den in analyzer.data.columns:
+            analyzer.data[feature_name] = analyzer.data[num] / analyzer.data[den]
 
     try:
-        # 加载数据
-        print("正在加载数据...")
-        # analyzer.load_all_data()
+        print("=" * 60)
+        print("相关性分析可视化")
+        print("=" * 60)
         
-        # 显示可用参数
-        analyzer.print_available_parameters()
+        # 定义要分析的变量
+        key_variables = ['calculated_KR', 'calculated_GR', 'calculated_CQ', 'calculated_MC', 
+                        'TI46_accuracy', 'NARMA10_NRMSE', 'Nvirt']
         
-        # # 示例1：分析TI46与KR的相关性
-        # print("\n示例1：分析TI46与KR的相关性...")
-        # ti46_cq_results = analyzer.analyze_parameter_correlation('TI46_accuracy', 'calculated_CQ')
+        # 1. 相关性热图
+        print("\n1. 生成相关性热图...")
+        analyzer.plot_correlation_heatmap(variables=key_variables)
         
-        # # 示例2：分析NARMA10与MC的相关性
-        # print("\n示例2：分析NARMA10与MC的相关性...")
-        # narma_mc_results = analyzer.analyze_parameter_correlation('NARMA10_NRMSE', 'calculated_MC')
+        # 2. 相关性条形图
+        print("\n2. 生成相关性条形图...")
+        analyzer.plot_correlation_bar('NARMA10_NRMSE', variables=key_variables, top_n=8)
         
-        # # 计算NARMA10与所有变量的相关性
-        # print("\n计算NARMA10与所有变量的相关性...")
-        # all_correlations = analyzer.calculate_correlations('NARMA10_NRMSE')
+        # 3. 散点图矩阵
+        print("\n3. 生成散点图矩阵...")
+        matrix_vars = ['calculated_KR', 'calculated_MC', 'TI46_accuracy', 'NARMA10_NRMSE']
+        analyzer.plot_scatter_matrix(matrix_vars, target_var='NARMA10_NRMSE')
         
-
+        # 4. 参数对详细分析
+        print("\n4. 生成参数对详细分析图...")
+        analyzer.plot_pair_correlations('calculated_MC', 'calculated_CQ', color_by='NARMA10_NRMSE')
         
-        print("\n分析完成！")
+        # 5. 相关性网络图（可选，需要networkx）
+        # print("\n5. 生成相关性网络图...")
+        # analyzer.plot_correlation_network(variables=key_variables, threshold=0.3)
+        
+        print("\n相关性分析完成！")
+        return analyzer
         
     except Exception as e:
-        print(f"分析过程中出现错误: {e}")
+        print(f"相关性分析过程中出现错误: {e}")
         import traceback
         traceback.print_exc()
+        return None
+
+def run_pca_analysis():
+    """
+    执行PCA分析和可视化
+    """
+    # 创建分析器实例
+    analyzer = ParameterCorrelationAnalyzer()
+    analyzer.load_all_data()
+
+    # 优雅地创建派生特征
+    derived_features = {
+        'KR_GR_ratio': ('calculated_KR', 'calculated_GR'),
+        'task_balance': ('TI46_accuracy', 'NARMA10_NRMSE'),
+        'MC_KR_ratio': ('calculated_MC', 'calculated_KR'),
+        'MC_GR_ratio': ('calculated_MC', 'calculated_GR'),
+        'MC_CQ_ratio': ('calculated_MC', 'calculated_CQ'),
+        'MC_density': ('calculated_MC', 'Nvirt'),
+        'CQ_density': ('calculated_CQ', 'Nvirt'),
+        'GR_density': ('calculated_GR', 'Nvirt'),
+        'KR_density': ('calculated_KR', 'Nvirt'),
+    }
+    
+    for feature_name, (num, den) in derived_features.items():
+        if num in analyzer.data.columns and den in analyzer.data.columns:
+            analyzer.data[feature_name] = analyzer.data[num] / analyzer.data[den]
+
+    try:
+        print("=" * 60)
+        print("主成分分析(PCA)可视化")
+        print("=" * 60)
+        
+        # 定义核心任务相关变量
+        task_vars = ['calculated_KR', 'calculated_GR', 'calculated_CQ', 'calculated_MC', 
+                    'TI46_accuracy', 'NARMA10_NRMSE']
+        
+        # 检查变量是否存在
+        available_vars = [var for var in task_vars if var in analyzer.data.columns]
+        if len(available_vars) < 2:
+            print("可用变量不足，无法进行PCA分析")
+            return analyzer, None
+            
+        print(f"\n任务相关变量PCA分析...")
+        print(f"分析变量: {available_vars}")
+        
+        # 执行PCA分析
+        pca_results = analyzer.perform_pca_analysis(variables=available_vars, n_components=2)
+        
+        # 生成PCA可视化
+        print("生成PCA散点图...")
+        analyzer.plot_pca_scatter(pca_results, color_by='NARMA10_NRMSE')
+        
+        print("生成特征重要性图...")
+        analyzer.plot_pca_feature_importance(pca_results)
+        
+        print("\nPCA分析完成！")
+        return analyzer, pca_results
+        
+    except Exception as e:
+        print(f"PCA分析过程中出现错误: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, None
+
+def main():
+    """
+    主函数：选择执行相关性分析或PCA分析
+    """
+    print("储层参数分析工具")
+    print("1. 相关性分析")
+    print("2. PCA分析")
+    print("3. 全面分析（两者都执行）")
+    
+    choice = input("\n请选择分析类型 (1/2/3): ").strip()
+    
+    if choice == "1":
+        run_correlation_analysis()
+    elif choice == "2":
+        run_pca_analysis()
+    elif choice == "3":
+        print("执行全面分析...")
+        run_correlation_analysis()
+        print("\n" + "="*60)
+        run_pca_analysis()
+    else:
+        print("无效选择，执行全面分析...")
+        run_correlation_analysis()
+        print("\n" + "="*60)
+        run_pca_analysis()
 
 
 if __name__ == "__main__":
