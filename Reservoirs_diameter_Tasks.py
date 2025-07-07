@@ -4,11 +4,12 @@ Created on Thu Jun 15:24:04 2025
 
 @author: Chen
 
-This script evaluates the MC and CQ performance of homogeneous superparamagnetic nanodot reservoirs 
-with different sizes (beta_prime values) while maintaining the same input rate.
+This script evaluates the NARMA10 and TI46 performance of homogeneous superparamagnetic nanodot reservoirs 
+with different sizes (beta_prime values) and different gamma values.
 
 The key feature is using get_signal_slow_delayed_feedback_heteroRes_sameinput to ensure 
-constant input_rate (theta_T*T) across different reservoir sizes.
+constant input_rate (theta_T*T) across different reservoir sizes, while evaluating
+computational tasks like NARMA10 and TI46 (spoken digits).
 
 """
 
@@ -17,27 +18,33 @@ from spnc import spnc_anisotropy
 
 # Import all necessary functions from the formal framework
 from formal_Parameter_Dynamics_Preformance import (
-    generate_signal, linear_MC, gen_KR_GR_input, Evaluate_KR_GR, RunSpnc,
-    ReservoirParams, ReservoirPerformanceEvaluator, run_evaluation
+    ReservoirParams, ReservoirPerformanceEvaluator, run_evaluation, RunSpnc
 )
 
-# ------------------------ Reservoir Size Parameters ----------------------------
+# Import ML tasks
+import spnc_ml as ml
 
-class ReservoirSizeParams(ReservoirParams):
+# ------------------------ Reservoir Size Parameters for Tasks ----------------------------
+
+class ReservoirTaskParams(ReservoirParams):
     """
-    Extended ReservoirParams class for reservoir size evaluation with reference beta_prime
+    Extended ReservoirParams class for reservoir size evaluation with task-specific parameters
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Add reference beta_prime for consistent input rate
         self.ref_beta_prime = kwargs.get('ref_beta_prime', 20)
+        # Add task-specific parameters
+        self.Ntrain = kwargs.get('Ntrain', 2000)
+        self.Ntest = kwargs.get('Ntest', 1000)
+        self.speakers = kwargs.get('speakers', None)  # None means all speakers for TI46
 
     def print_params(self, verbose=True):
         if not verbose:
-            print(f"ReservoirSizeParams(h={self.h}, beta_prime={self.beta_prime}, ref_beta_prime={self.ref_beta_prime}, Nvirt={self.Nvirt})")
+            print(f"ReservoirTaskParams(h={self.h}, beta_prime={self.beta_prime}, ref_beta_prime={self.ref_beta_prime}, Nvirt={self.Nvirt})")
         else:
-            print(f"ReservoirSizeParams detailed info:")
-            for attr in ['h', 'theta_H', 'k_s_0', 'phi', 'beta_prime', 'ref_beta_prime', 'Nvirt', 'm0', 'bias']:
+            print(f"ReservoirTaskParams detailed info:")
+            for attr in ['h', 'theta_H', 'k_s_0', 'phi', 'beta_prime', 'ref_beta_prime', 'Nvirt', 'm0', 'bias', 'Ntrain', 'Ntest', 'speakers']:
                 print(f"  {attr} = {getattr(self, attr)}")
             print("  params dictionary:")
             for k, v in self.params.items():
@@ -45,12 +52,10 @@ class ReservoirSizeParams(ReservoirParams):
 
 # ------------------------ Size-Specific Task Functions ----------------------------
 
-def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
+def evaluate_size_NARMA10(reservoir_params, **kwargs):
     """
-    Evaluate Memory Capacity using heteroRes_sameinput transform to maintain constant input rate
+    Evaluate NARMA10 performance using heteroRes_sameinput transform to maintain constant input rate
     """
-    signal = generate_signal(signal_len, seed=kwargs.get('seed', 1234))
-
     # Create spnc with current beta_prime
     spn = spnc_anisotropy(
         reservoir_params.h,
@@ -62,85 +67,78 @@ def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
     )
 
     # Create transform function that maintains constant input rate
-    def transform_with_constant_rate(K_s, params, *args, **kwargs):
+    def transform_with_constant_rate(signal, params, *args, **kwargs):
         return spn.get_signal_slow_delayed_feedback_heteroRes_sameinput(
-            K_s, params, reservoir_params.ref_beta_prime, reservoir_params.h
+            signal, params, reservoir_params.ref_beta_prime, reservoir_params.h
         )
 
-    Output = RunSpnc(
-        signal,
-        1,                 
-        len(signal),       
-        reservoir_params.Nvirt,
-        reservoir_params.m0,
-        transform_with_constant_rate,
-        reservoir_params.params,
-        # fixed_mask=True,
-        # seed_mask=1234
+    # Use the NARMA10 function from spnc_ml
+    Ntrain = kwargs.get('Ntrain', reservoir_params.Ntrain)
+    Ntest = kwargs.get('Ntest', reservoir_params.Ntest)
+    
+    NRMSE = ml.spnc_narma10(
+        Ntrain, Ntest, reservoir_params.Nvirt,
+        reservoir_params.m0, reservoir_params.bias,
+        transform_with_constant_rate, reservoir_params.params,
+        seed_NARMA=kwargs.get('seed_NARMA', 1234), 
+        fixed_mask=kwargs.get('fixed_mask', True),
+        seed_mask=kwargs.get('seed_mask', 1234),
+        return_NRMSE=True
     )
 
-    MC = linear_MC(signal, Output, splits=[0.2, 0.6], delays=10)
+    return {'NRMSE': NRMSE}
 
-    return {'MC': MC}
-
-def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
+def evaluate_size_TI46(reservoir_params, **kwargs):
     """
-    Evaluate Computational Quality (KR & GR) using heteroRes_sameinput transform
+    Evaluate TI46 (spoken digits) performance using heteroRes_sameinput transform
     """
-    Nreadouts = reservoir_params.Nvirt
+    # Create spnc with current beta_prime
+    spn = spnc_anisotropy(
+        reservoir_params.h,
+        reservoir_params.theta_H,
+        reservoir_params.k_s_0,
+        reservoir_params.phi,
+        reservoir_params.beta_prime,
+        restart=True
+    )
 
-    inputs = gen_KR_GR_input(Nreadouts, Nwash, seed=1234)
-    outputs = []
-    
-    for input_row in inputs:
-        input_row = input_row.reshape(-1, 1)
-        
-        # Create spnc with current beta_prime
-        spn = spnc_anisotropy(
-            reservoir_params.h, 
-            reservoir_params.theta_H,
-            reservoir_params.k_s_0, 
-            reservoir_params.phi,
-            reservoir_params.beta_prime, 
-            restart=True
+    # Create transform function that maintains constant input rate
+    def transform_with_constant_rate(signal, params, *args, **kwargs):
+        return spn.get_signal_slow_delayed_feedback_heteroRes_sameinput(
+            signal, params, reservoir_params.ref_beta_prime, reservoir_params.h
         )
-        
-        # Create transform function that maintains constant input rate
-        def transform_with_constant_rate(K_s, params, *args, **kwargs):
-            return spn.get_signal_slow_delayed_feedback_heteroRes_sameinput(
-                K_s, params, reservoir_params.ref_beta_prime, reservoir_params.h
-            )
-        
-        output = RunSpnc(
-            input_row, 1, len(input_row), reservoir_params.Nvirt,
-            reservoir_params.m0, transform_with_constant_rate, 
-            reservoir_params.params,
-            # fixed_mask=True,
-            # seed_mask=1234
-        )
-        outputs.append(output)
-    
-    States = np.stack(outputs, axis=0)
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.1)
-    
-    return {'KR': KR, 'GR': GR}
 
-def evaluate_size_MC_CQ(reservoir_params, **kwargs):
+    # Use the TI46 function from spnc_ml
+    speakers = kwargs.get('speakers', reservoir_params.speakers)
+    
+    accuracy = ml.spnc_spoken_digits(
+        speakers, reservoir_params.Nvirt,
+        reservoir_params.m0, reservoir_params.bias,
+        transform_with_constant_rate, reservoir_params.params,
+        nfft=1024,
+        fixed_mask=kwargs.get('fixed_mask', True),
+        # seed_mask=kwargs.get('seed_mask', 1234),
+        verbose=kwargs.get('verbose', False),
+        return_accuracy=True
+    )
+
+    return {'Accuracy': accuracy}
+
+def evaluate_size_NARMA10_TI46(reservoir_params, **kwargs):
     """
-    Evaluate both MC and CQ for a given reservoir size
+    Evaluate both NARMA10 and TI46 for a given reservoir size
     """
-    mc_result = evaluate_size_MC(reservoir_params, **kwargs)
-    cq_result = evaluate_size_CQ(reservoir_params, **kwargs)
+    narma10_result = evaluate_size_NARMA10(reservoir_params, **kwargs)
+    ti46_result = evaluate_size_TI46(reservoir_params, **kwargs)
     
     return {
-        'MC': mc_result['MC'],
-        'KR': cq_result['KR'],
-        'GR': cq_result['GR']
+        'NRMSE': narma10_result['NRMSE'],
+        'Accuracy': ti46_result['Accuracy']
     }
 
 # ------------------------ Main Evaluation Function ----------------------------
 
-def run_reservoir_size_evaluation(
+def run_reservoir_size_tasks_evaluation(
     task_type,
     beta_prime_range,
     reservoir_params=None,
@@ -151,12 +149,12 @@ def run_reservoir_size_evaluation(
     filename_prefix=None
 ):
     """
-    Run reservoir size evaluation for different beta_prime values
+    Run reservoir size evaluation for different beta_prime values with NARMA10 and TI46 tasks
     
     Parameters:
-    - task_type: 'MC', 'CQ', or 'MC_CQ'
+    - task_type: 'NARMA10', 'TI46', or 'NARMA10_TI46'
     - beta_prime_range: array of beta_prime values to evaluate
-    - reservoir_params: ReservoirSizeParams object
+    - reservoir_params: ReservoirTaskParams object
     - result_dir: directory to save results
     - plot: whether to show plots
     - verbose: whether to print detailed info
@@ -166,10 +164,9 @@ def run_reservoir_size_evaluation(
     
     # Map task types to evaluation functions
     task_map = {
-        'MC': (evaluate_size_MC, ['MC'], ['Memory Capacity']),
-        'CQ': (evaluate_size_CQ, ['KR', 'GR'], ['KR', 'GR']),
-        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR']),
-        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR'])
+        'NARMA10': (evaluate_size_NARMA10, ['NRMSE'], ['NRMSE']),
+        'TI46': (evaluate_size_TI46, ['Accuracy'], ['Accuracy']),
+        'NARMA10_TI46': (evaluate_size_NARMA10_TI46, ['NRMSE', 'Accuracy'], ['NRMSE', 'Accuracy'])
     }
     
     if task_type.upper() not in task_map:
@@ -178,7 +175,7 @@ def run_reservoir_size_evaluation(
     task, result_keys, result_labels = task_map[task_type.upper()]
     
     if reservoir_params is None:
-        reservoir_params = ReservoirSizeParams()
+        reservoir_params = ReservoirTaskParams()
 
     # Use the existing ReservoirPerformanceEvaluator framework
     evaluator = ReservoirPerformanceEvaluator(
@@ -193,7 +190,7 @@ def run_reservoir_size_evaluation(
     
     # Set default filename prefix if not provided
     if filename_prefix is None:
-        filename_prefix = f"reservoir_size_{task.__name__}"
+        filename_prefix = f"reservoir_size_tasks_{task.__name__}"
     
     return evaluator.evaluate(
         save_dir=result_dir, 
@@ -202,7 +199,7 @@ def run_reservoir_size_evaluation(
         filename_prefix=filename_prefix
     )
 
-# ------------------------ Beta Prime + Gamma Coupled Evaluation Functions ----------------------------
+# ------------------------ Beta Prime + Gamma Coupled Evaluation for Tasks ----------------------------
 
 def calculate_gamma_from_beta_prime(beta_prime):
     """
@@ -218,35 +215,13 @@ def calculate_gamma_from_beta_prime(beta_prime):
     gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248
     return gamma
 
-class ReservoirBetaGammaEvaluator:
+class ReservoirTaskBetaGammaEvaluator:
     """
-    Custom evaluator for beta_prime and gamma coupled evaluation
+    Custom evaluator for beta_prime and gamma coupled evaluation with tasks
     """
     def __init__(self, task, beta_prime_range, result_keys, result_labels, 
                  reservoir_params=None, extra_args=None, 
                  use_gamma_calculation=True, gamma_range=None):
-        """
-        初始化评估器
-        
-        Parameters:
-        -----------
-        task : callable
-            评估任务函数
-        beta_prime_range : array-like
-            beta_prime参数范围
-        result_keys : list
-            结果字典的键列表
-        result_labels : list
-            结果标签列表
-        reservoir_params : ReservoirParams, optional
-            储层参数对象
-        extra_args : dict, optional
-            额外参数
-        use_gamma_calculation : bool, default=True
-            是否使用calculate_gamma_from_beta_prime函数自动计算gamma
-        gamma_range : array-like, optional
-            手动指定的gamma范围（当use_gamma_calculation=False时必需）
-        """
         self.task = task
         self.beta_prime_range = beta_prime_range
         self.result_keys = result_keys
@@ -255,7 +230,7 @@ class ReservoirBetaGammaEvaluator:
         self.extra_args = extra_args or {}
         self.use_gamma_calculation = use_gamma_calculation
         
-        # 验证gamma_range
+        # Validate gamma_range
         if not use_gamma_calculation:
             if gamma_range is None:
                 raise ValueError("gamma_range must be provided when use_gamma_calculation=False")
@@ -271,13 +246,11 @@ class ReservoirBetaGammaEvaluator:
         import matplotlib.pyplot as plt
         import tqdm
         
-        # 根据开关决定如何获取gamma值
+        # Determine gamma values based on setting
         if self.use_gamma_calculation:
-            # 自动计算gamma值
             gamma_range = calculate_gamma_from_beta_prime(self.beta_prime_range)
             print(f"Using automatic gamma calculation: γ = 9.66e-5β² - 8.8e-3β + 0.248")
         else:
-            # 使用手动提供的gamma值
             gamma_range = self.gamma_range
             print(f"Using manually provided gamma values")
         
@@ -290,7 +263,7 @@ class ReservoirBetaGammaEvaluator:
         for key in self.result_keys:
             result_dict[key] = []
 
-        print(f"Starting beta_prime + gamma coupled evaluation...")
+        print(f"Starting beta_prime + gamma coupled evaluation for tasks...")
         print(f"Beta_prime range: {self.beta_prime_range}")
         print(f"Gamma range: [{', '.join([f'{x:.8f}' for x in gamma_range])}]")
 
@@ -319,9 +292,9 @@ class ReservoirBetaGammaEvaluator:
 
         # Save results
         if filename_prefix is None:
-            filename_prefix = f"beta_gamma_coupled_{self.task.__name__}"
+            filename_prefix = f"beta_gamma_coupled_tasks_{self.task.__name__}"
         
-        filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{self.beta_prime_range[1]-self.beta_prime_range[0]}.pkl"         
+        filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{self.beta_prime_range[1]-self.beta_prime_range[0]:.1f}.pkl"         
         save_path = os.path.join(save_dir, filename)
         os.makedirs(save_dir, exist_ok=True)
         
@@ -345,13 +318,12 @@ class ReservoirBetaGammaEvaluator:
         if len(self.result_keys) == 1:
             ax1.plot(result_dict['beta_prime'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)
             ax1.set_ylabel(self.result_labels[0], fontsize=12)
-        elif len(self.result_keys) == 3:  # MC, KR, GR
-            ax1.plot(result_dict['beta_prime'], result_dict['MC'], 'o-', label='MC', linewidth=2, markersize=6)
+        elif len(self.result_keys) == 2:  # NRMSE and Accuracy
+            ax1.plot(result_dict['beta_prime'], result_dict['NRMSE'], 'o-', label='NRMSE', linewidth=2, markersize=6)
             ax1_twin = ax1.twinx()
-            ax1_twin.plot(result_dict['beta_prime'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
-            ax1_twin.plot(result_dict['beta_prime'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
-            ax1.set_ylabel('MC', fontsize=12)
-            ax1_twin.set_ylabel('KR, GR', fontsize=12)
+            ax1_twin.plot(result_dict['beta_prime'], result_dict['Accuracy'], 's--', label='Accuracy', color='orange', linewidth=2, markersize=6)
+            ax1.set_ylabel('NRMSE', fontsize=12)
+            ax1_twin.set_ylabel('Accuracy', fontsize=12)
             ax1.legend(loc='upper left')
             ax1_twin.legend(loc='upper right')
         
@@ -372,13 +344,12 @@ class ReservoirBetaGammaEvaluator:
         if len(self.result_keys) == 1:
             ax3.plot(result_dict['gamma'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)
             ax3.set_ylabel(self.result_labels[0], fontsize=12)
-        elif len(self.result_keys) == 3:  # MC, KR, GR
-            ax3.plot(result_dict['gamma'], result_dict['MC'], 'o-', label='MC', linewidth=2, markersize=6)
+        elif len(self.result_keys) == 2:
+            ax3.plot(result_dict['gamma'], result_dict['NRMSE'], 'o-', label='NRMSE', linewidth=2, markersize=6)
             ax3_twin = ax3.twinx()
-            ax3_twin.plot(result_dict['gamma'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
-            ax3_twin.plot(result_dict['gamma'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
-            ax3.set_ylabel('MC', fontsize=12)
-            ax3_twin.set_ylabel('KR, GR', fontsize=12)
+            ax3_twin.plot(result_dict['gamma'], result_dict['Accuracy'], 's--', label='Accuracy', color='orange', linewidth=2, markersize=6)
+            ax3.set_ylabel('NRMSE', fontsize=12)
+            ax3_twin.set_ylabel('Accuracy', fontsize=12)
             ax3.legend(loc='upper left')
             ax3_twin.legend(loc='upper right')
         
@@ -386,20 +357,27 @@ class ReservoirBetaGammaEvaluator:
         ax3.set_title('Performance vs Gamma', fontsize=14)
         ax3.grid(True, alpha=0.3)
 
-        # Plot 4: 3D scatter plot (Beta Prime vs Gamma vs MC)
+        # Plot 4: 3D scatter plot (Beta Prime vs Gamma vs primary metric)
         ax4 = axes[1, 1]
-        if 'MC' in result_dict:
+        if 'NRMSE' in result_dict:
             scatter = ax4.scatter(result_dict['beta_prime'], result_dict['gamma'], 
-                                c=result_dict['MC'], cmap='viridis', s=60)
+                                c=result_dict['NRMSE'], cmap='viridis', s=60)
             ax4.set_xlabel('Beta Prime', fontsize=12)
             ax4.set_ylabel('Gamma', fontsize=12)
-            ax4.set_title('MC Performance Map', fontsize=14)
-            plt.colorbar(scatter, ax=ax4, label='MC')
+            ax4.set_title('NRMSE Performance Map', fontsize=14)
+            plt.colorbar(scatter, ax=ax4, label='NRMSE')
+        elif 'Accuracy' in result_dict:
+            scatter = ax4.scatter(result_dict['beta_prime'], result_dict['gamma'], 
+                                c=result_dict['Accuracy'], cmap='plasma', s=60)
+            ax4.set_xlabel('Beta Prime', fontsize=12)
+            ax4.set_ylabel('Gamma', fontsize=12)
+            ax4.set_title('Accuracy Performance Map', fontsize=14)
+            plt.colorbar(scatter, ax=ax4, label='Accuracy')
         
         fig.tight_layout()
 
         # Save plot
-        plot_filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{self.beta_prime_range[1]-self.beta_prime_range[0]}.png"
+        plot_filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{self.beta_prime_range[1]-self.beta_prime_range[0]:.1f}.png"
         os.makedirs(save_dir, exist_ok=True)
         fig.savefig(os.path.join(save_dir, plot_filename), dpi=300, bbox_inches='tight')
         print(f"Figure saved to {os.path.join(save_dir, plot_filename)}")
@@ -408,7 +386,7 @@ class ReservoirBetaGammaEvaluator:
             plt.show()
         plt.close(fig)
 
-def run_reservoir_beta_gamma_evaluation(
+def run_reservoir_beta_gamma_tasks_evaluation(
     task_type,
     beta_prime_range,
     reservoir_params=None,
@@ -421,16 +399,16 @@ def run_reservoir_beta_gamma_evaluation(
     gamma_range=None
 ):
     """
-    Run reservoir evaluation with coupled beta_prime and gamma parameters
+    Run reservoir evaluation with coupled beta_prime and gamma parameters for tasks
     
     Parameters:
     -----------
     task_type : str
-        'MC', 'CQ', or 'MC_CQ'
+        'NARMA10', 'TI46', or 'NARMA10_TI46'
     beta_prime_range : array-like
         array of beta_prime values to evaluate
-    reservoir_params : ReservoirSizeParams object
-        储层参数对象
+    reservoir_params : ReservoirTaskParams object
+        reservoir parameters object
     result_dir : str
         directory to save results
     plot : bool
@@ -442,25 +420,16 @@ def run_reservoir_beta_gamma_evaluation(
     filename_prefix : str
         prefix for output files
     use_gamma_calculation : bool, default=True
-        是否使用自动gamma计算公式
+        whether to use automatic gamma calculation formula
     gamma_range : array-like, optional
-        手动指定的gamma范围（当use_gamma_calculation=False时必需）
-    
-    Notes:
-    ------
-    当use_gamma_calculation=True时，gamma值自动通过以下公式计算:
-    gamma = 9.66e-5*beta_prime^2 - 8.8e-3*beta_prime + 0.248
-    
-    当use_gamma_calculation=False时，必须提供gamma_range参数，
-    且其长度必须与beta_prime_range相同。
+        manual gamma range (required when use_gamma_calculation=False)
     """
     
     # Map task types to evaluation functions
     task_map = {
-        'MC': (evaluate_size_MC, ['MC'], ['Memory Capacity']),
-        'CQ': (evaluate_size_CQ, ['KR', 'GR'], ['KR', 'GR']),
-        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR']),
-        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR'])
+        'NARMA10': (evaluate_size_NARMA10, ['NRMSE'], ['NRMSE']),
+        'TI46': (evaluate_size_TI46, ['Accuracy'], ['Accuracy']),
+        'NARMA10_TI46': (evaluate_size_NARMA10_TI46, ['NRMSE', 'Accuracy'], ['NRMSE', 'Accuracy'])
     }
     
     if task_type.upper() not in task_map:
@@ -469,10 +438,10 @@ def run_reservoir_beta_gamma_evaluation(
     task, result_keys, result_labels = task_map[task_type.upper()]
     
     if reservoir_params is None:
-        reservoir_params = ReservoirSizeParams()
+        reservoir_params = ReservoirTaskParams()
 
-    # Use the custom ReservoirBetaGammaEvaluator with new parameters
-    evaluator = ReservoirBetaGammaEvaluator(
+    # Use the custom ReservoirTaskBetaGammaEvaluator
+    evaluator = ReservoirTaskBetaGammaEvaluator(
         task=task,
         beta_prime_range=beta_prime_range,
         result_keys=result_keys,
@@ -486,7 +455,7 @@ def run_reservoir_beta_gamma_evaluation(
     # Set default filename prefix if not provided
     if filename_prefix is None:
         method_suffix = "auto_gamma" if use_gamma_calculation else "manual_gamma"
-        filename_prefix = f"beta_gamma_coupled_{method_suffix}_{task.__name__}"
+        filename_prefix = f"beta_gamma_coupled_tasks_{method_suffix}_{task.__name__}"
     
     return evaluator.evaluate(
         save_dir=result_dir, 
@@ -501,29 +470,59 @@ if __name__ == "__main__":
     # Set up parameters
     ref_beta_prime = 30
     # Create reservoir parameters with reference beta_prime
-    reservoir_params = ReservoirSizeParams(
+    reservoir_params = ReservoirTaskParams(
         ref_beta_prime=ref_beta_prime,
         h=0.4,
         Nvirt=400,
         m0=0.003,
+        Ntrain=2000,  # Reduced for faster testing
+        Ntest=1000,    # Reduced for faster testing
+        speakers=['f1', 'f2', 'f3', 'f4', 'f5'],  # Use all speakers
         params={
             'theta': 0.3,
             'gamma': 0.113,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt':400,
+            'Nvirt': 400,
         }
     )
     
-    beta_prime_range = np.arange(20, 40.5, 0.5)  # Range of beta_prime values to test
-
-    results_auto = run_reservoir_beta_gamma_evaluation(
-        task_type='MC_CQ',
+    beta_prime_range = np.arange(26, 35, 1)   # Small range for testing
+    
+    # # Example 1: Evaluate NARMA10 task only
+    # print("=== Evaluating NARMA10 Task ===")
+    # results_narma10 = run_reservoir_beta_gamma_tasks_evaluation(
+    #     task_type='NARMA10',
+    #     beta_prime_range=beta_prime_range,
+    #     reservoir_params=reservoir_params,
+    #     result_dir="./results",
+    #     plot=False,
+    #     verbose=False,
+    #     use_gamma_calculation=True,
+    #     filename_prefix="narma10_tasks_example"
+    # )
+    
+    # # Example 2: Evaluate TI46 task only
+    # print("\n=== Evaluating TI46 Task ===")
+    # results_ti46 = run_reservoir_beta_gamma_tasks_evaluation(
+    #     task_type='TI46',
+    #     beta_prime_range=beta_prime_range,
+    #     reservoir_params=reservoir_params,
+    #     result_dir="./results",
+    #     plot=False,
+    #     verbose=False,
+    #     use_gamma_calculation=True,
+    #     filename_prefix="ti46_tasks_example"
+    # )
+    
+    # Example 3: Evaluate both tasks
+    print("\n=== Evaluating Both NARMA10 and TI46 Tasks ===")
+    results_both = run_reservoir_beta_gamma_tasks_evaluation(
+        task_type='NARMA10_TI46',
         beta_prime_range=beta_prime_range,
         reservoir_params=reservoir_params,
         result_dir="./results",
         plot=True,
         verbose=False,
         use_gamma_calculation=True,
-        filename_prefix="beta_gamma_auto"
+        filename_prefix="both_tasks_example"
     )
-
