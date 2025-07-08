@@ -4,7 +4,7 @@ Created on Thu Jun 15:24:04 2025
 
 @author: Chen
 
-This script contains a framework for evaluating the MC, KRandGR and computational performance of a superparamagnetic nanodot system (spn) with varying parameters.
+Thic script contains a framework for evaluating the MC, KRandGR and computational performance of a superparamagnetic nanodot system (spn) with varying parameters.
 
 """
 
