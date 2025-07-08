@@ -64,14 +64,14 @@ class ReservoirParams:
 
         # Network parameters 
         self.Nvirt = 50
-        self.m0 = 0.13
+        self.m0 = 0.003
         self.bias = True
         self.Nwarmup = 0
         self.verbose_repr = False
 
         self.params = {
-            'theta': 0.046,
-            'gamma': 0.13738441393289658,
+            'theta': 0.3,
+            'gamma': 0.113,
             'delay_feedback': 0,
             'Nvirt': self.Nvirt,
             'length_warmup': self.Nwarmup,
@@ -355,7 +355,11 @@ def main():
     
     # Define parameter configurations for sweep
     params_configs = {
-        'gamma': np.linspace(0.01, 0.5, 10),
+        # 'beta_prime': np.arange(20, 51, 5),
+        'theta': np.linspace(0.01, 10.0, 10),
+        # 'gamma': np.linspace(0.01, 0.5, 10),
+        'm0': np.linspace(0.001, 0.2, 10), 
+    #     'h': np.linspace(0.3, 0.5, 7)
     }
     
     # Run parameter sweep
@@ -377,6 +381,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # 绘制文件中的数据
-    load_and_plot_results("TI46_parameter_sweep_20250708_154405.pkl")
-    # main()
+    main()
