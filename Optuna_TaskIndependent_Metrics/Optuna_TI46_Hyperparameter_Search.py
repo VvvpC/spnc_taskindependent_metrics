@@ -48,7 +48,7 @@ import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import optuna
-# import optunahub
+import optunahub
 
 
 from Reservoirs_diameter_Tasks import ReservoirTaskParams, evaluate_size_TI46
@@ -85,7 +85,7 @@ def objective_TI46(trial: optuna.Trial) -> float:
     rparams = ReservoirTaskParams(
         h=h,
         m0=m0,
-        Nvirt=50
+        Nvirt=50,
         beta_prime=beta_prime,
         ref_beta_prime=beta_prime,  # 单储层调查：使用当前beta_prime作为参考值
         speakers=None,  # None means use all speakers for the TI46 task
