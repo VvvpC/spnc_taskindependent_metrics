@@ -55,12 +55,12 @@ from Reservoirs_diameter_Tasks import ReservoirTaskParams, evaluate_size_TI46
 
 # 1. 核心架构设计: 超参数空间定义
 HYPERSPACE_TI46 = {
-    "gamma": (0.01, 0.3),
-    "theta": (0.01, 0.8),
-    "m0": (0.001, 0.006),
+    "gamma": (0.01, 0.5),
+    "theta": (0.01, 10),
+    "m0": (0.001, 0.2),
     "h": (0.3, 0.5),
     "beta_prime": (20, 50),
-    "Nvirt": (30, 400),
+    
 }
 
 # 2. 目标函数设计
@@ -79,20 +79,20 @@ def objective_TI46(trial: optuna.Trial) -> float:
     m0 = trial.suggest_float("m0", *HYPERSPACE_TI46["m0"])
     h = trial.suggest_float("h", *HYPERSPACE_TI46["h"])
     beta_prime = trial.suggest_float("beta_prime", *HYPERSPACE_TI46["beta_prime"])
-    Nvirt = trial.suggest_int("Nvirt", *HYPERSPACE_TI46["Nvirt"])
+
 
     # 3.1 数据流处理: 构建 ReservoirTaskParams 实例
     rparams = ReservoirTaskParams(
         h=h,
         m0=m0,
-        Nvirt=Nvirt,
+        Nvirt=50
         beta_prime=beta_prime,
         ref_beta_prime=beta_prime,  # 单储层调查：使用当前beta_prime作为参考值
         speakers=None,  # None means use all speakers for the TI46 task
         params={
             "gamma": gamma,
             "theta": theta,
-            "Nvirt": Nvirt,
+            "Nvirt": 50,
         },
     )
 
@@ -193,7 +193,7 @@ def run_study(n_trials: int, timeout: int, study_name: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Optuna hyperparameter search for TI46 task.")
-    parser.add_argument("--trials", type=int, default=100, help="Number of trials to run.")
+    parser.add_argument("--trials", type=int, default=400, help="Number of trials to run.")
     parser.add_argument("--timeout", type=int, default=None, help="Timeout for the study in seconds.")
     parser.add_argument("--study-name", type=str, default="TI46_hyper_search", help="Name for the Optuna study.")
     parser.add_argument("--dashboard", action="store_true", help="Show command to run Optuna dashboard after the study.")
