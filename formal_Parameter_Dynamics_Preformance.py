@@ -154,7 +154,6 @@ def gen_KR_GR_input(Nreadouts, Nwash=10, seed=1234):
     GR_inputs = np.tile(np.random.ranf((10)), (Nreadouts,1))
     all_inputs = np.concatenate((KR_inputs, GR_inputs), axis=1)
     # 打印all_inputs的前10个元素
-    print(all_inputs[:3])
     return all_inputs
 
 # all_inputs = gen_KR_GR_input(50)
@@ -453,13 +452,13 @@ def test_one_reservoir(reservoir_params, **kwargs):
     
 # 执行test_one_reservoir任务
 
-if __name__ == "__main__":
-    # 设定reservoir_params
-    reservoir_params = ReservoirParams(h=0.4607867044725622, m0=0.005288612874870094, Nvirt=50, beta_prime= 35.13826524755751, params={'gamma': 0.069274461903986, 'theta': 0.34142235979698393, 'Nvirt': 50})
+# if __name__ == "__main__":
+#     # 设定reservoir_params
+#     reservoir_params = ReservoirParams(h=0.4607867044725622, m0=0.005288612874870094, Nvirt=50, beta_prime= 35.13826524755751, params={'gamma': 0.069274461903986, 'theta': 0.34142235979698393, 'Nvirt': 50})
 
-    # 执行test_one_reservoir任务
-    result = test_one_reservoir(reservoir_params)
-    print(result)
+#     # 执行test_one_reservoir任务
+#     result = test_one_reservoir(reservoir_params)
+#     print(result)
 
 
 

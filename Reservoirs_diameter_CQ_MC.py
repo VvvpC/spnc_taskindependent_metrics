@@ -83,7 +83,7 @@ def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
 
     return {'MC': MC}
 
-def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
+def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     """
     Evaluate Computational Quality (KR & GR) using heteroRes_sameinput transform
     """
@@ -499,22 +499,22 @@ def run_reservoir_beta_gamma_evaluation(
 
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 30
+    ref_beta_prime = 35.13826524755751
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirSizeParams(
         ref_beta_prime=ref_beta_prime,
-        h=0.4,
-        Nvirt=400,
-        m0=0.003,
+        h=0.4607867044725622,
+        Nvirt=50,
+        m0=0.005288612874870094,
         params={
-            'theta': 0.3,
-            'gamma': 0.113,  # This will be overridden by the equation
+            'theta': 0.34142235979698393,
+            'gamma': 0.069274461903986,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt':400,
+            'Nvirt':50,
         }
     )
     
-    beta_prime_range = np.arange(20, 40.5, 0.5)  # Range of beta_prime values to test
+    beta_prime_range = np.arange(30, 40.5, 0.5)  # Range of beta_prime values to test
 
     results_auto = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
