@@ -115,7 +115,7 @@ def evaluate_size_TI46(reservoir_params, **kwargs):
         speakers, reservoir_params.Nvirt,
         reservoir_params.m0, reservoir_params.bias,
         transform_with_constant_rate, reservoir_params.params,
-        nfft=512,
+        nfft=1024,
         fixed_mask=kwargs.get('fixed_mask', True),
         seed_mask=kwargs.get('seed_mask', 1234),
         verbose=kwargs.get('verbose', False),
@@ -486,7 +486,7 @@ if __name__ == "__main__":
         }
     )
     
-    beta_prime_range = np.arange(30, 40.5, 1)   # Small range for testing
+    beta_prime_range = np.arange(30, 40.5, 0.5)   # Small range for testing
     
     # # Example 1: Evaluate NARMA10 task only
     # print("=== Evaluating NARMA10 Task ===")
