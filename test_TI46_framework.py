@@ -380,5 +380,7 @@ def main():
     plot_simple_results(results)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+load_and_plot_results("TI46_parameter_sweep_20250708_013126.pkl")
