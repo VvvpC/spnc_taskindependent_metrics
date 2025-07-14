@@ -48,7 +48,7 @@ import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import optuna
-import optunahub
+# import optunahub
 
 
 from Reservoirs_diameter_Tasks import ReservoirTaskParams, evaluate_size_TI46
