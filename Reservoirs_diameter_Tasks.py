@@ -115,9 +115,9 @@ def evaluate_size_TI46(reservoir_params, **kwargs):
         speakers, reservoir_params.Nvirt,
         reservoir_params.m0, reservoir_params.bias,
         transform_with_constant_rate, reservoir_params.params,
-        nfft=1024,
+        nfft=512,
         fixed_mask=kwargs.get('fixed_mask', True),
-        # seed_mask=kwargs.get('seed_mask', 1234),
+        seed_mask=kwargs.get('seed_mask', 1234),
         verbose=kwargs.get('verbose', False),
         return_accuracy=True
     )
@@ -212,7 +212,7 @@ def calculate_gamma_from_beta_prime(beta_prime):
     Returns:
     - gamma: float or array-like, calculated gamma values
     """
-    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248
+    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248 + 0.01121939974938757
     return gamma
 
 class ReservoirTaskBetaGammaEvaluator:
@@ -468,25 +468,25 @@ def run_reservoir_beta_gamma_tasks_evaluation(
 
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 30
+    ref_beta_prime = 35.13826524755751
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirTaskParams(
         ref_beta_prime=ref_beta_prime,
-        h=0.4,
-        Nvirt=400,
-        m0=0.003,
+        h=0.4607867044725622,
+        Nvirt=50,
+        m0=0.005288612874870094,
         Ntrain=2000,  # Reduced for faster testing
         Ntest=1000,    # Reduced for faster testing
         speakers=['f1', 'f2', 'f3', 'f4', 'f5'],  # Use all speakers
         params={
-            'theta': 0.3,
-            'gamma': 0.113,  # This will be overridden by the equation
+            'theta': 0.34142235979698393,
+            'gamma': 0.069274461903986,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt': 400,
+            'Nvirt': 50,
         }
     )
     
-    beta_prime_range = np.arange(26, 35, 1)   # Small range for testing
+    beta_prime_range = np.arange(30, 40.5, 1)   # Small range for testing
     
     # # Example 1: Evaluate NARMA10 task only
     # print("=== Evaluating NARMA10 Task ===")
