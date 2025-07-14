@@ -146,19 +146,25 @@ Here Nwash = 7 for KR, rest of 7 columns are GR
 
 
 '''
-def gen_KR_GR_input(Nreadouts, Nwash=7, seed=1234):
-    rng = np.random.default_rng(seed) 
-    KR_inputs = rng.random((Nreadouts, Nwash))
-    GR_inputs = np.tile(rng.random(7), (Nreadouts, 1)) 
+def gen_KR_GR_input(Nreadouts, Nwash=10, seed=1234):
+    # set seed
+    np.random.seed(seed)
+    # generate KR inputs
+    KR_inputs = np.random.ranf((Nreadouts, Nwash))
+    GR_inputs = np.tile(np.random.ranf((10)), (Nreadouts,1))
     all_inputs = np.concatenate((KR_inputs, GR_inputs), axis=1)
+    # 打印all_inputs的前10个元素
+    print(all_inputs[:3])
     return all_inputs
+
+# all_inputs = gen_KR_GR_input(50)
 
 def Evaluate_KR_GR(states, Nreadouts, threshold=0.1):
     GR_states = states[:,-1,:]
     '''
     Change the last 7 columns to GR states, the rest are KR states
     '''
-    KR_states = states[:,-8,:]
+    KR_states = states[:,-11,:]
     uGR, sGR, vGR = np.linalg.svd(GR_states)
     uKR, sKR, vKR = np.linalg.svd(KR_states)
     KR = 0
@@ -447,13 +453,13 @@ def test_one_reservoir(reservoir_params, **kwargs):
     
 # 执行test_one_reservoir任务
 
-# if __name__ == "__main__":
-#     # 设定reservoir_params
-#     reservoir_params = ReservoirParams(h=0.4055105807072985, m0=0.004305768634622887, Nvirt=20, beta_prime= 41.7965657362074, params={'gamma': 0.06707779187420466, 'theta': 0.09581885346062773, 'Nvirt': 20})
+if __name__ == "__main__":
+    # 设定reservoir_params
+    reservoir_params = ReservoirParams(h=0.4607867044725622, m0=0.005288612874870094, Nvirt=50, beta_prime= 35.13826524755751, params={'gamma': 0.069274461903986, 'theta': 0.34142235979698393, 'Nvirt': 50})
 
-#     # 执行test_one_reservoir任务
-#     result = test_one_reservoir(reservoir_params)
-#     print(result)
+    # 执行test_one_reservoir任务
+    result = test_one_reservoir(reservoir_params)
+    print(result)
 
 
 
