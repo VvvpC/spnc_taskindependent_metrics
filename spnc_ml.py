@@ -301,26 +301,11 @@ def spnc_narma10_heterogenous(Ntrain,Ntest,Nvirt,bias,temp_params,params,res_par
     return beta_primes_temp, nrmse_temp, y_tests, preds, instance_info_train, instance_info_tests, res_info_train, res_info_tests
 
 
-def crop_or_pad(array, target_length):
-    '''
-    array: shape = (N_frams,features)
-    target_length: int, the desired length of the array
-
-    return: (target_length, features)
-
-    '''
-    n = array.shape[0]
-    if n >= target_length:
-        # If the array is longer than the target length, crop it
-        return array[:target_length]
-    else:
-        pad = np.zeros((target_length - n, array.shape[1]), dtype=array.dtype)
-        return np.vstack([array, pad])
     
 
 # 修改后的 spnc_spoken_digits 函数（添加verbose控制）
 
-def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verbose=False, **kwargs):
+def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verbose=True, **kwargs):
     """
     perfoms the spoken digit task with a given resevoirs
 
@@ -362,6 +347,12 @@ def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verb
     # It returns the signal, label, sampling rate and speaker of the data
     train_signal, train_label, train_rate, train_speaker = TI46.load_TI20(
         speakers, digits_only=True, train=True)
+
+    # 检查train_signal的shape
+    vprint("train_signal shape: ", train_signal.shape)
+    vprint("train_label: ", train_label[:10])
+    vprint("train_rate: ", train_rate[:10])
+    vprint("train_speaker: ", train_speaker[:10])
 
     def stratified_split(labels, N, seed=1234):
         '''
@@ -482,6 +473,7 @@ def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verb
     S_test, J_test = SNR.transform(xn_test, params)
     z_test = post_process(S_test, Nblocks, plot=False)
 
+    # evaluate the test accuracy
     conf_mat = np.zeros((Nout, Nout))
 
     Ncorrect = 0

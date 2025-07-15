@@ -71,7 +71,7 @@ class ReservoirParams:
 
         self.params = {
             'theta': 0.3,
-            'gamma': 0.113,
+            'gamma': 0,
             'delay_feedback': 0,
             'Nvirt': self.Nvirt,
             'length_warmup': self.Nwarmup,
@@ -126,7 +126,7 @@ class ReservoirParams:
                 print(f"    {k}: {v}")
 
 
-def run_parameter_sweep(params_configs, speakers, base_params, transform, nfft=2048, save_results=True, filename_prefix="parameter_sweep"):
+def run_parameter_sweep(params_configs, speakers, base_params, transform, nfft=256, save_results=True, filename_prefix="parameter_sweep"):
     """
     Run parameter sweep for all parameter combinations
     
@@ -350,7 +350,7 @@ def main():
     
     # Test basic functionality
     print("\nTesting basic spoken digits recognition...")
-    acc = ml.spnc_spoken_digits(speakers, params.Nvirt, params.m0, params.bias, transform, params.params, nfft=512, return_accuracy=True)
+    acc = ml.spnc_spoken_digits(speakers, params.Nvirt, params.m0, params.bias, transform, params.params, nfft=256, return_accuracy=True)
     print(f"Basic test accuracy: {acc:.4f}")
     
     # Define parameter configurations for sweep
@@ -370,7 +370,7 @@ def main():
         speakers=speakers,
         base_params=params,
         transform=transform,
-        nfft=512,
+        nfft=256,
         save_results=True,
         filename_prefix="TI46_parameter_sweep"
     )
@@ -380,7 +380,7 @@ def main():
     plot_simple_results(results)
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
 
-load_and_plot_results("TI46_parameter_sweep_20250708_013126.pkl")
+# load_and_plot_results("TI46_parameter_sweep_20250708_013126.pkl")
