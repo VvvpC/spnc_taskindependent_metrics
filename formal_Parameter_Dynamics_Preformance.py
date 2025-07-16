@@ -146,12 +146,12 @@ Here Nwash = 7 for KR, rest of 7 columns are GR
 
 
 '''
-def gen_KR_GR_input(Nreadouts, Nwash=10, seed=1234):
+def gen_KR_GR_input(Nreadouts, Nwash=10, seed=6):
     # set seed
     np.random.seed(seed)
     # generate KR inputs
     KR_inputs = np.random.ranf((Nreadouts, Nwash))
-    GR_inputs = np.tile(np.random.ranf((10)), (Nreadouts,1))
+    GR_inputs = np.tile(np.random.ranf((3)), (Nreadouts,1))
     all_inputs = np.concatenate((KR_inputs, GR_inputs), axis=1)
     # 打印all_inputs的前10个元素
     return all_inputs
@@ -163,7 +163,7 @@ def Evaluate_KR_GR(states, Nreadouts, threshold=0.1):
     '''
     Change the last 7 columns to GR states, the rest are KR states
     '''
-    KR_states = states[:,-11,:]
+    KR_states = states[:,-4,:]
     uGR, sGR, vGR = np.linalg.svd(GR_states)
     uKR, sKR, vKR = np.linalg.svd(KR_states)
     KR = 0
