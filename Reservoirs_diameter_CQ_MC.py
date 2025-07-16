@@ -112,7 +112,7 @@ def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
         )
         
         output = RunSpnc(
-            input_row, 1, 1, reservoir_params.Nvirt,
+            input_row, 1, len(input_row), reservoir_params.Nvirt,
             reservoir_params.m0, transform_with_constant_rate, 
             reservoir_params.params,
             fixed_mask=True,
@@ -215,7 +215,7 @@ def calculate_gamma_from_beta_prime(beta_prime):
     Returns:
     - gamma: float or array-like, calculated gamma values
     """
-    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248 + 0.01121939974938757
+    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248 
     return gamma
 
 class ReservoirBetaGammaEvaluator:
@@ -514,7 +514,7 @@ if __name__ == "__main__":
         }
     )
     
-    beta_prime_range = np.arange(15, 30.5, 5)  # Range of beta_prime values to test
+    beta_prime_range = np.arange(15, 25.5, 5)  # Range of beta_prime values to test
 
     results_auto = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
