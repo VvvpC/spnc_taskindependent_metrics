@@ -642,3 +642,62 @@ class spnc_anisotropy:
         return mag
         
 
+    '''
+    let me amend the code with omega_cons
+    from now, the only correct name of omega is omega_cons, and omega_ref equals to omega_cons
+
+    '''
+    def get_omega_cons(self, beta_cons):
+        cons = spnc_anisotropy(0.4, 90, 0, 45, beta_cons)
+        omega_cons = cons.get_omega_prime()
+        return(omega_cons)
+
+    '''
+    set new functions for calculate the magnetisation with omega_cons by using a slow way
+    '''
+
+    def gen_signal_slow_delayed_feedback_omegacons(self, K_s, params, beta_cons, *args,**kwargs):
+        omega_cons = self.get_omega_cons(beta_cons)
+        delta = omega_cons / (self.get_omega_prime())
+
+        theta_T = params['theta']
+        self.k_s = 0
+        T = 1./(self.get_omega_prime()* delta *self.f0)
+
+        gamma = params['gamma']
+        delay_fb = params['delay_feedback']
+        Nvirt = params['Nvirt']
+
+        N = K_s.shape[0]
+        mag = np.zeros(N)
+
+        for idx, j in enumerate(K_s):
+            self.k_s = j + gamma*mag[(idx-Nvirt-delay_fb)%N]
+            calculate_energy_barriers(self)
+            self.evolve(self.f0,theta_T*T)
+            mag[idx] = self.get_m()
+
+        return mag
+
+    def gen_trace_slow_delayed_feedback_omegacons(self,klist,theta,density,params,beta_cons,*args,**kwargs):
+            theta_step = theta/density
+            K_s_expanded = np.zeros(np.size(klist)*density)
+            thetas = np.zeros(np.size(K_s_expanded))
+            idx = 0
+            for k in klist:
+                for i in range(density):
+                    K_s_expanded[idx] = k
+                    thetas[idx] = (idx+1)*theta_step
+                    idx = idx +1
+
+            params['theta'] = theta_step
+            
+
+            mags = self.gen_signal_slow_delayed_feedback_omegacons(K_s_expanded, params,beta_cons)
+
+            K_s = np.concatenate([np.array([0]),K_s_expanded],axis=0)
+            thetas = np.concatenate([np.array([0]),thetas],axis=0)
+            mags = np.concatenate([np.array([0]),mags],axis=0)
+
+
+            return K_s, thetas, mags 

@@ -63,8 +63,8 @@ def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
 
     # Create transform function that maintains constant input rate
     def transform_with_constant_rate(K_s, params, *args, **kwargs):
-        return spn.get_signal_slow_delayed_feedback_heteroRes_sameinput(
-            K_s, params, reservoir_params.ref_beta_prime, reservoir_params.h
+        return spn.gen_signal_slow_delayed_feedback_omegacons(
+            K_s, params, reservoir_params.ref_beta_prime
         )
 
     Output = RunSpnc(
@@ -107,9 +107,9 @@ def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
         
         # Create transform function that maintains constant input rate
         def transform_with_constant_rate(K_s, params, *args, **kwargs):
-            return spn.get_signal_slow_delayed_feedback_heteroRes_sameinput(
-                K_s, params, reservoir_params.ref_beta_prime, reservoir_params.h
-            )
+            return spn.gen_signal_slow_delayed_feedback_omegacons(
+            K_s, params, reservoir_params.ref_beta_prime
+        )
         
         output = RunSpnc(
             input_row, 1, len(input_row), reservoir_params.Nvirt,
@@ -275,7 +275,7 @@ class ReservoirBetaGammaEvaluator:
         if self.use_gamma_calculation:
             # 自动计算gamma值
             gamma_range = calculate_gamma_from_beta_prime(self.beta_prime_range)
-            print(f"Using automatic gamma calculation: γ = 9.66e-5β² - 8.8e-3β + 0.248")
+            print(f"Using automatic gamma calculation")
         else:
             # 使用手动提供的gamma值
             gamma_range = self.gamma_range
