@@ -32,6 +32,8 @@ CANDIDATES = [
     Path(r"C:\Users\tom\Desktop\Repository"),
     Path(r"C:\Users\Chen\Desktop\Repository"),
     Path(r"/Users/vvvp./Desktop"),
+   
+
 ]
 searchpaths = [p for p in CANDIDATES if p.exists()]
 #tuple of repos
@@ -51,7 +53,11 @@ from utility import *
 from NARMA10 import NARMA10
 from datasets.load_TI46_digits import *
 import datasets.load_TI46 as TI46
+from audio_preprocess import mfcc
 from sklearn.metrics import classification_report
+
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 
 def spnc_narma10(Ntrain,Ntest,Nvirt,m0, bias,
@@ -301,11 +307,26 @@ def spnc_narma10_heterogenous(Ntrain,Ntest,Nvirt,bias,temp_params,params,res_par
     return beta_primes_temp, nrmse_temp, y_tests, preds, instance_info_train, instance_info_tests, res_info_train, res_info_tests
 
 
+def crop_or_pad(array, target_length):
+    '''
+    array: shape = (N_frams,features)
+    target_length: int, the desired length of the array
+
+    return: (target_length, features)
+
+    '''
+    n = array.shape[0]
+    if n >= target_length:
+        # If the array is longer than the target length, crop it
+        return array[:target_length]
+    else:
+        pad = np.zeros((target_length - n, array.shape[1]), dtype=array.dtype)
+        return np.vstack([array, pad])
     
 
 # 修改后的 spnc_spoken_digits 函数（添加verbose控制）
 
-def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verbose=True, **kwargs):
+def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verbose=False, **kwargs):
     """
     perfoms the spoken digit task with a given resevoirs
 
@@ -347,12 +368,6 @@ def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verb
     # It returns the signal, label, sampling rate and speaker of the data
     train_signal, train_label, train_rate, train_speaker = TI46.load_TI20(
         speakers, digits_only=True, train=True)
-
-    # 检查train_signal的shape
-    vprint("train_signal shape: ", train_signal.shape)
-    vprint("train_label: ", train_label[:10])
-    vprint("train_rate: ", train_rate[:10])
-    vprint("train_speaker: ", train_speaker[:10])
 
     def stratified_split(labels, N, seed=1234):
         '''
@@ -473,7 +488,6 @@ def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verb
     S_test, J_test = SNR.transform(xn_test, params)
     z_test = post_process(S_test, Nblocks, plot=False)
 
-    # evaluate the test accuracy
     conf_mat = np.zeros((Nout, Nout))
 
     Ncorrect = 0
@@ -512,3 +526,135 @@ def spnc_spoken_digits(speakers, Nvirt, m0, bias, transform, params, *args, verb
 
 
 # ################# THIS LINE IS LEFT INTENTIONALLY COMMENTED ###############
+
+'''
+Add new arguments:
+    -Nvirt: number of virtual nodes for the resevoir
+    -m0: input scaling, no scaling for value of 1
+    -bias: True - use bias, False - don't
+old version: def spnc_TI46(speakers, params, res_transform = None, prepro = "mfcc",  *args, **kwargs):
+
+new version: def spnc_TI46(speakers, Nvirt, m0, bias, res_transform = None, prepro = "mfcc", *args, **kwargs):
+'''
+def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = None, prepro = "mfcc", *args, **kwargs):
+
+    # Select whether to run or load reservoir transformation from file
+    force_compute = True
+
+    # Specifying digits_only=True and train=True returns only the spoken digits part of TI20 training set
+    # It returns the signal, label, sampling rate and speaker of the data
+    train_signal, train_label, train_rate, train_speaker = TI46.load_TI20(speakers, digits_only=True, train=True)
+
+
+    # To load the test data, specify train=False
+    test_signal, test_label, test_rate, test_speaker = TI46.load_TI20(speakers, digits_only=True, train=False)
+
+    print("Samples for training: ", len(train_signal))
+    print("Samples for test: ", len(test_signal))
+
+
+    # Pre-processing
+    if prepro == "mfcc":
+        print('Using MFCC preprocessing')
+        pre_process = mfcc(rate=train_rate[0], nfft=1024)
+
+    x_train = pre_process.fit_transform(train_signal)
+
+
+    #Normalise the input into the range 0 - 1
+    prescaler = normaliser()
+    xn = prescaler.fit_transform(x_train)
+
+
+    Nin = x_train[0].shape[-1]
+    Nout = len(np.unique(train_label))
+
+    print( 'Nin =', Nin, ', Nout = ', Nout, ', Nvirt = ', Nvirt)
+
+
+    SNR = single_node_reservoir(Nin, Nout, Nvirt, m0, dilution=1.0, res=res_transform)
+
+    fixed_mask = kwargs.get('fixed_mask', True)
+    if fixed_mask:
+        print("Deterministic mask will be used")
+        SNR.M = fixed_seed_mask(Nin, Nvirt, m0)
+
+    S_train, J_train = SNR.transform(xn, params)
+
+    print(J_train.shape, J_train[0].shape)
+    print(S_train.shape, S_train[0].shape)
+
+    Nblocks = 8
+
+    res_scaler = scaler()
+
+    res_scaler.fit(S_train)
+
+    #post_process = lambda S, *args, **kwargs : np.copy(S)
+    #post_process = lambda S, *args, **kwargs : res_scaler.transform(block_process(S, Nblocks, plot=True))
+    post_process = lambda S, *args, **kwargs : res_scaler.transform(S)
+
+    z_train = post_process(S_train, Nblocks, plot=True)
+
+
+    # Instantiate a linear output layer
+    # act and inv_act are the activation function and it's inverse
+    # either leave blank or set to linear to not apply activation fn
+    net = linear(Nvirt, Nout, bias=bias)
+
+
+    # Select how many utterances to train on
+    Ntrain_utter = 8
+    split1, split2 = stratified_split((train_speaker, train_label), Ntrain_utter)
+
+
+    # Create desired 1 hot output for the training
+    y_train_1h = create_1hot_like(Nout, z_train, train_label)
+
+    # Since TI46 is stored as a list of np arrays stack these into a flat array
+    z_train_flat = np.vstack(z_train[split1])
+    y_train_1h_flat = np.vstack(y_train_1h[split1])
+
+
+    # Use the ridge regression training routine
+    alpha = RR.Kfold_train(net, z_train_flat, y_train_1h_flat, 5, quiet=True)
+    print('Optimal regression parameter = ', alpha)
+
+    #Save the weights if needed
+    np.savetxt('Weights', net.W)
+
+
+    # Calculated the predicted labels on the training set and print information
+    print('Train report')
+    pred_labels = np.array([ np.argmax(np.mean(net.forward(zi), axis=0)) for zi in z_train[split1] ])
+    print(classification_report(train_label[split1], pred_labels, digits=3))
+
+    # If some utterances were held back for validation now calculate predicted labels
+    if Ntrain_utter < 10:
+        print('Valid report')
+        pred_labels = np.array([ np.argmax(np.mean(net.forward(zi), axis=0)) for zi in z_train[split2] ])
+        print(classification_report(train_label[split2], pred_labels, digits=3))
+
+        valid_report = classification_report(train_label[split2], pred_labels, output_dict=True)
+        conf_mat = confusion_matrix(train_label[split2], pred_labels)
+
+
+    # Now perform calculation on the test part of the data set
+
+    params["name"] = "test"
+
+    # Use the fitted/trained parts of the model to transform the test data
+    x_test = pre_process.transform(test_signal)
+    xn_test = prescaler.transform(x_test)
+    S_test, J_test = SNR.transform(xn_test, params, force_compute)
+    z_test = post_process(S_test, Nblocks, plot=False)
+
+    # Predict the labels from the predicted output
+    pred_labels = np.array([ np.argmax(np.mean(net.forward(zi), axis=0)) for zi in z_test ])
+
+    print(classification_report(test_label, pred_labels, digits=3))
+
+    test_report = classification_report(test_label, pred_labels, output_dict=True)
+    conf_mat = confusion_matrix(test_label, pred_labels)
+
+    return accuracy_score(test_label, pred_labels)
