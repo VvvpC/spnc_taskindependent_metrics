@@ -55,11 +55,11 @@ from Reservoirs_diameter_Tasks import ReservoirTaskParams, evaluate_size_TI46
 
 # 1. 核心架构设计: 超参数空间定义
 HYPERSPACE_TI46 = {
-    "gamma": (0.01, 0.5),
+    "gamma": (0, 0.5),
     "theta": (0.01, 10),
-    "m0": (0.001, 0.2),
+    "m0": (0.001, 0.5),
     "h": (0.3, 0.5),
-    "beta_prime": (20, 50),
+    "beta_prime": (20,50),
     
 }
 

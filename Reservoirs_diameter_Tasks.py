@@ -111,16 +111,13 @@ def evaluate_size_TI46(reservoir_params, **kwargs):
     # Use the TI46 function from spnc_ml
     speakers = kwargs.get('speakers', reservoir_params.speakers)
     
-    accuracy = ml.spnc_spoken_digits(
-        speakers, reservoir_params.Nvirt,
-        reservoir_params.m0, reservoir_params.bias,
-        transform_with_constant_rate, reservoir_params.params,
-        nfft=1024,
-        fixed_mask=kwargs.get('fixed_mask', True),
-        seed_mask=kwargs.get('seed_mask', 1234),
-        verbose=kwargs.get('verbose', False),
-        return_accuracy=True
-    )
+    accuracy = ml.spnc_TI46(speakers, 
+                            reservoir_params.Nvirt,
+                            reservoir_params.m0, 
+                            reservoir_params.bias,
+                            transform_with_constant_rate, 
+                            reservoir_params.params)
+
 
     return {'Accuracy': accuracy}
 
