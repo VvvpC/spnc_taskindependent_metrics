@@ -50,7 +50,7 @@ import optunahub
 from Optuna_Dashboard import run_dashboard
 
 # Import the metric/evaluation toolkit
-from Parameter_Dynamics_Preformance import (
+from formal_Parameter_Dynamics_Preformance import (
     ReservoirParams,
     evaluate_MC,
     evaluate_KRandGR,
@@ -60,12 +60,10 @@ from Parameter_Dynamics_Preformance import (
 # 1. Search‑space definition
 # ──────────────────────────────────────────────────────────────────────────────
 HYPERSPACE = {
-    "gamma": (0.01, 0.3),       
-    "theta": (0.01, 0.8),       
-    "m0": (0.001, 0.006),        
-    "h": (0.3, 0.5),           
-    "beta_prime": (20, 50),     
-    "Nvirt": (30, 400),         
+    "gamma": (0, 0.5),       
+    "theta": (0.01, 10),       
+    "m0": (0.001, 0.5),                   
+    "beta_prime": (20, 50),              
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -78,20 +76,18 @@ def objective(trial: optuna.Trial):
     gamma = trial.suggest_float("gamma", *HYPERSPACE["gamma"])
     theta = trial.suggest_float("theta", *HYPERSPACE["theta"])
     m0 = trial.suggest_float("m0", *HYPERSPACE["m0"])
-    h = trial.suggest_float("h", *HYPERSPACE["h"])
     beta_prime = trial.suggest_float("beta_prime", *HYPERSPACE["beta_prime"])
-    Nvirt = trial.suggest_int("Nvirt", *HYPERSPACE["Nvirt"])
 
     # Build a ReservoirParams instance with the sampled values
     rparams = ReservoirParams(
-        h=h,
+        h=0.4,
         m0=m0,
-        Nvirt=Nvirt,
+        Nvirt=200,
         beta_prime=beta_prime,
         params={
             "gamma": gamma,
             "theta": theta,
-            "Nvirt": Nvirt,
+            "Nvirt": 200,
         },
     )
 

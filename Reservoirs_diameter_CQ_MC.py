@@ -49,7 +49,7 @@ def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
     """
     Evaluate Memory Capacity using heteroRes_sameinput transform to maintain constant input rate
     """
-    signal = generate_signal(signal_len, seed=kwargs.get('seed', 6))
+    signal = generate_signal(signal_len, seed=kwargs.get('seed', 1234))
 
     # Create spnc with current beta_prime
     spn = spnc_anisotropy(
@@ -76,20 +76,20 @@ def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
         transform_with_constant_rate,
         reservoir_params.params,
         fixed_mask=True,
-        seed_mask=6
+        seed_mask=1234
     )
 
     MC = linear_MC(signal, Output, splits=[0.2, 0.6], delays=10)
 
     return {'MC': MC}
 
-def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
+def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     """
     Evaluate Computational Quality (KR & GR) using heteroRes_sameinput transform
     """
     Nreadouts = reservoir_params.Nvirt
 
-    inputs = gen_KR_GR_input(Nreadouts, Nwash, seed=6)
+    inputs = gen_KR_GR_input(Nreadouts, Nwash, seed=1234)
     outputs = []
     
     for input_row in inputs:
@@ -112,16 +112,17 @@ def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
         )
         
         output = RunSpnc(
-            input_row, 1, len(input_row), reservoir_params.Nvirt,
+            input_row, 1, 1, reservoir_params.Nvirt,
             reservoir_params.m0, transform_with_constant_rate, 
             reservoir_params.params,
             fixed_mask=True,
-            seed_mask=6
+            seed_mask=1234
         )
         outputs.append(output)
     
     States = np.stack(outputs, axis=0)
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.1)
+    States = States/np.amax(States)
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)
     
     return {'KR': KR, 'GR': GR}
 
@@ -215,7 +216,7 @@ def calculate_gamma_from_beta_prime(beta_prime):
     Returns:
     - gamma: float or array-like, calculated gamma values
     """
-    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248 
+    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248 + 0.01121939974938757
     return gamma
 
 class ReservoirBetaGammaEvaluator:
@@ -499,22 +500,22 @@ def run_reservoir_beta_gamma_evaluation(
 
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 20
+    ref_beta_prime = 35.13826524755751
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirSizeParams(
         ref_beta_prime=ref_beta_prime,
         h=0.4,
-        Nvirt=50,
-        m0=0.003,
+        Nvirt=40,
+        m0=0.005288612874870094,
         params={
-            'theta': 0.3,
-            'gamma': 0.113,  # This will be overridden by the equation
+            'theta': 0.34142235979698393,
+            'gamma': 0.069274461903986,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt':50,
+            'Nvirt':40,
         }
     )
     
-    beta_prime_range = np.arange(15, 25.5, 5)  # Range of beta_prime values to test
+    beta_prime_range = np.arange(25, 40.5, 5)  # Range of beta_prime values to test
 
     results_auto = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
@@ -524,6 +525,7 @@ if __name__ == "__main__":
         plot=True,
         verbose=False,
         use_gamma_calculation=True,
-        filename_prefix="beta_gamma_auto"
+        # gamma_range=[0.04607867044725622,0.04607867044725622,0.04607867044725622,0.04607867044725622],
+        filename_prefix="beta_gamma_fixed"
     )
 

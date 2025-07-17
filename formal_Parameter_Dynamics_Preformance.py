@@ -146,24 +146,23 @@ Here Nwash = 7 for KR, rest of 7 columns are GR
 
 
 '''
-def gen_KR_GR_input(Nreadouts, Nwash=10, seed=6):
+def gen_KR_GR_input(Nreadouts, Nwash=10, seed=1234):
     # set seed
     np.random.seed(seed)
     # generate KR inputs
     KR_inputs = np.random.ranf((Nreadouts, Nwash))
-    GR_inputs = np.tile(np.random.ranf((3)), (Nreadouts,1))
+    GR_inputs = np.tile(np.random.ranf((10)), (Nreadouts,1))
     all_inputs = np.concatenate((KR_inputs, GR_inputs), axis=1)
     # 打印all_inputs的前10个元素
     return all_inputs
 
-# all_inputs = gen_KR_GR_input(50)
 
-def Evaluate_KR_GR(states, Nreadouts, threshold=0.1):
+def Evaluate_KR_GR(states, Nreadouts, threshold=0.001):
     GR_states = states[:,-1,:]
     '''
     Change the last 7 columns to GR states, the rest are KR states
     '''
-    KR_states = states[:,-4,:]
+    KR_states = states[:,-11,:]
     uGR, sGR, vGR = np.linalg.svd(GR_states)
     uKR, sKR, vKR = np.linalg.svd(KR_states)
     KR = 0
@@ -379,7 +378,7 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
     Output = RunSpnc(
         signal,
         1,                 
-        len(signal),       
+        1,       
         reservoir_params.Nvirt,
         reservoir_params.m0,
         transform,
@@ -409,11 +408,12 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
                               reservoir_params.k_s_0, reservoir_params.phi,
                               reservoir_params.beta_prime, restart=True)
         transforms = spn.gen_signal_slow_delayed_feedback
-        output = RunSpnc(input_row, 1, len(input_row), reservoir_params.Nvirt,
+        output = RunSpnc(input_row, 1, 1, reservoir_params.Nvirt,
                          reservoir_params.m0, transforms, reservoir_params.params)
         outputs.append(output)
     States = np.stack(outputs, axis=0)
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.1)  # <--- 用Nreadouts
+    States = States/np.amax(States)
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)  # <--- 用Nreadouts
     return {'KR': KR, 'GR': GR}
 
 
