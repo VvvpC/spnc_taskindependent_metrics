@@ -577,7 +577,7 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
     fixed_mask = kwargs.get('fixed_mask', True)
     if fixed_mask:
         print("Deterministic mask will be used")
-        SNR.M = fixed_seed_mask(Nin, Nvirt, 0.13)
+        SNR.M = fixed_seed_mask(Nin, Nvirt, m0)
 
     S_train, J_train = SNR.transform(xn, params)
 
