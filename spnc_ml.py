@@ -621,7 +621,7 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
     print('Optimal regression parameter = ', alpha)
 
     #Save the weights if needed
-    np.savetxt('Weights', net.W)
+    # np.savetxt('Weights', net.W)
 
 
     # Calculated the predicted labels on the training set and print information
@@ -656,5 +656,7 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
 
     test_report = classification_report(test_label, pred_labels, output_dict=True)
     conf_mat = confusion_matrix(test_label, pred_labels)
+    
+
 
     return accuracy_score(test_label, pred_labels)
