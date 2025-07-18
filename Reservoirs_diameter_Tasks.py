@@ -68,8 +68,8 @@ def evaluate_size_NARMA10(reservoir_params, **kwargs):
 
     # Create transform function that maintains constant input rate
     def transform_with_constant_rate(signal, params, *args, **kwargs):
-        return spn.get_signal_slow_delayed_feedback_heteroRes_sameinput(
-            signal, params, reservoir_params.ref_beta_prime, reservoir_params.h
+        return spn.gen_signal_slow_delayed_feedback_omegacons(
+            signal, params, reservoir_params.ref_beta_prime 
         )
 
     # Use the NARMA10 function from spnc_ml
@@ -104,22 +104,19 @@ def evaluate_size_TI46(reservoir_params, **kwargs):
 
     # Create transform function that maintains constant input rate
     def transform_with_constant_rate(signal, params, *args, **kwargs):
-        return spn.get_signal_slow_delayed_feedback_heteroRes_sameinput(
-            signal, params, reservoir_params.ref_beta_prime, reservoir_params.h
+        return spn.gen_signal_slow_delayed_feedback_omegacons(
+            signal, params, reservoir_params.ref_beta_prime, 
         )
 
     # Use the TI46 function from spnc_ml
     speakers = kwargs.get('speakers', reservoir_params.speakers)
     
-    accuracy = ml.spnc_spoken_digits(
+    accuracy = ml.spnc_TI46(
         speakers, reservoir_params.Nvirt,
         reservoir_params.m0, reservoir_params.bias,
         transform_with_constant_rate, reservoir_params.params,
-        nfft=1024,
         fixed_mask=kwargs.get('fixed_mask', True),
         seed_mask=kwargs.get('seed_mask', 1234),
-        verbose=kwargs.get('verbose', False),
-        return_accuracy=True
     )
 
     return {'Accuracy': accuracy}
@@ -468,25 +465,25 @@ def run_reservoir_beta_gamma_tasks_evaluation(
 
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 35.13826524755751
+    ref_beta_prime = 29.14406097255966
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirTaskParams(
         ref_beta_prime=ref_beta_prime,
-        h=0.4607867044725622,
-        Nvirt=50,
-        m0=0.005288612874870094,
+        h=0.4,
+        Nvirt=200,
+        m0=0.004703581408469578,
         Ntrain=2000,  # Reduced for faster testing
         Ntest=1000,    # Reduced for faster testing
         speakers=['f1', 'f2', 'f3', 'f4', 'f5'],  # Use all speakers
         params={
-            'theta': 0.34142235979698393,
-            'gamma': 0.069274461903986,  # This will be overridden by the equation
+            'theta': 0.13798577326972078,
+            'gamma': 0.05110574322049721,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt': 50,
+            'Nvirt': 200,
         }
     )
     
-    beta_prime_range = np.arange(30, 40.5, 0.5)   # Small range for testing
+    beta_prime_range = np.arange(25, 35.5, 0.5)   # Small range for testing
     
     # # Example 1: Evaluate NARMA10 task only
     # print("=== Evaluating NARMA10 Task ===")
@@ -523,6 +520,7 @@ if __name__ == "__main__":
         result_dir="./results",
         plot=True,
         verbose=False,
-        use_gamma_calculation=True,
+        use_gamma_calculation=False,
+        gamma_range=[0.05110574322049721 for _ in range(21)],
         filename_prefix="both_tasks_example"
     )
