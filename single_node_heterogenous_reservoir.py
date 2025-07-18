@@ -17,10 +17,11 @@ adjust it by comparing with the single_node_res.py
 15/01/25 by chen record the signal of each instance and signal of whole reservoir in order to understand the signal magnitude
 '''
 
-def parallel_compute_mag(instance, weight, J_1d, params, beta_ref, h):
+
+def parallel_compute_mag(instance, weight, J_1d, params, beta_ref):
     with contextlib.redirect_stdout(io.StringIO()):
-        result = instance.get_signal_slow_delayed_feedback_heteroRes_sameinput(
-            J_1d, params, beta_ref, h)* weight
+        result = instance.gen_signal_slow_delayed_feedback_omegacons(
+            J_1d, params, beta_ref)* weight
     
     return result 
 
