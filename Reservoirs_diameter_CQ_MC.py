@@ -515,7 +515,7 @@ if __name__ == "__main__":
         }
     )
     
-    beta_prime_range = np.arange(25, 40.5, 5)  # Range of beta_prime values to test
+    beta_prime_range = np.arange(25, 40.5, 0.5)  # Range of beta_prime values to test
 
     results_auto = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
@@ -525,7 +525,8 @@ if __name__ == "__main__":
         plot=True,
         verbose=False,
         use_gamma_calculation=True,
+        # gamma_range = [0.04607867044725622 for _ in range(31)],
         # gamma_range=[0.04607867044725622,0.04607867044725622,0.04607867044725622,0.04607867044725622],
-        filename_prefix="beta_gamma_fixed"
+        filename_prefix="beta_gamma_lettryautogamma"
     )
 
