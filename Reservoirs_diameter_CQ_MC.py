@@ -30,7 +30,7 @@ class ReservoirSizeParams(ReservoirParams):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Add reference beta_prime for consistent input rate
-        self.ref_beta_prime = kwargs.get('ref_beta_prime', 35.13826524755751)
+        self.ref_beta_prime = kwargs.get('ref_beta_prime', 20)
 
     def print_params(self, verbose=True):
         if not verbose:
@@ -66,6 +66,9 @@ def evaluate_size_MC(reservoir_params, signal_len=550, **kwargs):
         return spn.gen_signal_slow_delayed_feedback_omegacons(
             K_s, params, reservoir_params.ref_beta_prime
         )
+        # return spn.gen_signal_fast_delayed_feedback_omegacons(
+        #     K_s, params, reservoir_params.ref_beta_prime
+        # )
 
     Output = RunSpnc(
         signal,
@@ -108,8 +111,11 @@ def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
         # Create transform function that maintains constant input rate
         def transform_with_constant_rate(K_s, params, *args, **kwargs):
             return spn.gen_signal_slow_delayed_feedback_omegacons(
-            K_s, params, reservoir_params.ref_beta_prime
-        )
+                K_s, params, reservoir_params.ref_beta_prime
+            )
+            # return spn.gen_signal_fast_delayed_feedback_omegacons(
+            #     K_s, params, reservoir_params.ref_beta_prime
+            # )
         
         output = RunSpnc(
             input_row, 1, 1, reservoir_params.Nvirt,
@@ -216,7 +222,10 @@ def calculate_gamma_from_beta_prime(beta_prime):
     Returns:
     - gamma: float or array-like, calculated gamma values
     """
-    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248 + 0.01121939974938757
+    # for alex's data
+    # gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.25306
+    # for pareto-front value point
+    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.259274461903986
     return gamma
 
 class ReservoirBetaGammaEvaluator:
@@ -486,8 +495,8 @@ def run_reservoir_beta_gamma_evaluation(
     
     # Set default filename prefix if not provided
     if filename_prefix is None:
-        method_suffix = "auto_gamma" if use_gamma_calculation else "manual_gamma"
-        filename_prefix = f"beta_gamma_coupled_{method_suffix}_{task.__name__}"
+        method_suffix = "fitted_gamma" if use_gamma_calculation else "fixed_gamma"
+        filename_prefix = f"diameterchange_{method_suffix}_{task.__name__}"
     
     return evaluator.evaluate(
         save_dir=result_dir, 
@@ -505,17 +514,17 @@ if __name__ == "__main__":
     reservoir_params = ReservoirSizeParams(
         ref_beta_prime=ref_beta_prime,
         h=0.4,
-        Nvirt=40,
+        Nvirt=267,
         m0=0.005288612874870094,
         params={
             'theta': 0.34142235979698393,
             'gamma': 0.069274461903986,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt':40,
+            'Nvirt':267,
         }
     )
     
-    beta_prime_range = np.arange(25, 40.5, 0.5)  # Range of beta_prime values to test
+    beta_prime_range = np.arange(30, 40.5, 0.5)  # Range of beta_prime values to test
 
     results_auto = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
@@ -525,8 +534,7 @@ if __name__ == "__main__":
         plot=True,
         verbose=False,
         use_gamma_calculation=True,
-        # gamma_range = [0.04607867044725622 for _ in range(31)],
-        # gamma_range=[0.04607867044725622,0.04607867044725622,0.04607867044725622,0.04607867044725622],
-        filename_prefix="beta_gamma_lettryautogamma"
+        # gamma_range = [0.2 for _ in range(11)],
+        filename_prefix=None
     )
 
