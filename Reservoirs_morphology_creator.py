@@ -88,59 +88,61 @@ class ReservoirMorphologyManager:
         
         else:
             raise ValueError(f"Unsupported morphology type: {config.morph_type}")
-    
-    def create_reservoir(self, config: MorphologyConfig, reservoir_params: ReservoirParams):
-        """Create the reservoir with different morphology"""
-        if config.morph_type == 'uniform':
-            # create the uniform reservoir
-            return spnc_anisotropy(
-                h=reservoir_params.h,
-                theta_H=reservoir_params.theta_H,
-                k_s=reservoir_params.k_s_0,
-                phi=reservoir_params.phi,
-                beta_prime=reservoir_params.beta_prime,
-                restart=True
-            )
-        
-        elif config.morph_type in ['gradient', 'normaldistribution', 'random']:
-            # generate the heterogenous reservoir
-            # first, generate the deltabeta list, according to the config(the design of the reservoir morphology)
-            deltabeta_list = self.generate_deltabeta_list(config, reservoir_params.beta_prime)
-            
-            # copy the params of the uniform reservoir, to generate a params for the heterogenous reservoir
-            # because I use the 'single_node_heterogenous_reservoir' function to generate the heterogenous reservoir instead of 'spnc_anisotropy'
-            temp_params = {
-                'beta_prime': reservoir_params.beta_prime,
-                'beta_ref': reservoir_params.beta_prime
-            }
-            
-            res_params = {
-                'h': reservoir_params.h,
-                'm0': reservoir_params.m0,
-                'deltabeta_list': deltabeta_list
-            }
-            
-            return single_node_heterogenous_reservoir(
-                Nin=1,
-                Nvirt=reservoir_params.Nvirt, 
-                Nout=1,  
-                temp_params=temp_params,
-                res_params=res_params,
-                dilution=1.0,
-                identity=False
 
-            )
-        
-        else:
-            raise ValueError(f"Unsupported morphology type: {config.morph_type}")
+    # 不在ReservoirMorphologyManager中创建储层. 将这一步后移到Reservoirs_morphology_evaluation.py中
     
-    def get_transform_function(self, reservoir, config: MorphologyConfig):
-        """set the transform function for the reservoir"""
-        if config.morph_type == 'uniform':
-            return reservoir.gen_signal_fast_delayed_feedback_omegacons
-        else:
-            # 需要再次核实下
-            return reservoir.transform
+    # def create_reservoir(self, config: MorphologyConfig, reservoir_params: ReservoirParams):
+    #     """Create the reservoir with different morphology"""
+    #     if config.morph_type == 'uniform':
+    #         # create the uniform reservoir
+    #         return spnc_anisotropy(
+    #             h=reservoir_params.h,
+    #             theta_H=reservoir_params.theta_H,
+    #             k_s=reservoir_params.k_s_0,
+    #             phi=reservoir_params.phi,
+    #             beta_prime=reservoir_params.beta_prime,
+    #             restart=True
+    #         )
+        
+    #     elif config.morph_type in ['gradient', 'normaldistribution', 'random']:
+    #         # generate the heterogenous reservoir
+    #         # first, generate the deltabeta list, according to the config(the design of the reservoir morphology)
+    #         deltabeta_list = self.generate_deltabeta_list(config, reservoir_params.beta_prime)
+            
+    #         # copy the params of the uniform reservoir, to generate a params for the heterogenous reservoir
+    #         # because I use the 'single_node_heterogenous_reservoir' function to generate the heterogenous reservoir instead of 'spnc_anisotropy'
+    #         temp_params = {
+    #             'beta_prime': reservoir_params.beta_prime,
+    #             'beta_ref': reservoir_params.beta_prime
+    #         }
+            
+    #         res_params = {
+    #             'h': reservoir_params.h,
+    #             'm0': reservoir_params.m0,
+    #             'deltabeta_list': deltabeta_list
+    #         }
+            
+    #         return single_node_heterogenous_reservoir(
+    #             Nin=1,
+    #             Nvirt=reservoir_params.Nvirt, 
+    #             Nout=1,  
+    #             temp_params=temp_params,
+    #             res_params=res_params,
+    #             dilution=1.0,
+    #             identity=False
+
+    #         )
+        
+    #     else:
+    #         raise ValueError(f"Unsupported morphology type: {config.morph_type}")
+    
+    # def get_transform_function(self, reservoir, config: MorphologyConfig):
+    #     """set the transform function for the reservoir"""
+    #     if config.morph_type == 'uniform':
+    #         return reservoir.gen_signal_fast_delayed_feedback_omegacons
+    #     else:
+    #         # 需要再次核实下
+    #         return reservoir.transform
     
     def generate_weights(self, reservoir, config: MorphologyConfig):
         """
