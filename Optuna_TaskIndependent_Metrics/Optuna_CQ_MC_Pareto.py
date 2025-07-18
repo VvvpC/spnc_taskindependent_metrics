@@ -46,7 +46,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from contextlib import suppress
 import optuna
-import optunahub
+from optuna.samplers import GPSampler
 from Optuna_Dashboard import run_dashboard
 
 # Import the metric/evaluation toolkit
@@ -61,8 +61,8 @@ from formal_Parameter_Dynamics_Preformance import (
 # ──────────────────────────────────────────────────────────────────────────────
 HYPERSPACE = {
     "gamma": (0, 0.5),       
-    "theta": (0.01, 10),       
-    "m0": (0.001, 0.5),                   
+    "theta": (0.01, 0.6),       
+    "m0": (0.001, 0.008),                   
     "beta_prime": (20, 50),              
 }
 
@@ -101,7 +101,7 @@ def objective(trial: optuna.Trial):
     CQ = KR - GR
 
     # Early pruning if hopeless
-    if MC < 0.50 or CQ < 0:
+    if MC < 0 or CQ < 0:
         raise optuna.exceptions.TrialPruned()
 
     # Optuna will *maximise* both outputs
@@ -134,12 +134,13 @@ def create_study():
             print(f"Study '{new_study_name}' doesn't exist, Create it。")
             break
     
-    module = optunahub.load_module(package="samplers/auto_sampler")
+    sampler = GPSampler()
+
 
     # set up the object of the study
     study = optuna.create_study(
         # set the samplers
-        sampler=module.AutoSampler(),
+        sampler=sampler,
         # set the direction of the objectives
         directions=["maximize", "maximize"],  
         storage=storage,
