@@ -150,27 +150,8 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
     
 
 
-def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: MorphologyConfig, Nreadouts: int = 50, Nwash: int = 7, **kwargs):
-    """
-    评估异质储层的KR和GR
-    
-    Parameters:
-    -----------
-    reservoir_params : ReservoirParams
-        储层参数
-    config : MorphologyConfig
-        形貌配置
-    Nreadouts : int
-        读出数量
-    Nwash : int
-        冲洗参数
-    **kwargs : dict
-        额外参数
-        
-    Returns:
-    --------
-    dict: {'KR': float, 'GR': float}
-    """
+def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: MorphologyConfig, Nreadouts: int = 50, Nwash: int = 10, **kwargs):
+
     # 使用reservoir的Nvirt作为Nreadouts
     Nreadouts = reservoir_params.Nvirt
     
@@ -193,8 +174,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
                 reservoir_params.beta_prime,
                 restart=True)
             
-            def transform_with_constant_rate(K_s, params, *args, **kwargs):
-                return spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params)
+            transform = spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params)
         
             output = RunSpnc(
                 input_row,
@@ -202,7 +182,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
                 1,       
                 reservoir_params.Nvirt,
                 reservoir_params.m0,
-                transform_with_constant_rate,
+                transform,
                 reservoir_params.params,
                 fixed_mask=True,
                 seed_mask=1234
@@ -218,7 +198,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
             deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
             # 生成权重
-            weights = [1.0/len(deltabeta_list)] * len(deltabeta_list)
+            weights = manager.generate_weights(config, reservoir_params)
 
             # 生成 temp_params 和 res_params
             temp_params = {
@@ -274,20 +254,18 @@ def evaluate_reservoir_performance(reservoir_params: ReservoirParams, config: Mo
     --------
     dict: {'MC': float, 'KR': float, 'GR': float, 'CQ': float}
     """
-    # 统一使用异质储层评估函数，内部会根据 config.morph_type 自动判断
-    # 'uniform' 类型会调用标准的 spnc_anisotropy + RunSpnc
-    # 其他类型会调用异质储层的 RunSpnc_heterogenous
     mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, **kwargs)
     kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, **kwargs)
+
+    results['CQ'] = results['KR'] - results['GR']
     
     # 合并结果
     results = {
         'MC': mc_dict.get('MC', 0.0),
+        'CQ': mc_dict.get('CQ', 0.0),
         'KR': kgr_dict.get('KR', 0.0),
         'GR': kgr_dict.get('GR', 0.0)
     }
     
-    # 计算CQ
-    results['CQ'] = results['KR'] - results['GR']
-    
+
     return results 
