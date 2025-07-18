@@ -26,9 +26,12 @@ from formal_Parameter_Dynamics_Preformance import (
     Evaluate_KR_GR,
     evaluate_MC,
     evaluate_KRandGR,
-    RunSpnc
+    RunSpnc,
+    fixed_seed_mask,
+    max_sequences_mask
 )
 from single_node_heterogenous_reservoir import single_node_heterogenous_reservoir
+from spnc import spnc_anisotropy
 
 def RunSpnc_heterogenous(signal, Nin, Nvirt, Nout, temp_params, res_params, params, *weights, **kwargs):
 
@@ -74,9 +77,9 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
     """
     # 生成测试信号
     signal = generate_signal(signal_len, seed=kwargs.get('seed', 1234))
-    # judge the type of reservoir_params
-    if config,morph_type == 'uniform':
-        # uniform reservoir: use RunSpnc
+    # 判断储层类型
+    if config.morph_type == 'uniform':
+        # 均质储层：使用 RunSpnc
         spn = spnc_anisotropy(
             reservoir_params.h,
             reservoir_params.theta_H,
@@ -85,12 +88,13 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
             reservoir_params.beta_prime,
             restart=True)
         
-        transform = spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params, reservoir_params.ref_beta_prime)
+        def transform_with_constant_rate(K_s, params, *args, **kwargs):
+            return spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params)
     
         Output = RunSpnc(
             signal,
             1,                 
-            1,       
+            len(signal),       
             reservoir_params.Nvirt,
             reservoir_params.m0,
             transform_with_constant_rate,
@@ -100,21 +104,21 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
         )
 
     else:
-        # heterogeneous reservoir: use RunSpnc_heterogenous
+        # 异质储层：使用 RunSpnc_heterogenous
         
-        # set the design of the reservoir
+        # 设置储层设计
         manager = ReservoirMorphologyManager()
 
-        # generate the deltabeta_list
-        deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params)
+        # 生成 deltabeta_list
+        deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
-        # generate the weights
-        weights = manager.generate_weights(config, reservoir_params)
+        # 生成权重
+        weights = [1.0/len(deltabeta_list)] * len(deltabeta_list)
 
-        # generate the temp_params and res_params
+        # 生成 temp_params 和 res_params
         temp_params = {
             'beta_prime': reservoir_params.beta_prime,
-            'beta_ref': reservoir_params.beta_ref,
+            'beta_ref': reservoir_params.beta_prime,
         }
 
         res_params = {
@@ -123,7 +127,7 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
             'deltabeta_list': deltabeta_list
         }
 
-        # run the reservoir
+        # 运行储层
         Output = RunSpnc_heterogenous(
             signal, 
             1, 
@@ -172,39 +176,83 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
     
     # 生成KR和GR输入
     inputs = gen_KR_GR_input(Nreadouts, Nwash, seed=kwargs.get('seed', 1234))
-
-    # 创建异质储层管理器
-    manager = ReservoirMorphologyManager()
     
-    # 创建异质储层
-    reservoir = manager.create_reservoir(config, reservoir_params)
-    
-    # 生成权重
-    weights = manager.generate_weights(reservoir, config)
-    
-    # 获取transform函数
-    transform_func = manager.get_transform_function(reservoir, config)
-    
-    # 处理每个输入行（仅处理异质储层）
+    # 处理每个输入行
     outputs = []
     for input_row in inputs:
         input_row = input_row.reshape(-1, 1)
         
-        # 异质储层使用 transform 方法，需要权重
-        result = transform_func(input_row, reservoir_params.params, *weights)
-        if isinstance(result, tuple):
-            output = result[0]  # 取第一个元素（储层状态）
+        # 判断储层类型
+        if config.morph_type == 'uniform':
+            # 均质储层：使用 RunSpnc
+            spn = spnc_anisotropy(
+                reservoir_params.h,
+                reservoir_params.theta_H,
+                reservoir_params.k_s_0,
+                reservoir_params.phi,
+                reservoir_params.beta_prime,
+                restart=True)
+            
+            def transform_with_constant_rate(K_s, params, *args, **kwargs):
+                return spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params)
+        
+            output = RunSpnc(
+                input_row,
+                1,                 
+                1,       
+                reservoir_params.Nvirt,
+                reservoir_params.m0,
+                transform_with_constant_rate,
+                reservoir_params.params,
+                fixed_mask=True,
+                seed_mask=1234
+            )
+
         else:
-            output = result
-        output = np.asarray(output)
+            # 异质储层：使用 RunSpnc_heterogenous
+            
+            # 设置储层设计
+            manager = ReservoirMorphologyManager()
+
+            # 生成 deltabeta_list
+            deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
+
+            # 生成权重
+            weights = [1.0/len(deltabeta_list)] * len(deltabeta_list)
+
+            # 生成 temp_params 和 res_params
+            temp_params = {
+                'beta_prime': reservoir_params.beta_prime,
+                'beta_ref': reservoir_params.beta_prime,
+            }
+
+            res_params = {
+                'm0': reservoir_params.m0,
+                'h': reservoir_params.h,
+                'deltabeta_list': deltabeta_list
+            }
+
+            # 运行储层
+            output = RunSpnc_heterogenous(
+                input_row, 
+                1, 
+                reservoir_params.Nvirt, 
+                1, 
+                temp_params, 
+                res_params, 
+                reservoir_params.params, 
+                *weights,
+                fixed_mask=True,
+                seed_mask=1234)
         
         outputs.append(output)
     
     # 将输出堆叠为3D数组 [samples, time_steps, features]
     States = np.stack(outputs, axis=0)
+    States = States/np.amax(States)
     
     # 计算KR和GR
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.1)
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)
     
     return {'KR': KR, 'GR': GR}
 
@@ -226,15 +274,11 @@ def evaluate_reservoir_performance(reservoir_params: ReservoirParams, config: Mo
     --------
     dict: {'MC': float, 'KR': float, 'GR': float, 'CQ': float}
     """
-    # 根据形貌类型选择评估方法
-    if config.morph_type == 'homogeneous':
-        # 均质储层使用标准评估
-        mc_dict = evaluate_MC(reservoir_params, **kwargs)
-        kgr_dict = evaluate_KRandGR(reservoir_params, **kwargs)
-    else:
-        # 异质储层使用特殊评估
-        mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, **kwargs)
-        kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, **kwargs)
+    # 统一使用异质储层评估函数，内部会根据 config.morph_type 自动判断
+    # 'uniform' 类型会调用标准的 spnc_anisotropy + RunSpnc
+    # 其他类型会调用异质储层的 RunSpnc_heterogenous
+    mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, **kwargs)
+    kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, **kwargs)
     
     # 合并结果
     results = {
