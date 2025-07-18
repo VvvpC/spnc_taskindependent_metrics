@@ -549,22 +549,22 @@ def run_reservoir_beta_gamma_evaluation(
 
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 43.42295279197795
+    ref_beta_prime = 29.14406097255966
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirSizeParams(
         ref_beta_prime=ref_beta_prime,
         h=0.4,
         Nvirt=200,
-        m0=0.0012784033863969388,
+        m0=0.004703581408469578,
         params={
-            'theta': 0.3310448885597526,
-            'gamma': 0.09409857329327642,  # This will be overridden by the equation
+            'theta': 0.13798577326972078,
+            'gamma': 0.05110574322049721,  # This will be overridden by the equation
             'delay_feedback': 0,
             'Nvirt':200,
         }
     )
     
-    beta_prime_range = [43.42295279197795] # Range of beta_prime values to test
+    beta_prime_range = np.arange(25, 35.5, 0.5) # Range of beta_prime values to test
 
     results_auto = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
@@ -574,6 +574,6 @@ if __name__ == "__main__":
         plot=True,
         verbose=False,
         use_gamma_calculation=False,
-        gamma_range = [0.09409857329327642 for _ in range(1)],
+        gamma_range = [0.05110574322049721 for _ in range(21)],
         filename_prefix=None
     )
