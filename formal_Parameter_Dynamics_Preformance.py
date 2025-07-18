@@ -145,20 +145,25 @@ Generate input with more equal figures for KRandGR, last 7  columns are GR input
 
 Here Nwash = 7 for KR, rest of 7 columns are GR
 
+
 '''
-def gen_KR_GR_input(Nreadouts, Nwash=7, seed=1234):
-    rng = np.random.default_rng(seed) 
-    KR_inputs = rng.random((Nreadouts, Nwash))
-    GR_inputs = np.tile(rng.random(7), (Nreadouts, 1)) 
+def gen_KR_GR_input(Nreadouts, Nwash=10, seed=1234):
+    # set seed
+    np.random.seed(seed)
+    # generate KR inputs
+    KR_inputs = np.random.ranf((Nreadouts, Nwash))
+    GR_inputs = np.tile(np.random.ranf((10)), (Nreadouts,1))
     all_inputs = np.concatenate((KR_inputs, GR_inputs), axis=1)
+    # 打印all_inputs的前10个元素
     return all_inputs
 
-def Evaluate_KR_GR(states, Nreadouts, threshold=0.1):
+
+def Evaluate_KR_GR(states, Nreadouts, threshold=0.001):
     GR_states = states[:,-1,:]
     '''
     Change the last 7 columns to GR states, the rest are KR states
     '''
-    KR_states = states[:,-8,:]
+    KR_states = states[:,-11,:]
     uGR, sGR, vGR = np.linalg.svd(GR_states)
     uKR, sKR, vKR = np.linalg.svd(KR_states)
     KR = 0
@@ -195,7 +200,7 @@ def RunSpnc(signal,Nin,Nout,Nvirt,m0,transform, params,**kwargs):
 
 # ------------------------ Reservoir Parameters Dictionary --------------------------
 
-class ReservoirParams:
+class  ReservoirParams:
     def __init__(self, **kwargs):
             # Reservoir parameters 
             self.h = 0.4473502275692851
@@ -374,7 +379,7 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
     Output = RunSpnc(
         signal,
         1,                 
-        len(signal),       
+        1,       
         reservoir_params.Nvirt,
         reservoir_params.m0,
         transform,
@@ -388,10 +393,11 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
 
 # ##########
 # KRandGR task function
+
 # ##########
 
 
-def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
+def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     
     Nreadouts= reservoir_params.Nvirt
 
@@ -403,11 +409,12 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=7, **kwargs):
                               reservoir_params.k_s_0, reservoir_params.phi,
                               reservoir_params.beta_prime, restart=True)
         transforms = spn.gen_signal_slow_delayed_feedback
-        output = RunSpnc(input_row, 1, len(input_row), reservoir_params.Nvirt,
+        output = RunSpnc(input_row, 1, 1, reservoir_params.Nvirt,
                          reservoir_params.m0, transforms, reservoir_params.params)
         outputs.append(output)
     States = np.stack(outputs, axis=0)
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.1)  # <--- 用Nreadouts
+    States = States/np.amax(States)
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)  # <--- 用Nreadouts
     return {'KR': KR, 'GR': GR}
 
 
@@ -425,6 +432,40 @@ def evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
                             transform, reservoir_params.params,
                             seed_NARMA=1234, fixed_mask=True, return_NRMSE=True)
     return {'NRMSE': NRMSE}
+
+# ##########
+# test one reservoir with given parameters
+# ##########
+
+def test_one_reservoir(reservoir_params, **kwargs):
+
+# 执行MC任务
+    MC = evaluate_MC(reservoir_params, signal_len=550, **kwargs)
+# 执行KRandGR任务
+
+    krgr_result = evaluate_KRandGR(reservoir_params, Nreadouts=reservoir_params.Nvirt, Nwash=10, **kwargs)
+    KR = krgr_result['KR']
+    GR = krgr_result['GR']
+    print(KR, GR)   
+
+# 返回MC和KR,GR
+    return {'MC': MC, 'KR': KR, 'GR': GR}
+    
+# 执行test_one_reservoir任务
+
+# if __name__ == "__main__":
+#     # 设定reservoir_params
+#     reservoir_params = ReservoirParams(h=0.4607867044725622, m0=0.005288612874870094, Nvirt=50, beta_prime= 35.13826524755751, params={'gamma': 0.069274461903986, 'theta': 0.34142235979698393, 'Nvirt': 50})
+
+#     # 执行test_one_reservoir任务
+#     result = test_one_reservoir(reservoir_params)
+#     print(result)
+
+
+
+
+
+
 
 
 # ##########
@@ -790,10 +831,10 @@ def evaluate_and_save_single_reservoir(params, save_dir="./Results/SingleTests")
     return record
 
 # Example usage of evaluate_and_save_single_reservoir
-if __name__ == "__main__":
-    params = ReservoirParams(
-        h=0.4431531552026543, m0=0.005641983615625242, Nvirt=315, beta_prime=40.66463236801917,
-        params={'theta': 0.4198538148599367, 'gamma': 0.017005257078706242, 'Nvirt': 315}
-    )
-    res = evaluate_and_save_single_reservoir(params)
-    print(res)
+# if __name__ == "__main__":
+#     params = ReservoirParams(
+#         h=0.4431531552026543, m0=0.005641983615625242, Nvirt=315, beta_prime=40.66463236801917,
+#         params={'theta': 0.4198538148599367, 'gamma': 0.017005257078706242, 'Nvirt': 315}
+#     )
+#     res = evaluate_and_save_single_reservoir(params)
+#     print(res)

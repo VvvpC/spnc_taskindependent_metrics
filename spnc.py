@@ -646,6 +646,7 @@ class spnc_anisotropy:
     from now, the only correct name of omega is omega_cons, and omega_ref equals to omega_cons
 
     '''
+
     def get_omega_cons(self, beta_cons):
         cons = spnc_anisotropy(0.4, 90, 0, 45, beta_cons)
         omega_cons = cons.get_omega_prime()
