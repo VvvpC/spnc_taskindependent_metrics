@@ -575,7 +575,7 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
     SNR = single_node_reservoir(Nin, Nout, Nvirt, m0, dilution=1.0, res=res_transform)
 
     fixed_mask = kwargs.get('fixed_mask', True)
-    if fixed_mask:
+    if fixed_mask: # 这里有个问题：没有注明seed。
         print("Deterministic mask will be used")
         SNR.M = fixed_seed_mask(Nin, Nvirt, m0)
 
