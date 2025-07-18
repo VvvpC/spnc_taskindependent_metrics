@@ -384,6 +384,8 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
         reservoir_params.m0,
         transform,
         reservoir_params.params,
+        fixed_mask=True,
+        seed_mask=1234
     )
 
 
@@ -410,7 +412,7 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
                               reservoir_params.beta_prime, restart=True)
         transforms = spn.gen_signal_slow_delayed_feedback
         output = RunSpnc(input_row, 1, 1, reservoir_params.Nvirt,
-                         reservoir_params.m0, transforms, reservoir_params.params)
+                         reservoir_params.m0, transforms, reservoir_params.params, fixed_mask=True, seed_mask=1234)
         outputs.append(output)
     States = np.stack(outputs, axis=0)
     States = States/np.amax(States)
