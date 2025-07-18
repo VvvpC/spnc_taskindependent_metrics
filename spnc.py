@@ -679,6 +679,28 @@ class spnc_anisotropy:
 
         return mag
 
+    def gen_signal_fast_delayed_feedback_omegacons(self, K_s, params, beta_cons, *args,**kwargs):
+        omega_cons = self.get_omega_cons(beta_cons)
+        delta = omega_cons / (self.get_omega_prime())
+
+        theta_T = params['theta']
+        self.k_s = 0
+        T = 1./(self.get_omega_prime()* delta *self.f0)
+
+        gamma = params['gamma']
+        delay_fb = params['delay_feedback']
+        Nvirt = params['Nvirt']
+
+        N = K_s.shape[0]
+        mag = np.zeros(N)
+
+        for idx, j in enumerate(K_s):
+            self.k_s = j + gamma*mag[(idx-Nvirt-delay_fb)%N]
+            self.evolve_fast(self.f0,theta_T*T)
+            mag[idx] = self.get_m_fast()
+
+        return mag
+
     def gen_trace_slow_delayed_feedback_omegacons(self,klist,theta,density,params,beta_cons,*args,**kwargs):
             theta_step = theta/density
             K_s_expanded = np.zeros(np.size(klist)*density)
