@@ -331,7 +331,12 @@ class ReservoirBetaGammaEvaluator:
         if filename_prefix is None:
             filename_prefix = f"beta_gamma_coupled_{self.task.__name__}"
         
-        filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{self.beta_prime_range[1]-self.beta_prime_range[0]}.pkl"         
+        # Handle single value case
+        if len(self.beta_prime_range) == 1:
+            filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}_single_value.pkl"
+        else:
+            step = self.beta_prime_range[1] - self.beta_prime_range[0] if len(self.beta_prime_range) > 1 else 0
+            filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{step}.pkl"         
         save_path = os.path.join(save_dir, filename)
         os.makedirs(save_dir, exist_ok=True)
         
@@ -409,7 +414,10 @@ class ReservoirBetaGammaEvaluator:
         fig.tight_layout()
 
         # Save plot
-        plot_filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{self.beta_prime_range[1]-self.beta_prime_range[0]}.png"
+        if len(self.beta_prime_range) > 1:
+            plot_filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}to{self.beta_prime_range[-1]}_step{self.beta_prime_range[1]-self.beta_prime_range[0]}.png"
+        else:
+            plot_filename = f"{filename_prefix}_evaluate_beta_prime_{self.beta_prime_range[0]}.png"
         os.makedirs(save_dir, exist_ok=True)
         fig.savefig(os.path.join(save_dir, plot_filename), dpi=300, bbox_inches='tight')
         print(f"Figure saved to {os.path.join(save_dir, plot_filename)}")
@@ -507,24 +515,56 @@ def run_reservoir_beta_gamma_evaluation(
 
 # ------------------------ Example Usage ----------------------------
 
+# if __name__ == "__main__":
+#     # Set up parameters
+#     ref_beta_prime = 35.13826524755751
+#     # Create reservoir parameters with reference beta_prime
+#     reservoir_params = ReservoirSizeParams(
+#         ref_beta_prime=ref_beta_prime,
+#         h=0.4,
+#         Nvirt=267,
+#         m0=0.005288612874870094,
+#         params={
+#             'theta': 0.34142235979698393,
+#             'gamma': 0.069274461903986,  # This will be overridden by the equation
+#             'delay_feedback': 0,
+#             'Nvirt':267,
+#         }
+#     )
+    
+#     beta_prime_range = np.arange(30, 40.5, 0.5)  # Range of beta_prime values to test
+
+#     results_auto = run_reservoir_beta_gamma_evaluation(
+#         task_type='MC_CQ',
+#         beta_prime_range=beta_prime_range,
+#         reservoir_params=reservoir_params,
+#         result_dir="./results",
+#         plot=True,
+#         verbose=False,
+#         use_gamma_calculation=True,
+#         # gamma_range = [0.2 for _ in range(11)],
+#         filename_prefix=None
+#     )
+
+
 if __name__ == "__main__":
     # Set up parameters
-    ref_beta_prime = 35.13826524755751
+    ref_beta_prime = 43.42295279197795
     # Create reservoir parameters with reference beta_prime
     reservoir_params = ReservoirSizeParams(
         ref_beta_prime=ref_beta_prime,
         h=0.4,
-        Nvirt=267,
-        m0=0.005288612874870094,
+        Nvirt=200,
+        m0=0.0012784033863969388,
         params={
-            'theta': 0.34142235979698393,
-            'gamma': 0.069274461903986,  # This will be overridden by the equation
+            'theta': 0.3310448885597526,
+            'gamma': 0.09409857329327642,  # This will be overridden by the equation
             'delay_feedback': 0,
-            'Nvirt':267,
+            'Nvirt':200,
         }
     )
     
-    beta_prime_range = np.arange(30, 40.5, 0.5)  # Range of beta_prime values to test
+    beta_prime_range = [43.42295279197795] # Range of beta_prime values to test
 
     results_auto = run_reservoir_beta_gamma_evaluation(
         task_type='MC_CQ',
@@ -533,8 +573,7 @@ if __name__ == "__main__":
         result_dir="./results",
         plot=True,
         verbose=False,
-        use_gamma_calculation=True,
-        # gamma_range = [0.2 for _ in range(11)],
+        use_gamma_calculation=False,
+        gamma_range = [0.09409857329327642 for _ in range(1)],
         filename_prefix=None
     )
-
