@@ -1,4 +1,4 @@
-@ -1,181 +0,0 @@
+
 """
 储层评估模块 (Reservoir Evaluation)
 ==================================
@@ -15,7 +15,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional
 
 # 导入储层创造模块
-from reservoir_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
+from Reservoirs_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
 
 # 导入参数和评估函数
 from formal_Parameter_Dynamics_Preformance import (
@@ -49,7 +49,7 @@ def RunSpnc_heterogenous(signal, Nin, Nvirt, Nout, temp_params, res_params, para
             # print("Max_sequences mask will be used")
             snr.M = max_sequences_mask(Nin, Nvirt, m0)
     # Run
-    S,_ = snr.transform(signal,params, *weights)
+    S,_,_,_ = snr.transform(signal,params, *weights)
     
     return S
 
@@ -112,8 +112,8 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
         # 生成 deltabeta_list
         deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
-        # 生成权重
-        weights = [1.0/len(deltabeta_list)] * len(deltabeta_list)
+        # 生成权重 [这里是个重点，默认是5个实例，所以权重是1/5。如果后期需要修改实例数量，需要修改这里]
+        weights = weights = [1.0/5] * 5
 
         # 生成 temp_params 和 res_params
         temp_params = {
@@ -198,7 +198,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
             deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
             # 生成权重
-            weights = manager.generate_weights(config, reservoir_params)
+            weights = weights = [1.0/5] * 5
 
             # 生成 temp_params 和 res_params
             temp_params = {

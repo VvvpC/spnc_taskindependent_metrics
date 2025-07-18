@@ -50,7 +50,7 @@ RESERVOIR_HYPERSPACE = {
 # 固定参数
 FIXED_PARAMS = {
     "h": 0.4,
-    "Nvirt": 200
+    "Nvirt": 20
 }
 
 # 固定的形貌参数（当morph_type不为uniform时使用）

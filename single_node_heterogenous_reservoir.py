@@ -119,7 +119,7 @@ class single_node_heterogenous_reservoir:
 
             partial_mags = Parallel(n_jobs=-1)(
                 delayed(parallel_compute_mag)(
-                    instance, weight, J_1d, params, self.beta_ref, self.h
+                    instance, weight, J_1d, params, self.beta_ref
                 )
                 for instance, weight in zip(self.anisotropy_instances, weights)
             )
