@@ -244,4 +244,4 @@ if __name__ == "__main__":
       args = parser.parse_args()
 
       # 运行优化研究
-      study = run_morphology_study(n_trials=args.trials, morph_type="random")
+      study = run_morphology_study(n_trials=args.trials, morph_type="gradient")
