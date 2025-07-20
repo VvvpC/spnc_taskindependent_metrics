@@ -50,12 +50,12 @@ RESERVOIR_HYPERSPACE = {
 # 固定参数
 FIXED_PARAMS = {
     "h": 0.4,
-    "Nvirt": 20
+    "Nvirt": 200
 }
 
 # 固定的形貌参数（当morph_type不为uniform时使用）
 FIXED_MORPHOLOGY_PARAMS = {
-    "n_instances": 5,  # 异质储层实例数量
+    "n_instances": 7,  # 异质储层实例数量
     "beta_range_delta": 3,  # beta变化范围：±3 around beta_prime
     "random_seed": 1234  # 随机种子
 }
