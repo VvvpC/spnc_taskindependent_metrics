@@ -209,7 +209,7 @@ def calculate_gamma_from_beta_prime(beta_prime):
     Returns:
     - gamma: float or array-like, calculated gamma values
     """
-    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.248 + 0.01121939974938757
+    gamma = 9.66e-5 * beta_prime**2 - 8.8e-3 * beta_prime + 0.22554
     return gamma
 
 class ReservoirTaskBetaGammaEvaluator:
@@ -520,7 +520,7 @@ if __name__ == "__main__":
         result_dir="./results",
         plot=True,
         verbose=False,
-        use_gamma_calculation=False,
-        gamma_range=[0.05110574322049721 for _ in range(21)],
-        filename_prefix="both_tasks_example"
+        use_gamma_calculation=True,
+        # gamma_range=[0.05110574322049721 for _ in range(21)],
+        filename_prefix="auto_gamma1"
     )
