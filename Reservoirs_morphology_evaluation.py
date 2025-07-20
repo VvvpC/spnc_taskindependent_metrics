@@ -89,7 +89,7 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
             restart=True)
         
         def transform_with_constant_rate(K_s, params, *args, **kwargs):
-            return spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params)
+            return spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params, reservoir_params.beta_prime)
     
         Output = RunSpnc(
             signal,
@@ -113,7 +113,7 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
         deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
         # 生成权重 [这里是个重点，默认是5个实例，所以权重是1/5。如果后期需要修改实例数量，需要修改这里]
-        weights = weights = [1.0/5] * 5
+        weights = weights = [1.0/7] * 7
 
         # 生成 temp_params 和 res_params
         temp_params = {
@@ -174,7 +174,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
                 reservoir_params.beta_prime,
                 restart=True)
             
-            transform = spn.gen_signal_slow_delayed_feedback_omegacons(K_s, params)
+            transform = spn.gen_signal_slow_delayed_feedback_omegacons(input_row, reservoir_params.params, reservoir_params.beta_prime)
         
             output = RunSpnc(
                 input_row,
@@ -198,7 +198,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
             deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
             # 生成权重
-            weights = weights = [1.0/5] * 5
+            weights = weights = [1.0/7] * 7
 
             # 生成 temp_params 和 res_params
             temp_params = {
