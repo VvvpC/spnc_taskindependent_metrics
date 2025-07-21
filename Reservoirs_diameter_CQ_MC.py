@@ -515,7 +515,7 @@ def run_reservoir_beta_gamma_evaluation(
 
 # ------------------------ Beta Gamma Heatmap Functions ----------------------------
 
-def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None):
+def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None, save_data=True):
     """
     绘制beta_prime和gamma的热力图
     
@@ -524,7 +524,9 @@ def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None):
     reservoir_params : ReservoirSizeParams, optional
         储层参数对象，如果为None则使用默认参数
     save_path : str, optional
-        保存路径，如果为None则显示图像
+        图像保存路径，如果为None则显示图像
+    save_data : bool, optional
+        是否保存原始数据，默认为True
     """
     import matplotlib.pyplot as plt
     import tqdm
@@ -624,14 +626,52 @@ def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None):
     
     plt.tight_layout()
     
+    # 保存图像
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"热力图已保存到: {save_path}")
     else:
         plt.show()
     
-    return {'cq_matrix': cq_matrix, 'mc_matrix': mc_matrix, 
-            'beta_prime_range': beta_prime_range, 'gamma_range': gamma_range}
+    # 保存原始数据
+    result_data = {
+        'cq_matrix': cq_matrix, 
+        'mc_matrix': mc_matrix, 
+        'beta_prime_range': beta_prime_range, 
+        'gamma_range': gamma_range,
+        'reservoir_params': {
+            'ref_beta_prime': reservoir_params.ref_beta_prime,
+            'h': reservoir_params.h,
+            'Nvirt': reservoir_params.Nvirt,
+            'm0': reservoir_params.m0,
+            'params': reservoir_params.params.copy()
+        }
+    }
+    
+    if save_data:
+        import pickle
+        import os
+        from datetime import datetime
+        
+        # 生成数据文件名
+        if save_path:
+            # 如果提供了图像路径，将数据保存在相同目录，文件名添加_data后缀
+            base_name = os.path.splitext(save_path)[0]
+            data_path = f"{base_name}_data.pkl"
+        else:
+            # 默认数据文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            data_path = f"beta_gamma_heatmap_data_{timestamp}.pkl"
+        
+        # 确保目录存在
+        os.makedirs(os.path.dirname(data_path) if os.path.dirname(data_path) else '.', exist_ok=True)
+        
+        # 保存数据
+        with open(data_path, 'wb') as f:
+            pickle.dump(result_data, f)
+        print(f"热力图数据已保存到: {data_path}")
+    
+    return result_data
 
 # ------------------------ Example Usage ----------------------------
 
@@ -673,6 +713,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="储层直径与CQ-MC性能评估")
     parser.add_argument("--heatmap", action="store_true", help="绘制beta_prime和gamma热力图")
     parser.add_argument("--save_path", type=str, default=None, help="热力图保存路径")
+    parser.add_argument("--no_save_data", action="store_true", help="不保存原始数据")
     
     args = parser.parse_args()
     
@@ -693,7 +734,8 @@ if __name__ == "__main__":
         )
         
         save_path = args.save_path if args.save_path else "beta_gamma_heatmap.png"
-        result = plot_beta_gamma_heatmap(reservoir_params=reservoir_params, save_path=save_path)
+        save_data = not args.no_save_data  # 默认保存数据，除非指定--no_save_data
+        result = plot_beta_gamma_heatmap(reservoir_params=reservoir_params, save_path=save_path, save_data=save_data)
         print("热力图绘制完成!")
     else:
         # 原始的beta-gamma耦合评估
