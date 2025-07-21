@@ -24,6 +24,8 @@ from contextlib import suppress
 import optuna
 from optuna.samplers import GPSampler
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from typing import Dict, List, Tuple, Optional
 
 # 导入储层创造和评估模块
@@ -50,7 +52,7 @@ RESERVOIR_HYPERSPACE = {
 # 固定参数
 FIXED_PARAMS = {
     "h": 0.4,
-    "Nvirt": 20
+    "Nvirt": 200
 }
 
 # 固定的形貌参数（当morph_type不为uniform时使用）
@@ -232,6 +234,132 @@ def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
 # 5. 主函数
 # ──────────────────────────────────────────────────────────────────────────────
 
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. 热力图绘制函数
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_beta_gamma_heatmap(morph_type: str = "uniform", save_path: str = None):
+    """
+    绘制beta_prime和gamma的热力图
+    
+    Parameters:
+    -----------
+    morph_type : str
+        储层形貌类型 ("uniform", "gradient", "normaldistribution", "random")
+    save_path : str, optional
+        保存路径，如果为None则显示图像
+    """
+    # 参数网格设置
+    beta_prime_range = np.linspace(25, 35, 10)
+    gamma_range = np.linspace(0.04, 0.06, 10)
+    
+    # 创建网格
+    beta_grid, gamma_grid = np.meshgrid(beta_prime_range, gamma_range)
+    
+    # 初始化结果矩阵
+    cq_matrix = np.zeros((10, 10))
+    mc_matrix = np.zeros((10, 10))
+    
+    print(f"开始计算热力图数据，形貌类型: {morph_type}")
+    
+    # 固定其他参数
+    theta = 0.3  # 使用中间值
+    m0 = 0.004   # 使用中间值
+    h = FIXED_PARAMS["h"]
+    Nvirt = FIXED_PARAMS["Nvirt"]
+    
+    # 遍历参数网格
+    for i, gamma in enumerate(gamma_range):
+        for j, beta_prime in enumerate(beta_prime_range):
+            try:
+                # 构建储层参数对象
+                reservoir_params = ReservoirParams(
+                    h=h,
+                    m0=m0,
+                    Nvirt=Nvirt,
+                    beta_prime=beta_prime,
+                    theta_H=90,
+                    k_s_0=0,
+                    phi=45,
+                    params={
+                        "gamma": gamma,
+                        "theta": theta,
+                        "Nvirt": Nvirt,
+                    },
+                )
+                
+                # 构建形貌配置
+                if morph_type == "uniform":
+                    config = MorphologyConfig(morph_type="uniform")
+                else:
+                    beta_delta = FIXED_MORPHOLOGY_PARAMS["beta_range_delta"]
+                    beta_range = (beta_prime - beta_delta, beta_prime + beta_delta)
+                    random_seed = FIXED_MORPHOLOGY_PARAMS["random_seed"] if morph_type in ["normaldistribution", "random"] else None
+                    
+                    config = MorphologyConfig(
+                        morph_type=morph_type,
+                        beta_range=beta_range,
+                        n_instances=FIXED_MORPHOLOGY_PARAMS["n_instances"],
+                        random_seed=random_seed
+                    )
+                
+                # 评估MC和CQ
+                mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, signal_len=550, seed=1234)
+                kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, Nwash=10, seed=1234)
+                
+                MC = float(mc_dict.get("MC", 0.0))
+                KR = float(kgr_dict.get("KR", 0.0))
+                GR = float(kgr_dict.get("GR", 0.0))
+                CQ = KR - GR
+                
+                cq_matrix[i, j] = CQ
+                mc_matrix[i, j] = MC
+                
+                print(f"完成 gamma={gamma:.3f}, beta_prime={beta_prime:.1f}, CQ={CQ:.3f}, MC={MC:.3f}")
+                
+            except Exception as e:
+                print(f"计算失败 gamma={gamma:.3f}, beta_prime={beta_prime:.1f}: {e}")
+                cq_matrix[i, j] = 0
+                mc_matrix[i, j] = 0
+    
+    # 绘制热力图
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # CQ热力图
+    im1 = ax1.imshow(cq_matrix, cmap='viridis', aspect='auto', origin='lower')
+    ax1.set_title(f'CQ热力图 ({morph_type})', fontsize=14)
+    ax1.set_xlabel('beta_prime', fontsize=12)
+    ax1.set_ylabel('gamma', fontsize=12)
+    
+    # 设置刻度标签
+    ax1.set_xticks(range(10))
+    ax1.set_yticks(range(10))
+    ax1.set_xticklabels([f'{x:.1f}' for x in beta_prime_range])
+    ax1.set_yticklabels([f'{x:.3f}' for x in gamma_range])
+    
+    plt.colorbar(im1, ax=ax1, label='CQ')
+    
+    # MC热力图
+    im2 = ax2.imshow(mc_matrix, cmap='plasma', aspect='auto', origin='lower')
+    ax2.set_title(f'MC热力图 ({morph_type})', fontsize=14)
+    ax2.set_xlabel('beta_prime', fontsize=12)
+    ax2.set_ylabel('gamma', fontsize=12)
+    
+    ax2.set_xticks(range(10))
+    ax2.set_yticks(range(10))
+    ax2.set_xticklabels([f'{x:.1f}' for x in beta_prime_range])
+    ax2.set_yticklabels([f'{x:.3f}' for x in gamma_range])
+    
+    plt.colorbar(im2, ax=ax2, label='MC')
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"热力图已保存到: {save_path}")
+    else:
+        plt.show()
+
 if __name__ == "__main__":
       import argparse
 
@@ -240,8 +368,13 @@ if __name__ == "__main__":
       parser.add_argument("--morph_type", type=str, default="uniform",
                           choices=["uniform", "gradient", "normaldistribution", "random"],
                           help="储层形貌类型")
+      parser.add_argument("--heatmap", action="store_true", help="绘制beta_prime和gamma热力图")
 
       args = parser.parse_args()
 
-      # 运行优化研究
-      study = run_morphology_study(n_trials=args.trials, morph_type="random")
+      if args.heatmap:
+          # 绘制热力图
+          plot_beta_gamma_heatmap(morph_type=args.morph_type, save_path=f"heatmap_{args.morph_type}.png")
+      else:
+          # 运行优化研究
+          study = run_morphology_study(n_trials=args.trials, morph_type="random")
