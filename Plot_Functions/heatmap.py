@@ -16,13 +16,50 @@ This module provides flexible heatmap plotting functions that can handle:
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-from matplotlib.patches import Rectangle
 import pickle
-import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Any
 import warnings
+import sys
+
+
+def convert_data_for_compatibility(data_file: Union[str, Path], 
+                                  output_file: Union[str, Path] = None) -> None:
+    """
+    Convert a pickle file to be compatible with older numpy versions.
+    
+    This function loads data with the current numpy version and re-saves it,
+    making it compatible with the current environment.
+    
+    Parameters:
+    -----------
+    data_file : str or Path
+        Input pickle file path
+    output_file : str or Path, optional
+        Output file path. If None, will overwrite the input file.
+    """
+    data_file = Path(data_file)
+    if output_file is None:
+        output_file = data_file
+    else:
+        output_file = Path(output_file)
+        
+    print(f"Converting {data_file} for numpy {np.__version__} compatibility...")
+    
+    try:
+        # Load with current numpy
+        with open(data_file, 'rb') as f:
+            data = pickle.load(f)
+            
+        # Re-save with current numpy
+        with open(output_file, 'wb') as f:
+            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            
+        print(f"Successfully converted and saved to {output_file}")
+        
+    except Exception as e:
+        print(f"Conversion failed: {e}")
+        raise
 
 
 class HeatmapPlotter:
@@ -59,7 +96,7 @@ class HeatmapPlotter:
         
     def load_data(self, filepath: Union[str, Path]) -> Dict[str, Any]:
         """
-        Load heatmap data from pickle file.
+        Load heatmap data from pickle file with numpy compatibility handling.
         
         Parameters:
         -----------
@@ -85,6 +122,19 @@ class HeatmapPlotter:
         try:
             with open(filepath, 'rb') as f:
                 data = pickle.load(f)
+        except ModuleNotFoundError as e:
+            if "numpy._core" in str(e):
+                # Handle numpy version compatibility issue
+                error_msg = (
+                    f"Numpy compatibility issue: {e}\n"
+                    f"The pickle file was created with a newer numpy version. "
+                    f"Current numpy version: {np.__version__}\n"
+                    f"Try upgrading numpy: pip install numpy>=1.26.0\n"
+                    f"Or regenerate the data file with current numpy version."
+                )
+                raise ValueError(error_msg)
+            else:
+                raise ValueError(f"Missing module: {e}")
         except Exception as e:
             raise ValueError(f"Failed to load pickle file: {e}")
             
@@ -187,7 +237,7 @@ class HeatmapPlotter:
             The plot axes
         """
         if ax is None:
-            fig, ax = plt.subplots(figsize=self.figsize, dpi=self.dpi)
+            _, ax = plt.subplots(figsize=self.figsize, dpi=self.dpi)
             
         # Default imshow parameters for high quality
         imshow_params = {
@@ -483,15 +533,31 @@ if __name__ == "__main__":
     parser.add_argument("--dpi", type=int, default=300, help="Output resolution (default: 300)")
     parser.add_argument("--no-show", action="store_true", help="Don't display the plot")
     parser.add_argument("--matrices", nargs="+", help="Specific matrices to plot")
+    parser.add_argument("--convert-only", action="store_true", 
+                       help="Only convert data file for numpy compatibility, don't plot")
+    parser.add_argument("--convert-output", help="Output path for converted data file")
     
     args = parser.parse_args()
     
-    # Create heatmap
-    fig = quick_heatmap(
-        data_file=args.data_file,
-        output_file=args.output,
-        dpi=args.dpi,
-        show_plot=not args.no_show
-    )
-    
-    print(f"Heatmap generation completed!")
+    if args.convert_only:
+        # Only convert the data file
+        convert_data_for_compatibility(args.data_file, args.convert_output)
+        print("Data conversion completed!")
+    else:
+        # Create heatmap
+        try:
+            quick_heatmap(
+                data_file=args.data_file,
+                output_file=args.output,
+                dpi=args.dpi,
+                show_plot=not args.no_show
+            )
+            print("Heatmap generation completed!")
+        except ValueError as e:
+            if "numpy._core" in str(e):
+                print("\nNumpy compatibility issue detected!")
+                print("Try converting the data file first:")
+                print(f"python {sys.argv[0]} {args.data_file} --convert-only")
+                print("Then try plotting again with the converted file.")
+            else:
+                raise
