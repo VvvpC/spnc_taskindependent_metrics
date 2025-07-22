@@ -174,7 +174,10 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
                 reservoir_params.beta_prime,
                 restart=True)
             
-            transform = spn.gen_signal_slow_delayed_feedback_omegacons(input_row, reservoir_params.params, reservoir_params.beta_prime)
+            def transform_with_constant_rate(K_s, params, *args, **kwargs):
+                return spn.gen_signal_slow_delayed_feedback_omegacons(
+                    K_s, params, reservoir_params.beta_prime
+                )
         
             output = RunSpnc(
                 input_row,
@@ -182,7 +185,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
                 1,       
                 reservoir_params.Nvirt,
                 reservoir_params.m0,
-                transform,
+                transform_with_constant_rate,
                 reservoir_params.params,
                 fixed_mask=True,
                 seed_mask=1234
