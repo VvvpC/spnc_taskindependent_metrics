@@ -24,6 +24,8 @@ from contextlib import suppress
 import optuna
 from optuna.samplers import GPSampler
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from typing import Dict, List, Tuple, Optional
 
 # 导入储层创造和评估模块
@@ -228,20 +230,3 @@ def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
     
  
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 5. 主函数
-# ──────────────────────────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-      import argparse
-
-      parser = argparse.ArgumentParser(description="储层形貌CQ-MC Pareto优化")
-      parser.add_argument("--trials", type=int, default=400, help="试验数量")
-      parser.add_argument("--morph_type", type=str, default="uniform",
-                          choices=["uniform", "gradient", "normaldistribution", "random"],
-                          help="储层形貌类型")
-
-      args = parser.parse_args()
-
-      # 运行优化研究
-      study = run_morphology_study(n_trials=args.trials, morph_type="random")
