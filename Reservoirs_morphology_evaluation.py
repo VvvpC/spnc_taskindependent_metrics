@@ -56,7 +56,7 @@ def RunSpnc_heterogenous(signal, Nin, Nvirt, Nout, temp_params, res_params, para
 
 
 
-def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: MorphologyConfig, signal_len: int = 550, **kwargs):
+def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: MorphologyConfig, weights: List[float], signal_len: int = 550, **kwargs):
     """
     评估异质储层的内存容量 (Memory Capacity)
     
@@ -112,8 +112,11 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
         # 生成 deltabeta_list
         deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
-        # 生成权重 [这里是个重点，默认是5个实例，所以权重是1/5。如果后期需要修改实例数量，需要修改这里]
-        weights = weights = [1.0/7] * 7
+        # 生成权重 
+        if not weights:
+            weights = [1.0/len(deltabeta_list)] * len(deltabeta_list)
+
+        assert len(weights) == len(deltabeta_list), f"Weights count ({len(weights)}) should match deltabeta_list count ({len(deltabeta_list)})"
 
         # 生成 temp_params 和 res_params
         temp_params = {
@@ -150,7 +153,7 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
     
 
 
-def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: MorphologyConfig, Nreadouts: int = 50, Nwash: int = 10, **kwargs):
+def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: MorphologyConfig, weights: List[float], Nreadouts: int = 50, Nwash: int = 10, **kwargs):
 
     # 使用reservoir的Nvirt作为Nreadouts
     Nreadouts = reservoir_params.Nvirt
@@ -201,7 +204,9 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
             deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
 
             # 生成权重
-            weights = weights = [1.0/7] * 7
+            if not weights:
+                weights = [1.0/len(deltabeta_list)] * len(deltabeta_list)
+            assert len(weights) == len(deltabeta_list), f"Weights count ({len(weights)}) should match deltabeta_list count ({len(deltabeta_list)})"
 
             # 生成 temp_params 和 res_params
             temp_params = {
