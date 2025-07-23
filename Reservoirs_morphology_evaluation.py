@@ -264,16 +264,16 @@ def evaluate_reservoir_performance(reservoir_params: ReservoirParams, config: Mo
     """
     mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, **kwargs)
     kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, **kwargs)
-
-    results['CQ'] = results['KR'] - results['GR']
     
     # 合并结果
     results = {
         'MC': mc_dict.get('MC', 0.0),
-        'CQ': mc_dict.get('CQ', 0.0),
         'KR': kgr_dict.get('KR', 0.0),
         'GR': kgr_dict.get('GR', 0.0)
     }
+    
+    # 计算CQ并保存到results中
+    results['CQ'] = results['KR'] - results['GR']
     
 
     return results 

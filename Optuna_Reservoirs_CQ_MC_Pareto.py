@@ -156,8 +156,8 @@ def objective_reservoir_morphology(trial: optuna.Trial, morph_type: str = "unifo
     
     try:
         # 5. 评估MC和CQ
-        mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, signal_len=550, seed=1234)
-        kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, Nwash=10, seed=1234)
+        mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, weights, signal_len=550, seed=1234)
+        kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, weights, Nwash=10, seed=1234)
         
         MC = float(mc_dict.get("MC", 0.0))
         KR = float(kgr_dict.get("KR", 0.0))
