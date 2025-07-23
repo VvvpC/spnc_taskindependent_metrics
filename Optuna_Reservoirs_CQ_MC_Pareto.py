@@ -116,6 +116,7 @@ def objective_reservoir_morphology(trial: optuna.Trial, morph_type: str = "unifo
     # 4. 构建形貌配置
     if morph_type == "uniform":
         config = MorphologyConfig(morph_type="uniform")
+        weights = []  # uniform储层不需要weights
     else:
         # 对于非均质储层，搜索 n_instances
         n_instances = trial.suggest_int("n_instances", *RESERVOIR_HYPERSPACE["n_instances"])
@@ -250,7 +251,17 @@ def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
         for key, value in t.params.items():
             print(f'    {key}: {value}')
         print('-------------------')
-    
-    
- 
 
+
+if __name__ == "__main__":
+    # 只运行单一形貌类型 - 修改这里选择你想要的类型
+    # 可选: "uniform", "gradient", "normaldistribution", "random"
+    morph_type = "uniform"  # 修改这里
+    n_trials = 200  # 修改试验次数
+    
+    print(f"\n{'='*60}")
+    print(f"Running study for morphology type: {morph_type}")
+    print(f"Number of trials: {n_trials}")
+    print(f"{'='*60}")
+    
+    run_morphology_study(n_trials=n_trials, morph_type=morph_type)
