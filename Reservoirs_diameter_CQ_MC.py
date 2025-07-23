@@ -129,8 +129,9 @@ def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     States = np.stack(outputs, axis=0)
     States = States/np.amax(States)
     KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)
+    CQ = KR - GR
     
-    return {'KR': KR, 'GR': GR}
+    return {'KR': KR, 'GR': GR, 'CQ': CQ}
 
 def evaluate_size_MC_CQ(reservoir_params, **kwargs):
     """
@@ -142,7 +143,8 @@ def evaluate_size_MC_CQ(reservoir_params, **kwargs):
     return {
         'MC': mc_result['MC'],
         'KR': cq_result['KR'],
-        'GR': cq_result['GR']
+        'GR': cq_result['GR'],
+        'CQ': cq_result['CQ']
     }
 
 # ------------------------ Main Evaluation Function ----------------------------
@@ -174,9 +176,9 @@ def run_reservoir_size_evaluation(
     # Map task types to evaluation functions
     task_map = {
         'MC': (evaluate_size_MC, ['MC'], ['Memory Capacity']),
-        'CQ': (evaluate_size_CQ, ['KR', 'GR'], ['KR', 'GR']),
-        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR']),
-        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR'])
+        'CQ': (evaluate_size_CQ, ['KR', 'GR', 'CQ'], ['KR', 'GR', 'CQ']),
+        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ']),
+        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ'])
     }
     
     if task_type.upper() not in task_map:
@@ -360,13 +362,14 @@ class ReservoirBetaGammaEvaluator:
         if len(self.result_keys) == 1:
             ax1.plot(result_dict['beta_prime'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)
             ax1.set_ylabel(self.result_labels[0], fontsize=12)
-        elif len(self.result_keys) == 3:  # MC, KR, GR
+        elif len(self.result_keys) == 4:  # MC, KR, GR, CQ  
             ax1.plot(result_dict['beta_prime'], result_dict['MC'], 'o-', label='MC', linewidth=2, markersize=6)
             ax1_twin = ax1.twinx()
-            ax1_twin.plot(result_dict['beta_prime'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
-            ax1_twin.plot(result_dict['beta_prime'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
+            ax1_twin.plot(result_dict['beta_prime'], result_dict['CQ'], 'd--', label='CQ', color='red', linewidth=2, markersize=6)
+            # ax1_twin.plot(result_dict['beta_prime'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
+            # ax1_twin.plot(result_dict['beta_prime'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
             ax1.set_ylabel('MC', fontsize=12)
-            ax1_twin.set_ylabel('KR, GR', fontsize=12)
+            ax1_twin.set_ylabel('CQ', fontsize=12)
             ax1.legend(loc='upper left')
             ax1_twin.legend(loc='upper right')
         
@@ -385,15 +388,16 @@ class ReservoirBetaGammaEvaluator:
         # Plot 3: Results vs Gamma
         ax3 = axes[1, 0]
         if len(self.result_keys) == 1:
-            ax3.plot(result_dict['gamma'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)
+            ax3.plot(result_dict['gamma'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)   
             ax3.set_ylabel(self.result_labels[0], fontsize=12)
-        elif len(self.result_keys) == 3:  # MC, KR, GR
+        elif len(self.result_keys) == 4:  # MC, KR, GR, CQ
             ax3.plot(result_dict['gamma'], result_dict['MC'], 'o-', label='MC', linewidth=2, markersize=6)
             ax3_twin = ax3.twinx()
-            ax3_twin.plot(result_dict['gamma'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
-            ax3_twin.plot(result_dict['gamma'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
+            ax3_twin.plot(result_dict['gamma'], result_dict['CQ'], 'd--', label='CQ', color='red', linewidth=2, markersize=6)
+            #   ax3_twin.plot(result_dict['gamma'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
+            # ax3_twin.plot(result_dict['gamma'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
             ax3.set_ylabel('MC', fontsize=12)
-            ax3_twin.set_ylabel('KR, GR', fontsize=12)
+            ax3_twin.set_ylabel('CQ', fontsize=12)
             ax3.legend(loc='upper left')
             ax3_twin.legend(loc='upper right')
         
@@ -476,9 +480,9 @@ def run_reservoir_beta_gamma_evaluation(
     # Map task types to evaluation functions
     task_map = {
         'MC': (evaluate_size_MC, ['MC'], ['Memory Capacity']),
-        'CQ': (evaluate_size_CQ, ['KR', 'GR'], ['KR', 'GR']),
-        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR']),
-        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR'])
+        'CQ': (evaluate_size_CQ, ['KR', 'GR', 'CQ'], ['KR', 'GR', 'CQ']),
+        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ']),
+        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ'])
     }
     
     if task_type.upper() not in task_map:
@@ -748,7 +752,7 @@ if __name__ == "__main__":
             m0=0.004703581408469578,
             params={
                 'theta': 0.13798577326972078,
-                'gamma': 0.05110574322049721,  # This will be overridden by the equation
+                'gamma': 0.06,  # This will be overridden by the equation
                 'delay_feedback': 0,
                 'Nvirt':200,
             }
@@ -763,7 +767,7 @@ if __name__ == "__main__":
             result_dir="./results",
             plot=True,
             verbose=False,
-            use_gamma_calculation=True,
-            # gamma_range = [0.05110574322049721 for _ in range(21)],
+            use_gamma_calculation=False,
+            gamma_range = [0.06 for _ in range(21)],
             filename_prefix=None
         )
