@@ -24,6 +24,8 @@ from contextlib import suppress
 import optuna
 from optuna.samplers import GPSampler
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from typing import Dict, List, Tuple, Optional
 
 # 导入储层创造和评估模块
@@ -44,19 +46,20 @@ RESERVOIR_HYPERSPACE = {
     "gamma": (0.01, 0.5),       
     "theta": (0.01, 0.6),       
     "m0": (0.001, 0.008),                   
-    "beta_prime": (20, 50)
+    "beta_prime": (20, 50),
+    "n_instances": (3, 10),
+    "beta_range_delta": (0, 4),
+    "weights": (0.01, 1)
 }
 
 # 固定参数
 FIXED_PARAMS = {
     "h": 0.4,
-    "Nvirt": 20
+    "Nvirt": 200
 }
 
-# 固定的形貌参数（当morph_type不为uniform时使用）
+# 固定种子
 FIXED_MORPHOLOGY_PARAMS = {
-    "n_instances": 5,  # 异质储层实例数量
-    "beta_range_delta": 3,  # beta变化范围：±3 around beta_prime
     "random_seed": 1234  # 随机种子
 }
 
@@ -84,7 +87,8 @@ def objective_reservoir_morphology(trial: optuna.Trial, morph_type: str = "unifo
     theta = trial.suggest_float("theta", *RESERVOIR_HYPERSPACE["theta"])
     m0 = trial.suggest_float("m0", *RESERVOIR_HYPERSPACE["m0"])
     beta_prime = trial.suggest_float("beta_prime", *RESERVOIR_HYPERSPACE["beta_prime"])
-    
+
+
     # 使用固定参数
     h = FIXED_PARAMS["h"]
     Nvirt = FIXED_PARAMS["Nvirt"]
@@ -112,13 +116,14 @@ def objective_reservoir_morphology(trial: optuna.Trial, morph_type: str = "unifo
     # 4. 构建形貌配置
     if morph_type == "uniform":
         config = MorphologyConfig(morph_type="uniform")
+        weights = []  # uniform储层不需要weights
     else:
-        # 对于非均质储层，使用固定参数
-        n_instances = FIXED_MORPHOLOGY_PARAMS["n_instances"]
+        # 对于非均质储层，搜索 n_instances
+        n_instances = trial.suggest_int("n_instances", *RESERVOIR_HYPERSPACE["n_instances"])
         
-        # 基于当前trial的beta_prime动态计算beta_range
-        beta_delta = FIXED_MORPHOLOGY_PARAMS["beta_range_delta"]
-        beta_range = (beta_prime - beta_delta, beta_prime + beta_delta)
+        # 搜索 beta_range_delta
+        beta_range_delta = trial.suggest_float("beta_range_delta", *RESERVOIR_HYPERSPACE["beta_range_delta"])
+        beta_range = (beta_prime - beta_range_delta, beta_prime + beta_range_delta)
         
         # 设置随机种子
         random_seed = FIXED_MORPHOLOGY_PARAMS["random_seed"] if morph_type in ["normaldistribution", "random"] else None
@@ -129,11 +134,31 @@ def objective_reservoir_morphology(trial: optuna.Trial, morph_type: str = "unifo
             n_instances=n_instances,
             random_seed=random_seed
         )
+
+        # 搜索 Weights
+        weights = []
+        for i in range(n_instances):
+            weights.append(trial.suggest_float(f"weight_{i}", *RESERVOIR_HYPERSPACE["weights"]))
+        
+        # Normalize weights
+        total_weight = sum(weights)
+        if total_weight > 0:
+            weights = [w / total_weight for w in weights]
+        
+        total_weight = sum(weights)
+        if not np.isclose(total_weight, 1.0, atol=1e-3):
+            diff = 1.0 - total_weight
+            min_index = weights.index(min(weights))
+            weights[min_index] = weights[min_index] + diff
+        
+        assert np.isclose(sum(weights), 1.0, atol=1e-3)
+        
+
     
     try:
         # 5. 评估MC和CQ
-        mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, signal_len=550, seed=1234)
-        kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, Nwash=10, seed=1234)
+        mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, weights, signal_len=550, seed=1234)
+        kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, weights, Nwash=10, seed=1234)
         
         MC = float(mc_dict.get("MC", 0.0))
         KR = float(kgr_dict.get("KR", 0.0))
@@ -148,6 +173,8 @@ def objective_reservoir_morphology(trial: optuna.Trial, morph_type: str = "unifo
         trial.set_user_attr("morph_type", morph_type)
         trial.set_user_attr("KR", KR)
         trial.set_user_attr("GR", GR)
+        if weights:
+            trial.set_user_attr("weights", weights)
         
         return CQ, MC
         
@@ -224,24 +251,17 @@ def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
         for key, value in t.params.items():
             print(f'    {key}: {value}')
         print('-------------------')
-    
-    
- 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 5. 主函数
-# ──────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-      import argparse
-
-      parser = argparse.ArgumentParser(description="储层形貌CQ-MC Pareto优化")
-      parser.add_argument("--trials", type=int, default=400, help="试验数量")
-      parser.add_argument("--morph_type", type=str, default="uniform",
-                          choices=["uniform", "gradient", "normaldistribution", "random"],
-                          help="储层形貌类型")
-
-      args = parser.parse_args()
-
-      # 运行优化研究
-      study = run_morphology_study(n_trials=args.trials, morph_type="gradient")
+    # 只运行单一形貌类型 - 修改这里选择你想要的类型
+    # 可选: "uniform", "gradient", "normaldistribution", "random"
+    morph_type = "uniform"  # 修改这里
+    n_trials = 200  # 修改试验次数
+    
+    print(f"\n{'='*60}")
+    print(f"Running study for morphology type: {morph_type}")
+    print(f"Number of trials: {n_trials}")
+    print(f"{'='*60}")
+    
+    run_morphology_study(n_trials=n_trials, morph_type=morph_type)

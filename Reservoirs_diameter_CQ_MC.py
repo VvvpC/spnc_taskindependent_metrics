@@ -129,8 +129,9 @@ def evaluate_size_CQ(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     States = np.stack(outputs, axis=0)
     States = States/np.amax(States)
     KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)
+    CQ = KR - GR
     
-    return {'KR': KR, 'GR': GR}
+    return {'KR': KR, 'GR': GR, 'CQ': CQ}
 
 def evaluate_size_MC_CQ(reservoir_params, **kwargs):
     """
@@ -142,7 +143,8 @@ def evaluate_size_MC_CQ(reservoir_params, **kwargs):
     return {
         'MC': mc_result['MC'],
         'KR': cq_result['KR'],
-        'GR': cq_result['GR']
+        'GR': cq_result['GR'],
+        'CQ': cq_result['CQ']
     }
 
 # ------------------------ Main Evaluation Function ----------------------------
@@ -174,9 +176,9 @@ def run_reservoir_size_evaluation(
     # Map task types to evaluation functions
     task_map = {
         'MC': (evaluate_size_MC, ['MC'], ['Memory Capacity']),
-        'CQ': (evaluate_size_CQ, ['KR', 'GR'], ['KR', 'GR']),
-        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR']),
-        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR'])
+        'CQ': (evaluate_size_CQ, ['KR', 'GR', 'CQ'], ['KR', 'GR', 'CQ']),
+        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ']),
+        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ'])
     }
     
     if task_type.upper() not in task_map:
@@ -360,13 +362,14 @@ class ReservoirBetaGammaEvaluator:
         if len(self.result_keys) == 1:
             ax1.plot(result_dict['beta_prime'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)
             ax1.set_ylabel(self.result_labels[0], fontsize=12)
-        elif len(self.result_keys) == 3:  # MC, KR, GR
+        elif len(self.result_keys) == 4:  # MC, KR, GR, CQ  
             ax1.plot(result_dict['beta_prime'], result_dict['MC'], 'o-', label='MC', linewidth=2, markersize=6)
             ax1_twin = ax1.twinx()
-            ax1_twin.plot(result_dict['beta_prime'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
-            ax1_twin.plot(result_dict['beta_prime'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
+            ax1_twin.plot(result_dict['beta_prime'], result_dict['CQ'], 'd--', label='CQ', color='red', linewidth=2, markersize=6)
+            # ax1_twin.plot(result_dict['beta_prime'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
+            # ax1_twin.plot(result_dict['beta_prime'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
             ax1.set_ylabel('MC', fontsize=12)
-            ax1_twin.set_ylabel('KR, GR', fontsize=12)
+            ax1_twin.set_ylabel('CQ', fontsize=12)
             ax1.legend(loc='upper left')
             ax1_twin.legend(loc='upper right')
         
@@ -385,15 +388,16 @@ class ReservoirBetaGammaEvaluator:
         # Plot 3: Results vs Gamma
         ax3 = axes[1, 0]
         if len(self.result_keys) == 1:
-            ax3.plot(result_dict['gamma'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)
+            ax3.plot(result_dict['gamma'], result_dict[self.result_keys[0]], 'o-', linewidth=2, markersize=6)   
             ax3.set_ylabel(self.result_labels[0], fontsize=12)
-        elif len(self.result_keys) == 3:  # MC, KR, GR
+        elif len(self.result_keys) == 4:  # MC, KR, GR, CQ
             ax3.plot(result_dict['gamma'], result_dict['MC'], 'o-', label='MC', linewidth=2, markersize=6)
             ax3_twin = ax3.twinx()
-            ax3_twin.plot(result_dict['gamma'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
-            ax3_twin.plot(result_dict['gamma'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
+            ax3_twin.plot(result_dict['gamma'], result_dict['CQ'], 'd--', label='CQ', color='red', linewidth=2, markersize=6)
+            #   ax3_twin.plot(result_dict['gamma'], result_dict['KR'], 's--', label='KR', color='orange', linewidth=2, markersize=6)
+            # ax3_twin.plot(result_dict['gamma'], result_dict['GR'], '^:', label='GR', color='green', linewidth=2, markersize=6)
             ax3.set_ylabel('MC', fontsize=12)
-            ax3_twin.set_ylabel('KR, GR', fontsize=12)
+            ax3_twin.set_ylabel('CQ', fontsize=12)
             ax3.legend(loc='upper left')
             ax3_twin.legend(loc='upper right')
         
@@ -476,9 +480,9 @@ def run_reservoir_beta_gamma_evaluation(
     # Map task types to evaluation functions
     task_map = {
         'MC': (evaluate_size_MC, ['MC'], ['Memory Capacity']),
-        'CQ': (evaluate_size_CQ, ['KR', 'GR'], ['KR', 'GR']),
-        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR']),
-        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR'], ['MC', 'KR', 'GR'])
+        'CQ': (evaluate_size_CQ, ['KR', 'GR', 'CQ'], ['KR', 'GR', 'CQ']),
+        'MC_CQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ']),
+        'MCCQ': (evaluate_size_MC_CQ, ['MC', 'KR', 'GR', 'CQ'], ['MC', 'KR', 'GR', 'CQ'])
     }
     
     if task_type.upper() not in task_map:
@@ -512,6 +516,166 @@ def run_reservoir_beta_gamma_evaluation(
         verbose=verbose, 
         filename_prefix=filename_prefix
     )
+
+# ------------------------ Beta Gamma Heatmap Functions ----------------------------
+
+def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None, save_data=True):
+    """
+    绘制beta_prime和gamma的热力图
+    
+    Parameters:
+    -----------
+    reservoir_params : ReservoirSizeParams, optional
+        储层参数对象，如果为None则使用默认参数
+    save_path : str, optional
+        图像保存路径，如果为None则显示图像
+    save_data : bool, optional
+        是否保存原始数据，默认为True
+    """
+    import matplotlib.pyplot as plt
+    import tqdm
+    
+    # 参数网格设置
+    beta_prime_range = np.linspace(25, 35, 10)
+    gamma_range = np.linspace(0.04, 0.06, 10)
+    
+    # 初始化结果矩阵
+    cq_matrix = np.zeros((10, 10))
+    mc_matrix = np.zeros((10, 10))
+    
+    print(f"开始计算热力图数据")
+    print(f"Beta_prime 范围: {beta_prime_range[0]:.1f} - {beta_prime_range[-1]:.1f}")
+    print(f"Gamma 范围: {gamma_range[0]:.3f} - {gamma_range[-1]:.3f}")
+    
+    # 使用默认参数或提供的参数
+    if reservoir_params is None:
+        reservoir_params = ReservoirSizeParams(
+            ref_beta_prime=30,
+            h=0.4,
+            Nvirt=200,
+            m0=0.004,
+            params={
+                'theta': 0.3,
+                'gamma': 0.05,
+                'delay_feedback': 0,
+                'Nvirt': 200,
+            }
+        )
+    
+    # 固定其他参数
+    original_theta = reservoir_params.params.get('theta', 0.3)
+    original_m0 = reservoir_params.m0
+    
+    # 遍历参数网格
+    total_combinations = len(gamma_range) * len(beta_prime_range)
+    current_idx = 0
+    
+    for i, gamma in enumerate(gamma_range):
+        for j, beta_prime in enumerate(beta_prime_range):
+            current_idx += 1
+            try:
+                # 更新参数
+                reservoir_params.update_params(beta_prime=beta_prime)
+                reservoir_params.params['gamma'] = gamma
+                reservoir_params.params['theta'] = original_theta
+                reservoir_params.m0 = original_m0
+                
+                # 评估MC和CQ
+                result = evaluate_size_MC_CQ(reservoir_params, signal_len=550, seed=1234)
+                
+                MC = float(result.get("MC", 0.0))
+                KR = float(result.get("KR", 0.0))
+                GR = float(result.get("GR", 0.0))
+                CQ = KR - GR
+                
+                cq_matrix[i, j] = CQ
+                mc_matrix[i, j] = MC
+                
+                print(f"进度 {current_idx}/{total_combinations}: γ={gamma:.4f}, β'={beta_prime:.1f}, CQ={CQ:.3f}, MC={MC:.3f}")
+                
+            except Exception as e:
+                print(f"计算失败 γ={gamma:.4f}, β'={beta_prime:.1f}: {e}")
+                cq_matrix[i, j] = 0
+                mc_matrix[i, j] = 0
+    
+    # 绘制热力图
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # CQ热力图
+    im1 = ax1.imshow(cq_matrix, cmap='viridis', aspect='auto', origin='lower')
+    ax1.set_title('CQ热力图', fontsize=14)
+    ax1.set_xlabel('beta_prime', fontsize=12)
+    ax1.set_ylabel('gamma', fontsize=12)
+    
+    # 设置刻度标签
+    ax1.set_xticks(range(10))
+    ax1.set_yticks(range(10))
+    ax1.set_xticklabels([f'{x:.1f}' for x in beta_prime_range])
+    ax1.set_yticklabels([f'{x:.4f}' for x in gamma_range])
+    
+    plt.colorbar(im1, ax=ax1, label='CQ')
+    
+    # MC热力图
+    im2 = ax2.imshow(mc_matrix, cmap='plasma', aspect='auto', origin='lower')
+    ax2.set_title('MC热力图', fontsize=14)
+    ax2.set_xlabel('beta_prime', fontsize=12)
+    ax2.set_ylabel('gamma', fontsize=12)
+    
+    ax2.set_xticks(range(10))
+    ax2.set_yticks(range(10))
+    ax2.set_xticklabels([f'{x:.1f}' for x in beta_prime_range])
+    ax2.set_yticklabels([f'{x:.4f}' for x in gamma_range])
+    
+    plt.colorbar(im2, ax=ax2, label='MC')
+    
+    plt.tight_layout()
+    
+    # 保存图像
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"热力图已保存到: {save_path}")
+    else:
+        plt.show()
+    
+    # 保存原始数据
+    result_data = {
+        'cq_matrix': cq_matrix, 
+        'mc_matrix': mc_matrix, 
+        'beta_prime_range': beta_prime_range, 
+        'gamma_range': gamma_range,
+        'reservoir_params': {
+            'ref_beta_prime': reservoir_params.ref_beta_prime,
+            'h': reservoir_params.h,
+            'Nvirt': reservoir_params.Nvirt,
+            'm0': reservoir_params.m0,
+            'params': reservoir_params.params.copy()
+        }
+    }
+    
+    if save_data:
+        import pickle
+        import os
+        from datetime import datetime
+        
+        # 生成数据文件名
+        if save_path:
+            # 如果提供了图像路径，将数据保存在相同目录，文件名添加_data后缀
+            base_name = os.path.splitext(save_path)[0]
+            data_path = f"{base_name}_data.pkl"
+        else:
+            # 默认数据文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            data_path = f"beta_gamma_heatmap_data_{timestamp}.pkl"
+        
+        # 确保目录存在
+        os.makedirs(os.path.dirname(data_path) if os.path.dirname(data_path) else '.', exist_ok=True)
+        
+        # 保存数据
+        with open(data_path, 'wb') as f:
+            pickle.dump(result_data, f)
+        print(f"热力图数据已保存到: {data_path}")
+    
+    return result_data
 
 # ------------------------ Example Usage ----------------------------
 
@@ -548,32 +712,62 @@ def run_reservoir_beta_gamma_evaluation(
 
 
 if __name__ == "__main__":
-    # Set up parameters
-    ref_beta_prime = 29.14406097255966
-    # Create reservoir parameters with reference beta_prime
-    reservoir_params = ReservoirSizeParams(
-        ref_beta_prime=ref_beta_prime,
-        h=0.4,
-        Nvirt=200,
-        m0=0.004703581408469578,
-        params={
-            'theta': 0.13798577326972078,
-            'gamma': 0.05110574322049721,  # This will be overridden by the equation
-            'delay_feedback': 0,
-            'Nvirt':200,
-        }
-    )
+    import argparse
     
-    beta_prime_range = np.arange(25, 35.5, 0.5) # Range of beta_prime values to test
+    parser = argparse.ArgumentParser(description="储层直径与CQ-MC性能评估")
+    parser.add_argument("--heatmap", action="store_true", help="绘制beta_prime和gamma热力图")
+    parser.add_argument("--save_path", type=str, default=None, help="热力图保存路径")
+    parser.add_argument("--no_save_data", action="store_true", help="不保存原始数据")
+    
+    args = parser.parse_args()
+    
+    if args.heatmap:
+        # 绘制热力图
+        # 使用文件中现有的优化参数
+        reservoir_params = ReservoirSizeParams(
+            ref_beta_prime=29.14406097255966,
+            h=0.4,
+            Nvirt=200,
+            m0=0.004703581408469578,
+            params={
+                'theta': 0.13798577326972078,
+                'gamma': 0.05110574322049721,
+                'delay_feedback': 0,
+                'Nvirt': 200,
+            }
+        )
+        
+        save_path = args.save_path if args.save_path else "beta_gamma_heatmap.png"
+        save_data = not args.no_save_data  # 默认保存数据，除非指定--no_save_data
+        result = plot_beta_gamma_heatmap(reservoir_params=reservoir_params, save_path=save_path, save_data=save_data)
+        print("热力图绘制完成!")
+    else:
+        # 原始的beta-gamma耦合评估
+        ref_beta_prime = 29.14406097255966
+        # Create reservoir parameters with reference beta_prime
+        reservoir_params = ReservoirSizeParams(
+            ref_beta_prime=ref_beta_prime,
+            h=0.4,
+            Nvirt=200,
+            m0=0.004703581408469578,
+            params={
+                'theta': 0.13798577326972078,
+                'gamma': 0.06,  # This will be overridden by the equation
+                'delay_feedback': 0,
+                'Nvirt':200,
+            }
+        )
+        
+        beta_prime_range = np.arange(25, 35.5, 0.5) # Range of beta_prime values to test
 
-    results_auto = run_reservoir_beta_gamma_evaluation(
-        task_type='MC_CQ',
-        beta_prime_range=beta_prime_range,
-        reservoir_params=reservoir_params,
-        result_dir="./results",
-        plot=True,
-        verbose=False,
-        use_gamma_calculation=True,
-        # gamma_range = [0.05110574322049721 for _ in range(21)],
-        filename_prefix=None
-    )
+        results_auto = run_reservoir_beta_gamma_evaluation(
+            task_type='MC_CQ',
+            beta_prime_range=beta_prime_range,
+            reservoir_params=reservoir_params,
+            result_dir="./results",
+            plot=True,
+            verbose=False,
+            use_gamma_calculation=False,
+            gamma_range = [0.06 for _ in range(21)],
+            filename_prefix=None
+        )
