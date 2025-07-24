@@ -47,8 +47,8 @@ RESERVOIR_HYPERSPACE = {
     "theta": (0.01, 0.6),       
     "m0": (0.001, 0.008),                   
     "beta_prime": (20, 50),
-    "n_instances": (3, 10),
-    "beta_range_delta": (0, 4),
+    "n_instances": (3, 7),
+    "beta_range_delta": (0, 5),
     "weights": (0.01, 1)
 }
 
@@ -256,7 +256,7 @@ def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
 if __name__ == "__main__":
     # 只运行单一形貌类型 - 修改这里选择你想要的类型
     # 可选: "uniform", "gradient", "normaldistribution", "random"
-    morph_type = "uniform"  # 修改这里
+    morph_type = "gradient"  # 修改这里
     n_trials = 200  # 修改试验次数
     
     print(f"\n{'='*60}")
