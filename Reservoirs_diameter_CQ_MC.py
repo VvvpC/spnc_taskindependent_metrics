@@ -537,7 +537,7 @@ def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None, save_data=Tru
     
     # 参数网格设置
     beta_prime_range = np.linspace(25, 35, 10)
-    gamma_range = np.linspace(0.04, 0.06, 10)
+    gamma_range = np.linspace(0.05, 0.09, 10)
     
     # 初始化结果矩阵
     cq_matrix = np.zeros((10, 10))
@@ -552,18 +552,18 @@ def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None, save_data=Tru
         reservoir_params = ReservoirSizeParams(
             ref_beta_prime=30,
             h=0.4,
-            Nvirt=200,
-            m0=0.004,
+            Nvirt=50,
+            m0=0.003,
             params={
-                'theta': 0.3,
+                'theta': 0.113,
                 'gamma': 0.05,
                 'delay_feedback': 0,
-                'Nvirt': 200,
+                'Nvirt': 50,
             }
         )
     
     # 固定其他参数
-    original_theta = reservoir_params.params.get('theta', 0.3)
+    original_theta = reservoir_params.params.get('theta', 0.113)
     original_m0 = reservoir_params.m0
     
     # 遍历参数网格
@@ -725,15 +725,15 @@ if __name__ == "__main__":
         # 绘制热力图
         # 使用文件中现有的优化参数
         reservoir_params = ReservoirSizeParams(
-            ref_beta_prime=29.14406097255966,
+            ref_beta_prime=30,
             h=0.4,
-            Nvirt=200,
-            m0=0.004703581408469578,
+            Nvirt=50,
+            m0=0.003,
             params={
-                'theta': 0.13798577326972078,
-                'gamma': 0.05110574322049721,
+                'theta': 0.113,
+                'gamma': 0.076,
                 'delay_feedback': 0,
-                'Nvirt': 200,
+                'Nvirt': 50,
             }
         )
         
@@ -743,22 +743,22 @@ if __name__ == "__main__":
         print("热力图绘制完成!")
     else:
         # 原始的beta-gamma耦合评估
-        ref_beta_prime = 29.14406097255966
+        ref_beta_prime = 30
         # Create reservoir parameters with reference beta_prime
         reservoir_params = ReservoirSizeParams(
             ref_beta_prime=ref_beta_prime,
             h=0.4,
-            Nvirt=200,
-            m0=0.004703581408469578,
+            Nvirt=50,
+            m0=0.003,
             params={
-                'theta': 0.13798577326972078,
-                'gamma': 0.06,  # This will be overridden by the equation
+                'theta': 0.113,
+                'gamma': 0.086,  # This will be overridden by the equation
                 'delay_feedback': 0,
-                'Nvirt':200,
+                'Nvirt':50,
             }
         )
         
-        beta_prime_range = np.arange(25, 35.5, 0.5) # Range of beta_prime values to test
+        beta_prime_range = np.arange(25, 35.5, 1) # Range of beta_prime values to test
 
         results_auto = run_reservoir_beta_gamma_evaluation(
             task_type='MC_CQ',
@@ -768,6 +768,6 @@ if __name__ == "__main__":
             plot=True,
             verbose=False,
             use_gamma_calculation=False,
-            gamma_range = [0.06 for _ in range(21)],
+            gamma_range = [0.086 for _ in range(11)],
             filename_prefix=None
         )
