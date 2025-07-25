@@ -435,23 +435,41 @@ def evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
                             seed_NARMA=1234, fixed_mask=True, return_NRMSE=True)
     return {'NRMSE': NRMSE}
 
+def evaluate_NARMA10_with_outputs(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
+    spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
+                          reservoir_params.k_s_0, reservoir_params.phi,
+                          reservoir_params.beta_prime, restart=True)
+    transform = spn.gen_signal_slow_delayed_feedback
+    outputs = ml.spnc_narma10(Ntrain, Ntest, reservoir_params.Nvirt,
+                            reservoir_params.m0, reservoir_params.bias,
+                            transform, reservoir_params.params,
+                            seed_NARMA=1234, fixed_mask=True, return_outputs=True)
+    return {'outputs': outputs}
+
 # ##########
 # test one reservoir with given parameters
 # ##########
 
 def test_one_reservoir(reservoir_params, **kwargs):
 
-# 执行MC任务
-    MC = evaluate_MC(reservoir_params, signal_len=550, **kwargs)
-# 执行KRandGR任务
+# # 执行MC任务
+#     MC = evaluate_MC(reservoir_params, signal_len=550, **kwargs)
+# # 执行KRandGR任务
 
-    krgr_result = evaluate_KRandGR(reservoir_params, Nreadouts=reservoir_params.Nvirt, Nwash=10, **kwargs)
-    KR = krgr_result['KR']
-    GR = krgr_result['GR']
-    print(KR, GR)   
+#     krgr_result = evaluate_KRandGR(reservoir_params, Nreadouts=reservoir_params.Nvirt, Nwash=10, **kwargs)
+#     KR = krgr_result['KR']
+#     GR = krgr_result['GR']
+#     print(KR, GR)   
+
+    # 执行NARMA10任务
+    # NRMSE = evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs)
+
+    # 执行NARMA10_with_outputs任务
+    outputs = evaluate_NARMA10_with_outputs(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs)
 
 # 返回MC和KR,GR
-    return {'MC': MC, 'KR': KR, 'GR': GR}
+    # return {'MC': MC, 'KR': KR, 'GR': GR, 'NRMSE': NRMSE}
+    return {'outputs': outputs}
     
 # 执行test_one_reservoir任务
 
