@@ -730,14 +730,14 @@ if __name__ == "__main__":
             Nvirt=50,
             m0=0.003,
             params={
-                'theta': 0.113,
+                'theta': 0.3,
                 'gamma': 0.076,
                 'delay_feedback': 0,
                 'Nvirt': 50,
             }
         )
         
-        save_path = args.save_path if args.save_path else "beta_gamma_heatmap.png"
+        save_path = args.save_path if args.save_path else "beta_gamma_heatmap_1.png"
         save_data = not args.no_save_data  # 默认保存数据，除非指定--no_save_data
         result = plot_beta_gamma_heatmap(reservoir_params=reservoir_params, save_path=save_path, save_data=save_data)
         print("热力图绘制完成!")
@@ -748,17 +748,17 @@ if __name__ == "__main__":
         reservoir_params = ReservoirSizeParams(
             ref_beta_prime=ref_beta_prime,
             h=0.4,
-            Nvirt=50,
+            Nvirt=200,
             m0=0.003,
             params={
-                'theta': 0.113,
-                'gamma': 0.086,  # This will be overridden by the equation
+                'theta': 0.3,
+                'gamma': 0.0767,  # This will be overridden by the equation
                 'delay_feedback': 0,
-                'Nvirt':50,
+                'Nvirt':200,
             }
         )
         
-        beta_prime_range = np.arange(25, 35.5, 1) # Range of beta_prime values to test
+        beta_prime_range = np.arange(25, 35.5, 0.5) # Range of beta_prime values to test
 
         results_auto = run_reservoir_beta_gamma_evaluation(
             task_type='MC_CQ',
@@ -768,6 +768,6 @@ if __name__ == "__main__":
             plot=True,
             verbose=False,
             use_gamma_calculation=False,
-            gamma_range = [0.086 for _ in range(11)],
+            gamma_range = [0.0767 for _ in range(21)],
             filename_prefix=None
         )
