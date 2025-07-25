@@ -552,18 +552,18 @@ def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None, save_data=Tru
         reservoir_params = ReservoirSizeParams(
             ref_beta_prime=30,
             h=0.4,
-            Nvirt=50,
+            Nvirt=200,
             m0=0.003,
             params={
-                'theta': 0.113,
+                'theta': 0.3,
                 'gamma': 0.05,
                 'delay_feedback': 0,
-                'Nvirt': 50,
+                'Nvirt': 200,
             }
         )
     
     # 固定其他参数
-    original_theta = reservoir_params.params.get('theta', 0.113)
+    original_theta = reservoir_params.params.get('theta', 0.3)
     original_m0 = reservoir_params.m0
     
     # 遍历参数网格
@@ -727,17 +727,17 @@ if __name__ == "__main__":
         reservoir_params = ReservoirSizeParams(
             ref_beta_prime=30,
             h=0.4,
-            Nvirt=50,
+            Nvirt=200,
             m0=0.003,
             params={
                 'theta': 0.3,
                 'gamma': 0.076,
                 'delay_feedback': 0,
-                'Nvirt': 50,
+                'Nvirt': 200,
             }
         )
         
-        save_path = args.save_path if args.save_path else "beta_gamma_heatmap_1.png"
+        save_path = args.save_path if args.save_path else "beta_gamma_heatmap_2.png"
         save_data = not args.no_save_data  # 默认保存数据，除非指定--no_save_data
         result = plot_beta_gamma_heatmap(reservoir_params=reservoir_params, save_path=save_path, save_data=save_data)
         print("热力图绘制完成!")
