@@ -473,13 +473,18 @@ def test_one_reservoir(reservoir_params, **kwargs):
     
 # 执行test_one_reservoir任务
 
-# if __name__ == "__main__":
-#     # 设定reservoir_params
-#     reservoir_params = ReservoirParams(h=0.4607867044725622, m0=0.005288612874870094, Nvirt=50, beta_prime= 35.13826524755751, params={'gamma': 0.069274461903986, 'theta': 0.34142235979698393, 'Nvirt': 50})
+if __name__ == "__main__":
+    # 设定reservoir_params
+    reservoir_params = ReservoirParams(h=0.4607867044725622, m0=0.005288612874870094, Nvirt=50, beta_prime= 35.13826524755751, params={'gamma': 0.069274461903986, 'theta': 0.34142235979698393, 'Nvirt': 50})
 
-#     # 执行test_one_reservoir任务
-#     result = test_one_reservoir(reservoir_params)
-#     print(result)
+    # 执行test_one_reservoir任务
+    result = test_one_reservoir(reservoir_params)
+
+    # 保存数据
+    save_path = f"./Results/SingleTests/test_one_reservoir_outputs.pkl"
+    with open(save_path, 'wb') as f:
+        pickle.dump(result, f)
+    print(result)
 
 
 
