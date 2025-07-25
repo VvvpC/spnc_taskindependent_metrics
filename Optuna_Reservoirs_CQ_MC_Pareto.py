@@ -215,11 +215,74 @@ def create_morphology_study(morph_type: str = "uniform"):
     
     return study
 
+
+def load_existing_study(study_name: str):
+    """
+    载入已存在的储层形貌优化研究
+    
+    Parameters:
+    -----------
+    study_name : str
+        要载入的研究名称
+        
+    Returns:
+    --------
+    optuna.Study
+        载入的研究对象
+    """
+    storage = "sqlite:///db.sqlite3"
+    
+    try:
+        study = optuna.load_study(study_name=study_name, storage=storage)
+        print(f"Successfully loaded existing study: '{study_name}'")
+        print(f"Current number of completed trials: {len(study.trials)}")
+        return study
+    except KeyError:
+        raise ValueError(f"Study '{study_name}' does not exist in storage. Please check the study name.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load study '{study_name}': {e}")
+
+
+def list_existing_studies():
+    """
+    列出所有已存在的储层形貌优化研究
+    
+    Returns:
+    --------
+    list: 研究名称列表
+    """
+    storage = "sqlite:///db.sqlite3"
+    
+    try:
+        # 获取所有研究名称
+        study_summaries = optuna.get_all_study_summaries(storage=storage)
+        study_names = [summary.study_name for summary in study_summaries 
+                      if "Reservoir_Morphology_CQ_MC_Pareto" in summary.study_name]
+        
+        if study_names:
+            print("Available studies for resuming:")
+            for i, name in enumerate(study_names, 1):
+                # 获取study信息
+                try:
+                    study = optuna.load_study(study_name=name, storage=storage)
+                    n_trials = len(study.trials)
+                    print(f"  {i}. {name} ({n_trials} trials)")
+                except Exception:
+                    print(f"  {i}. {name} (unable to load trial count)")
+        else:
+            print("No existing studies found.")
+            
+        return study_names
+        
+    except Exception as e:
+        print(f"Error listing studies: {e}")
+        return []
+
 # ──────────────────────────────────────────────────────────────────────────────
 # 4. 运行研究
 # ──────────────────────────────────────────────────────────────────────────────
 
-def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
+def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform", resume_study_name: Optional[str] = None):
     """
     运行储层形貌CQ-MC Pareto优化研究
     
@@ -227,12 +290,24 @@ def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
     -----------
     n_trials : int
         试验数量
-    timeout : int, optional
-        超时时间（秒）
     morph_type : str
         储层形貌类型 ("uniform", "gradient", "normaldistribution", "random")
+    resume_study_name : str, optional
+        要继续的研究名称。如果提供，将载入已存在的研究继续优化；否则创建新研究
     """
-    study = create_morphology_study(morph_type)
+    if resume_study_name:
+        # 载入已存在的研究
+        study = load_existing_study(resume_study_name)
+        print(f"Resuming study: {resume_study_name}")
+        
+        # 从已有试验中推断形貌类型
+        if study.trials:
+            morph_type = study.trials[0].user_attrs.get("morph_type", morph_type)
+            print(f"Detected morphology type from existing study: {morph_type}")
+    else:
+        # 创建新研究
+        study = create_morphology_study(morph_type)
+        print(f"Created new study for morphology type: {morph_type}")
     
     print(f"Start the study, number of trials: {n_trials}")
     print(f"Morphology type: {morph_type}")
@@ -254,14 +329,54 @@ def run_morphology_study(n_trials: int = 400, morph_type: str = "uniform"):
 
 
 if __name__ == "__main__":
-    # 只运行单一形貌类型 - 修改这里选择你想要的类型
-    # 可选: "uniform", "gradient", "normaldistribution", "random"
-    morph_type = "gradient"  # 修改这里
-    n_trials = 200  # 修改试验次数
+    # ============================================================================
+    # 配置选项
+    # ============================================================================
     
-    print(f"\n{'='*60}")
-    print(f"Running study for morphology type: {morph_type}")
-    print(f"Number of trials: {n_trials}")
-    print(f"{'='*60}")
+    # 选项1: 创建新的研究
+    CREATE_NEW_STUDY = True  # 设置为 True 创建新研究
+    morph_type = "gradient"  # 可选: "uniform", "gradient", "normaldistribution", "random"
+    n_trials = 200  # 试验次数
     
-    run_morphology_study(n_trials=n_trials, morph_type=morph_type)
+    # 选项2: 继续已存在的研究
+    RESUME_EXISTING_STUDY = False  # 设置为 True 继续已有研究
+    resume_study_name = "Reservoir_Morphology_CQ_MC_Pareto_gradient"  # 要继续的研究名称
+    
+    # ============================================================================
+    # 执行
+    # ============================================================================
+    
+    if RESUME_EXISTING_STUDY:
+        # 首先列出可用的研究
+        print(f"\n{'='*60}")
+        print("RESUME MODE: Continuing existing study")
+        print(f"{'='*60}")
+        
+        list_existing_studies()
+        
+        print(f"\nResuming study: {resume_study_name}")
+        print(f"Additional trials: {n_trials}")
+        print(f"{'='*60}")
+        
+        run_morphology_study(n_trials=n_trials, resume_study_name=resume_study_name)
+        
+    elif CREATE_NEW_STUDY:
+        # 创建新研究
+        print(f"\n{'='*60}")
+        print("CREATE MODE: Starting new study")
+        print(f"Running study for morphology type: {morph_type}")
+        print(f"Number of trials: {n_trials}")
+        print(f"{'='*60}")
+        
+        run_morphology_study(n_trials=n_trials, morph_type=morph_type)
+        
+    else:
+        # 仅列出已有研究
+        print(f"\n{'='*60}")
+        print("INFO MODE: Listing existing studies")
+        print(f"{'='*60}")
+        
+        list_existing_studies()
+        
+        print("\nTo resume a study, set RESUME_EXISTING_STUDY=True and specify resume_study_name")
+        print("To create a new study, set CREATE_NEW_STUDY=True and specify morph_type")
