@@ -537,7 +537,7 @@ def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None, save_data=Tru
     
     # 参数网格设置
     beta_prime_range = np.linspace(25, 35, 10)
-    gamma_range = np.linspace(0.04, 0.06, 10)
+    gamma_range = np.linspace(0.05, 0.09, 10)
     
     # 初始化结果矩阵
     cq_matrix = np.zeros((10, 10))
@@ -553,7 +553,7 @@ def plot_beta_gamma_heatmap(reservoir_params=None, save_path=None, save_data=Tru
             ref_beta_prime=30,
             h=0.4,
             Nvirt=200,
-            m0=0.004,
+            m0=0.003,
             params={
                 'theta': 0.3,
                 'gamma': 0.05,
@@ -725,34 +725,34 @@ if __name__ == "__main__":
         # 绘制热力图
         # 使用文件中现有的优化参数
         reservoir_params = ReservoirSizeParams(
-            ref_beta_prime=29.14406097255966,
+            ref_beta_prime=30,
             h=0.4,
             Nvirt=200,
-            m0=0.004703581408469578,
+            m0=0.003,
             params={
-                'theta': 0.13798577326972078,
-                'gamma': 0.05110574322049721,
+                'theta': 0.3,
+                'gamma': 0.076,
                 'delay_feedback': 0,
                 'Nvirt': 200,
             }
         )
         
-        save_path = args.save_path if args.save_path else "beta_gamma_heatmap.png"
+        save_path = args.save_path if args.save_path else "beta_gamma_heatmap_2.png"
         save_data = not args.no_save_data  # 默认保存数据，除非指定--no_save_data
         result = plot_beta_gamma_heatmap(reservoir_params=reservoir_params, save_path=save_path, save_data=save_data)
         print("热力图绘制完成!")
     else:
         # 原始的beta-gamma耦合评估
-        ref_beta_prime = 29.14406097255966
+        ref_beta_prime = 30
         # Create reservoir parameters with reference beta_prime
         reservoir_params = ReservoirSizeParams(
             ref_beta_prime=ref_beta_prime,
             h=0.4,
             Nvirt=200,
-            m0=0.004703581408469578,
+            m0=0.003,
             params={
-                'theta': 0.13798577326972078,
-                'gamma': 0.06,  # This will be overridden by the equation
+                'theta': 0.3,
+                'gamma': 0.0767,  # This will be overridden by the equation
                 'delay_feedback': 0,
                 'Nvirt':200,
             }
@@ -768,6 +768,6 @@ if __name__ == "__main__":
             plot=True,
             verbose=False,
             use_gamma_calculation=False,
-            gamma_range = [0.06 for _ in range(21)],
+            gamma_range = [0.0767 for _ in range(21)],
             filename_prefix=None
         )
