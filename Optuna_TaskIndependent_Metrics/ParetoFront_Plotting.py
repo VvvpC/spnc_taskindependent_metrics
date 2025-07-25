@@ -1,9 +1,9 @@
 """
-Pareto Front Plotting Module
+Pareto Front Plotting Module - Optimized Version
 
 This module provides functionality to visualize Pareto fronts and related data points
-from optimization trials. It reads data from CSV files and creates comprehensive
-plots showing the Pareto front and dominated points.
+from optimization trials. It supports flexible file loading by filename and multi-file
+compatibility for future extensions.
 
 Author: Generated for SPNC Optuna Heterogeneous project
 """
@@ -15,13 +15,14 @@ import seaborn as sns
 from pathlib import Path
 import os
 from scipy.spatial.distance import cdist
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union, Dict
 import warnings
 warnings.filterwarnings('ignore')
 
 class ParetoFrontPlotter:
     """
     A class for plotting Pareto fronts and analyzing dominated solutions.
+    Supports flexible file loading and multi-file compatibility.
     """
     
     def __init__(self, data_dir: Optional[str] = None):
@@ -29,76 +30,274 @@ class ParetoFrontPlotter:
         Initialize the ParetoFrontPlotter.
         
         Args:
-            data_dir (str): Directory containing the CSV data files. If None, will auto-detect.
+            data_dir (str): Directory containing the CSV data files. If None, uses current directory.
         """
-        if data_dir is None:
-            # Try to find the data directory automatically
-            self.data_dir = self._find_data_directory()
-        else:
-            self.data_dir = Path(data_dir)
+        self.data_dir = Path(data_dir) if data_dir else Path.cwd()
         self.pareto_front_df = None
         self.all_trials_df = None
+        self.loaded_files = {}  # Track loaded files for multi-file support
     
-    def _find_data_directory(self) -> Path:
+    def list_available_files(self, pattern: str = "*.csv") -> List[Path]:
         """
-        Automatically find the data directory by searching common locations.
+        List all available CSV files in the data directory.
         
+        Args:
+            pattern (str): File pattern to search for (default: "*.csv")
+            
         Returns:
-            Path: Path to the data directory
-            
-        Raises:
-            FileNotFoundError: If data directory cannot be found
+            List[Path]: List of available files
         """
-        # Common possible locations for the data directory
-        possible_paths = [
-            Path("ParetoFront_CQandMC/data"),           # From project root
-            Path("../ParetoFront_CQandMC/data"),        # From subdirectory
-            Path("../../ParetoFront_CQandMC/data"),     # From deeper subdirectory
-            Path(__file__).parent.parent / "ParetoFront_CQandMC/data",  # Relative to this file
-        ]
+        files = list(self.data_dir.glob(pattern))
+        if files:
+            print(f"Available files in {self.data_dir}:")
+            for i, file in enumerate(files, 1):
+                print(f"  {i}. {file.name}")
+        else:
+            print(f"No files matching '{pattern}' found in {self.data_dir}")
+        return files
+    
+    def load_data_by_filename(self, 
+                             pareto_filename: str,
+                             all_trials_filename: Optional[str] = None) -> None:
+        """
+        Load data from specific filenames.
         
-        for path in possible_paths:
-            if path.exists() and (path / "pareto_front.csv").exists():
-                print(f"Found data directory at: {path.absolute()}")
-                return path
-                
-        # If none found, provide helpful error message
-        current_dir = Path.cwd()
-        error_msg = f"""
-Data directory not found. Searched in:
-{chr(10).join(f'  - {p.absolute()}' for p in possible_paths)}
-
-Current working directory: {current_dir}
-
-Please ensure the data files exist at one of these locations:
-  - pareto_front.csv
-  - all_trials.csv
-
-Or specify the data directory explicitly:
-  plotter = ParetoFrontPlotter(data_dir="path/to/your/data")
-"""
-        raise FileNotFoundError(error_msg)
-        
-    def load_data(self) -> None:
-        """Load Pareto front and all trials data from CSV files."""
+        Args:
+            pareto_filename (str): Name of the Pareto front data file
+            all_trials_filename (str, optional): Name of all trials data file.
+                                                If None, uses pareto_filename for both.
+        """
         try:
-            pareto_path = self.data_dir / "pareto_front.csv"
-            all_trials_path = self.data_dir / "all_trials.csv"
-            
+            # Load Pareto front data
+            pareto_path = self.data_dir / pareto_filename
             if not pareto_path.exists():
-                raise FileNotFoundError(f"Pareto front data not found at {pareto_path}")
-            if not all_trials_path.exists():
-                raise FileNotFoundError(f"All trials data not found at {all_trials_path}")
-                
-            self.pareto_front_df = pd.read_csv(pareto_path)
-            self.all_trials_df = pd.read_csv(all_trials_path)
+                raise FileNotFoundError(f"Pareto file not found: {pareto_path}")
             
-            print(f"Loaded {len(self.pareto_front_df)} Pareto front points")
-            print(f"Loaded {len(self.all_trials_df)} total trial points")
+            print(f"Loading Pareto data from: {pareto_filename}")
+            self.pareto_front_df = self._load_and_process_file(pareto_path, "pareto")
+            self.loaded_files['pareto'] = pareto_filename
+            
+            # Load all trials data
+            if all_trials_filename:
+                all_trials_path = self.data_dir / all_trials_filename
+                if not all_trials_path.exists():
+                    raise FileNotFoundError(f"All trials file not found: {all_trials_path}")
+                
+                print(f"Loading all trials data from: {all_trials_filename}")
+                self.all_trials_df = self._load_and_process_file(all_trials_path, "all_trials")
+                self.loaded_files['all_trials'] = all_trials_filename
+            else:
+                # Use Pareto data for all trials if not specified
+                print("Using Pareto data for all trials (no separate all_trials file specified)")
+                self.all_trials_df = self.pareto_front_df.copy()
+                self.loaded_files['all_trials'] = pareto_filename
+            
+            print(f"Successfully loaded {len(self.pareto_front_df)} Pareto front points")
+            print(f"Successfully loaded {len(self.all_trials_df)} total trial points")
             
         except Exception as e:
             print(f"Error loading data: {e}")
             raise
+    
+    def load_multiple_files(self, file_configs: List[Dict[str, str]]) -> Dict[str, pd.DataFrame]:
+        """
+        Load multiple files for comparison or combined analysis.
+        
+        Args:
+            file_configs (List[Dict]): List of file configurations, each containing:
+                - 'name': identifier for the dataset
+                - 'pareto_file': filename for Pareto data
+                - 'all_trials_file': (optional) filename for all trials data
+        
+        Returns:
+            Dict[str, pd.DataFrame]: Dictionary of loaded datasets
+        
+        Example:
+            configs = [
+                {'name': 'study1', 'pareto_file': 'study1_pareto.csv'},
+                {'name': 'study2', 'pareto_file': 'study2_pareto.csv', 'all_trials_file': 'study2_all.csv'}
+            ]
+        """
+        datasets = {}
+        
+        for config in file_configs:
+            name = config['name']
+            pareto_file = config['pareto_file']
+            all_trials_file = config.get('all_trials_file')
+            
+            try:
+                print(f"\nLoading dataset '{name}'...")
+                
+                # Load Pareto data
+                pareto_path = self.data_dir / pareto_file
+                if not pareto_path.exists():
+                    print(f"Warning: Pareto file not found for {name}: {pareto_path}")
+                    continue
+                
+                pareto_df = self._load_and_process_file(pareto_path, "pareto")
+                
+                # Load all trials data
+                if all_trials_file:
+                    all_trials_path = self.data_dir / all_trials_file
+                    if all_trials_path.exists():
+                        all_trials_df = self._load_and_process_file(all_trials_path, "all_trials")
+                    else:
+                        print(f"Warning: All trials file not found for {name}, using Pareto data")
+                        all_trials_df = pareto_df.copy()
+                else:
+                    all_trials_df = pareto_df.copy()
+                
+                datasets[name] = {
+                    'pareto_front': pareto_df,
+                    'all_trials': all_trials_df,
+                    'files': {
+                        'pareto': pareto_file,
+                        'all_trials': all_trials_file or pareto_file
+                    }
+                }
+                
+                print(f"  Loaded {len(pareto_df)} Pareto points, {len(all_trials_df)} total points")
+                
+            except Exception as e:
+                print(f"Error loading dataset '{name}': {e}")
+                continue
+        
+        self.loaded_files['datasets'] = datasets
+        return datasets
+    
+    def _load_and_process_file(self, file_path: Path, file_type: str) -> pd.DataFrame:
+        """
+        Load and process a single CSV file, handling different formats.
+        
+        Args:
+            file_path (Path): Path to the CSV file
+            file_type (str): Type of file ('pareto' or 'all_trials')
+            
+        Returns:
+            pd.DataFrame: Processed dataframe
+        """
+        print(f"Loading file: {file_path}")
+        raw_df = pd.read_csv(file_path)
+        
+        print(f"File shape: {raw_df.shape}")
+        print(f"Columns: {list(raw_df.columns)}")
+        
+        # Check if this is the new format (has 'values' column)
+        if 'values' in raw_df.columns:
+            print("Detected new format (with 'values' column)")
+            # Show sample of values column for debugging
+            print("Sample values:")
+            for i, val in enumerate(raw_df['values'].head(3)):
+                print(f"  Row {i}: {val} (type: {type(val)})")
+            return self._process_new_format(raw_df)
+        else:
+            print("Detected legacy format")
+            return self._process_legacy_format(raw_df)
+    
+    def _process_new_format(self, raw_df: pd.DataFrame) -> pd.DataFrame:
+        """Process new format CSV with 'values' column."""
+        import ast
+        
+        df = raw_df.copy()
+        
+        # Parse the values column to extract CQ and MC with error handling
+        def parse_values(x):
+            """Safely parse values column."""
+            if pd.isna(x):
+                return None
+            if isinstance(x, str):
+                try:
+                    return ast.literal_eval(x)
+                except (ValueError, SyntaxError):
+                    print(f"Warning: Could not parse values: {x}")
+                    return None
+            elif isinstance(x, (list, tuple)):
+                return x
+            else:
+                # Handle single numeric values or other types
+                print(f"Warning: Unexpected value type in 'values' column: {type(x)} - {x}")
+                return None
+        
+        values_parsed = raw_df['values'].apply(parse_values)
+        
+        # Extract CQ and MC with safe indexing
+        def safe_extract(x, index, default=None):
+            """Safely extract value from list/tuple."""
+            if x is None:
+                return default
+            try:
+                if isinstance(x, (list, tuple)) and len(x) > index:
+                    return x[index]
+                else:
+                    return default
+            except (IndexError, TypeError):
+                return default
+        
+        df['CQ'] = values_parsed.apply(lambda x: safe_extract(x, 0))
+        df['MC'] = values_parsed.apply(lambda x: safe_extract(x, 1))
+        
+        # Check for any missing CQ or MC values
+        missing_cq = df['CQ'].isna().sum()
+        missing_mc = df['MC'].isna().sum()
+        if missing_cq > 0 or missing_mc > 0:
+            print(f"Warning: Found {missing_cq} missing CQ values and {missing_mc} missing MC values")
+            print("Rows with missing values will be dropped")
+            df = df.dropna(subset=['CQ', 'MC'])
+        
+        # Extract parameter columns (remove param_ prefix)
+        param_cols = [col for col in raw_df.columns if col.startswith('param_')]
+        for col in param_cols:
+            new_col_name = col.replace('param_', '')
+            df[new_col_name] = raw_df[col]
+        
+        return df
+    
+    def _process_legacy_format(self, raw_df: pd.DataFrame) -> pd.DataFrame:
+        """Process legacy format CSV."""
+        # Assume legacy format already has CQ and MC columns
+        if 'CQ' not in raw_df.columns or 'MC' not in raw_df.columns:
+            print("Warning: Legacy format file missing CQ or MC columns")
+        return raw_df
+    
+    def load_data(self) -> None:
+        """
+        Load data using automatic detection (legacy method for backward compatibility).
+        This method is deprecated in favor of load_data_by_filename().
+        """
+        print("Warning: load_data() is deprecated. Consider using load_data_by_filename() for better control.")
+        
+        # Try to find files automatically
+        pareto_files = list(self.data_dir.glob("*pareto.csv"))
+        
+        if pareto_files:
+            # Use the first found pareto file
+            pareto_filename = pareto_files[0].name
+            print(f"Auto-detected Pareto file: {pareto_filename}")
+            
+            # Look for corresponding all_trials file
+            base_name = pareto_filename.replace('_pareto.csv', '').replace('pareto.csv', '')
+            possible_all_trials = [
+                f"{base_name}_all_trials.csv",
+                f"{base_name}_all.csv",
+                "all_trials.csv"
+            ]
+            
+            all_trials_filename = None
+            for filename in possible_all_trials:
+                if (self.data_dir / filename).exists():
+                    all_trials_filename = filename
+                    break
+            
+            self.load_data_by_filename(pareto_filename, all_trials_filename)
+        else:
+            # Try legacy format
+            if (self.data_dir / "pareto_front.csv").exists():
+                self.load_data_by_filename("pareto_front.csv", "all_trials.csv")
+            else:
+                # List available files to help user
+                print("No Pareto files found. Available files:")
+                self.list_available_files()
+                raise FileNotFoundError("No suitable Pareto files found. Please use load_data_by_filename() to specify files explicitly.")
     
     def find_near_pareto_points(self, distance_threshold: float = 0.5, 
                                max_points: int = 50) -> pd.DataFrame:
@@ -113,7 +312,7 @@ Or specify the data directory explicitly:
             pd.DataFrame: Points near the Pareto front
         """
         if self.pareto_front_df is None or self.all_trials_df is None:
-            raise ValueError("Data not loaded. Call load_data() first.")
+            raise ValueError("Data not loaded. Call load_data_by_filename() first.")
         
         # Extract CQ and MC values for distance calculation
         pareto_points = self.pareto_front_df[['CQ', 'MC']].values
@@ -148,10 +347,11 @@ Or specify the data directory explicitly:
         
         return self.all_trials_df.iloc[near_indices].copy()
     
-    def plot_pareto_front_2d(self, figsize: Tuple[int, int] = (12, 8),
+    def plot_pareto_front_2d(self, figsize: Tuple[int, int] = (8, 5),
                             distance_threshold: float = 0.5,
                             max_near_points: int = 50,
-                            save_path: Optional[str] = None) -> plt.Figure:
+                            save_path: Optional[str] = None,
+                            title_suffix: str = "") -> plt.Figure:
         """
         Create a 2D plot of the Pareto front with CQ vs MC.
         
@@ -160,12 +360,13 @@ Or specify the data directory explicitly:
             distance_threshold (float): Distance threshold for near-Pareto points
             max_near_points (int): Maximum number of near-Pareto points to show
             save_path (str, optional): Path to save the figure
+            title_suffix (str): Additional text to add to the title
             
         Returns:
             plt.Figure: The created figure
         """
         if self.pareto_front_df is None or self.all_trials_df is None:
-            raise ValueError("Data not loaded. Call load_data() first.")
+            raise ValueError("Data not loaded. Call load_data_by_filename() first.")
         
         # Find near-Pareto points
         near_pareto_df = self.find_near_pareto_points(distance_threshold, max_near_points)
@@ -174,40 +375,60 @@ Or specify the data directory explicitly:
         fig, ax = plt.subplots(figsize=figsize)
         
         # Plot all trials as background points
-        ax.scatter(self.all_trials_df['CQ'], self.all_trials_df['MC'], 
-                  alpha=0.3, s=20, c='lightgray', label=f'All Trials (n={len(self.all_trials_df)})')
+        # ax.scatter(self.all_trials_df['CQ'], self.all_trials_df['MC'], 
+        #           alpha=0.3, s=20, c='lightgray', label=f'All Trials (n={len(self.all_trials_df)})')
         
         # Plot near-Pareto points
         if len(near_pareto_df) > 0:
             ax.scatter(near_pareto_df['CQ'], near_pareto_df['MC'], 
-                      alpha=0.7, s=40, c='orange', label=f'Near Pareto (n={len(near_pareto_df)})')
+                      alpha=0.5, s=40, c='blue', label=f'Dominated Points')
         
         # Plot Pareto front
         pareto_sorted = self.pareto_front_df.sort_values('CQ')
-        ax.plot(pareto_sorted['CQ'], pareto_sorted['MC'], 
-               'r-', linewidth=2, alpha=0.7, label='Pareto Front Connection')
+        # ax.plot(pareto_sorted['CQ'], pareto_sorted['MC'], 
+        #        'r-', linewidth=2, alpha=0.7, label='Pareto Front Connection')
         ax.scatter(self.pareto_front_df['CQ'], self.pareto_front_df['MC'], 
-                  s=80, c='red', edgecolors='darkred', linewidth=1, 
-                  label=f'Pareto Front (n={len(self.pareto_front_df)})', zorder=5)
+                  s=400, c='green', linewidth=1, 
+                  marker='*', label=f'Pareto Front', zorder=5)
         
         # Annotate Pareto front points with their trial numbers
         for _, row in self.pareto_front_df.iterrows():
-            ax.annotate(f'{int(row["number"])}', 
-                       (row['CQ'], row['MC']), 
-                       xytext=(5, 5), textcoords='offset points',
-                       fontsize=8, alpha=0.8)
+            # 为了尽量避免重叠，采用交错的xytext偏移和对齐方式
+            idx = list(self.pareto_front_df.index).index(row.name)
+            # 交错偏移和对齐
+            offset_options = [
+                ((8, 8), 'left', 'bottom'),
+                ((-8, 8), 'right', 'bottom'),
+                ((8, -8), 'left', 'top'),
+                ((-8, -8), 'right', 'top'),
+                ((0, 15), 'center', 'bottom'),
+                ((0, -15), 'center', 'top'),
+            ]
+            offset, ha, va = offset_options[idx % len(offset_options)]
+            ax.annotate(
+                f'{row["CQ"]:.0f}, {row["MC"]:.2f}',
+                (row['CQ'], row['MC']),
+                xytext=offset, textcoords='offset points',
+                fontsize=10, alpha=0.95, fontweight='bold', color='darkgreen',
+                ha=ha, va=va,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="green", lw=0.8, alpha=0.7)
+            )
         
         # Formatting
-        ax.set_xlabel('Computational Quality (CQ)', fontsize=12)
-        ax.set_ylabel('Memory Capacity (MC)', fontsize=12)
-        ax.set_title('Pareto Front: Computational Quality vs Memory Capacity', fontsize=14, fontweight='bold')
+        ax.set_xlabel('Computational Quality (CQ)', fontsize=16)
+        ax.set_ylabel('Memory Capacity (MC)', fontsize=16)
+        # xiufu
+        # The original line is incorrect usage of set_ticklabels and 'xlabel' is undefined.
+        # If the intent is to set tick label font size, use tick_params:
+        ax.tick_params(axis='both', labelsize=14)
+
+        
+        
+        
         ax.grid(True, alpha=0.3)
         ax.legend(loc='best')
         
-        # Add distance threshold info to the plot
-        ax.text(0.02, 0.98, f'Distance threshold: {distance_threshold}', 
-                transform=ax.transAxes, fontsize=10, 
-                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        # Add file info and distance threshold to the plot
         
         plt.tight_layout()
         
@@ -217,195 +438,132 @@ Or specify the data directory explicitly:
         
         return fig
     
-    def plot_parameter_distribution(self, parameters: List[str] = None,
-                                   figsize: Tuple[int, int] = (15, 10),
-                                   save_path: Optional[str] = None) -> plt.Figure:
+    def plot_multiple_studies_comparison(self, datasets: Dict[str, Dict], 
+                                       figsize: Tuple[int, int] = (8, 5),
+                                       save_path: Optional[str] = None) -> plt.Figure:
         """
-        Plot parameter distributions for Pareto front vs all trials.
+        Plot multiple studies for comparison.
         
         Args:
-            parameters (list): List of parameters to plot. If None, plots all numeric parameters
-            figsize (tuple): Figure size
+            datasets (Dict): Dictionary of datasets from load_multiple_files()
+            figsize (tuple): Figure size (width, height)
             save_path (str, optional): Path to save the figure
             
         Returns:
             plt.Figure: The created figure
         """
-        if self.pareto_front_df is None or self.all_trials_df is None:
-            raise ValueError("Data not loaded. Call load_data() first.")
+        # 从study_name中提取label，'name': 'Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049'，label为在Pareto_后面的字符串
+        labels = [name.split('_')[5] for name in datasets.keys()]
+   
+
+        if not datasets:
+            raise ValueError("No datasets provided for comparison")
         
-        if parameters is None:
-            parameters = ['gamma', 'theta', 'm0', 'h', 'beta_prime', 'Nvirt']
+        # Create the plot
+        fig, ax = plt.subplots(figsize=figsize)
         
-        n_params = len(parameters)
-        n_cols = 3
-        n_rows = (n_params + n_cols - 1) // n_cols
+        # Color palette for different studies
+        colors = plt.cm.viridis(np.linspace(0, 1, len(datasets)))
         
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
-        axes = axes.flatten() if n_rows > 1 else [axes] if n_cols == 1 else axes
-        
-        for i, param in enumerate(parameters):
-            ax = axes[i]
+        for i, (name, data) in enumerate(datasets.items()):
+            pareto_df = data['pareto_front']
+            color = colors[i]
             
-            # Plot histograms
-            ax.hist(self.all_trials_df[param], bins=30, alpha=0.6, 
-                   color='lightblue', label='All Trials', density=True)
-            ax.hist(self.pareto_front_df[param], bins=15, alpha=0.8, 
-                   color='red', label='Pareto Front', density=True)
-            
-            ax.set_xlabel(param)
-            ax.set_ylabel('Density')
-            ax.set_title(f'Distribution of {param}')
-            ax.legend()
-            ax.grid(True, alpha=0.3)
+            # Plot Pareto front
+            pareto_sorted = pareto_df.sort_values('CQ')
+
+            ax.scatter(pareto_df['CQ'], pareto_df['MC'], label=labels[i], 
+                      s=80, c=color, linewidth=0.5, 
+                      alpha=0.8, zorder=5)
         
-        # Hide unused subplots
-        for i in range(len(parameters), len(axes)):
-            axes[i].set_visible(False)
-        
-        plt.suptitle('Parameter Distributions: Pareto Front vs All Trials', 
-                    fontsize=16, fontweight='bold')
-        plt.tight_layout()
-        
-        if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
-            print(f"Parameter distribution plot saved to {save_path}")
-        
-        return fig
-    
-    def plot_3d_pareto(self, third_param: str = 'gamma',
-                      figsize: Tuple[int, int] = (12, 10),
-                      distance_threshold: float = 0.5,
-                      save_path: Optional[str] = None) -> plt.Figure:
-        """
-        Create a 3D plot of CQ, MC, and a third parameter.
-        
-        Args:
-            third_param (str): Name of the third parameter to plot
-            figsize (tuple): Figure size
-            distance_threshold (float): Distance threshold for near-Pareto points
-            save_path (str, optional): Path to save the figure
-            
-        Returns:
-            plt.Figure: The created figure
-        """
-        if self.pareto_front_df is None or self.all_trials_df is None:
-            raise ValueError("Data not loaded. Call load_data() first.")
-        
-        # Find near-Pareto points
-        near_pareto_df = self.find_near_pareto_points(distance_threshold, 50)
-        
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Plot all trials
-        ax.scatter(self.all_trials_df['CQ'], self.all_trials_df['MC'], 
-                  self.all_trials_df[third_param],
-                  alpha=0.3, s=20, c='lightgray', label='All Trials')
-        
-        # Plot near-Pareto points
-        if len(near_pareto_df) > 0:
-            ax.scatter(near_pareto_df['CQ'], near_pareto_df['MC'], 
-                      near_pareto_df[third_param],
-                      alpha=0.7, s=40, c='orange', label='Near Pareto')
-        
-        # Plot Pareto front
-        ax.scatter(self.pareto_front_df['CQ'], self.pareto_front_df['MC'], 
-                  self.pareto_front_df[third_param],
-                  s=80, c='red', edgecolors='darkred', linewidth=1, 
-                  label='Pareto Front', zorder=5)
-        
-        ax.set_xlabel('Computational Quality (CQ)')
-        ax.set_ylabel('Memory Capacity (MC)')
-        ax.set_zlabel(third_param)
-        ax.set_title(f'3D Pareto Analysis: CQ vs MC vs {third_param}')
-        ax.legend()
+        # Formatting
+        ax.set_xlabel('Computational Quality (CQ)', fontsize=16)
+        ax.set_ylabel('Memory Capacity (MC)', fontsize=16)
+        # ax.set_title('Multi-Study Pareto Front Comparison', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=12)
         
         plt.tight_layout()
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
-            print(f"3D plot saved to {save_path}")
+            print(f"Comparison plot saved to {save_path}")
         
         return fig
-    
-    def create_summary_report(self) -> None:
-        """Print a summary report of the Pareto front analysis."""
-        if self.pareto_front_df is None or self.all_trials_df is None:
-            raise ValueError("Data not loaded. Call load_data() first.")
-        
-        print("="*60)
-        print("PARETO FRONT ANALYSIS SUMMARY")
-        print("="*60)
-        
-        print(f"\nTotal trials: {len(self.all_trials_df)}")
-        print(f"Pareto front points: {len(self.pareto_front_df)}")
-        print(f"Pareto front efficiency: {len(self.pareto_front_df)/len(self.all_trials_df)*100:.1f}%")
-        
-        print("\nPareto Front Statistics:")
-        print("-" * 30)
-        for metric in ['CQ', 'MC']:
-            print(f"{metric:3s}: min={self.pareto_front_df[metric].min():6.1f}, "
-                  f"max={self.pareto_front_df[metric].max():6.1f}, "
-                  f"mean={self.pareto_front_df[metric].mean():6.1f}")
-        
-        print("\nAll Trials Statistics:")
-        print("-" * 30)
-        for metric in ['CQ', 'MC']:
-            print(f"{metric:3s}: min={self.all_trials_df[metric].min():6.1f}, "
-                  f"max={self.all_trials_df[metric].max():6.1f}, "
-                  f"mean={self.all_trials_df[metric].mean():6.1f}")
-        
-        print("\nTop 5 Pareto Front Points (by CQ):")
-        print("-" * 40)
-        top_cq = self.pareto_front_df.nlargest(5, 'CQ')[['number', 'CQ', 'MC']]
-        for _, row in top_cq.iterrows():
-            print(f"Trial {int(row['number']):3d}: CQ={row['CQ']:6.1f}, MC={row['MC']:6.1f}")
-        
-        print("\nTop 5 Pareto Front Points (by MC):")
-        print("-" * 40)
-        top_mc = self.pareto_front_df.nlargest(5, 'MC')[['number', 'CQ', 'MC']]
-        for _, row in top_mc.iterrows():
-            print(f"Trial {int(row['number']):3d}: CQ={row['CQ']:6.1f}, MC={row['MC']:6.1f}")
 
 
 def main():
-    """Main function demonstrating the usage of ParetoFrontPlotter."""
-    # Initialize plotter
-    plotter = ParetoFrontPlotter()
+    """Main function demonstrating the usage of the optimized ParetoFrontPlotter."""
     
-    # Load data
-    plotter.load_data()
+    # Example 1: Load specific files by name
+    # print("=== Example 1: Loading specific files ===")
+    plotter = ParetoFrontPlotter(data_dir="saved_studies")  # or your data directory
     
-    # Create summary report
-    plotter.create_summary_report()
+    # List available files first
+    plotter.list_available_files()
     
-    # Create plots
-    print("\nGenerating plots...")
+    # Load specific files (modify these names according to your files)
+    try:
+        plotter.load_data_by_filename(
+            pareto_filename="Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049_pareto.csv",  # Replace with your file
+            all_trials_filename="Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049_trials.csv"  # Optional
+        )
+        
+        # Create 2D plot
+        fig1 = plotter.plot_pareto_front_2d(
+            distance_threshold=0.3,
+            max_near_points=30,
+            save_path="pareto_front_2d_specific.png",
+            title_suffix="Specific File Load"
+        )
+        plt.show()
+        
+    except FileNotFoundError as e:
+        print(f"Specific files not found: {e}")
+        print("Falling back to automatic detection...")
+        
+        # Fallback to automatic detection
+        plotter.load_data()
+        fig1 = plotter.plot_pareto_front_2d(
+            distance_threshold=0.3,
+            max_near_points=30,
+            save_path="pareto_front_2d_auto.png"
+        )
     
-    # 2D Pareto front plot
-    fig1 = plotter.plot_pareto_front_2d(
-        distance_threshold=0.3,
-        max_near_points=30,
-        save_path="pareto_front_2d.png"
-    )
+    # # Example 2: Load multiple files for comparison
+    # print("\n=== Example 2: Multi-file comparison ===")
+    # file_configs = [
+    #     {
+    #         'name': 'Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049', 
+    #         'pareto_file': 'Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049_pareto.csv',
+    #     },
+    #     {
+    #         'name': 'Reservoir_Morphology_CQ_MC_Pareto_normaldistribution_20250725_104555', 
+    #         'pareto_file': 'Reservoir_Morphology_CQ_MC_Pareto_normaldistribution_20250725_104555_pareto.csv',
+    #     },
+    #     {
+    #         'name': 'Reservoir_Morphology_CQ_MC_Pareto_random_20250725_105052', 
+    #         'pareto_file': 'Reservoir_Morphology_CQ_MC_Pareto_random_20250725_105052_pareto.csv',
+
+    #     }
+    #     # Add more studies as needed
+    # ]
     
-    # Parameter distribution plot
-    fig2 = plotter.plot_parameter_distribution(
-        save_path="parameter_distributions.png"
-    )
+    # try:
+    #     datasets = plotter.load_multiple_files(file_configs)
+    #     if datasets:
+    #         fig2 = plotter.plot_multiple_studies_comparison(
+    #             datasets=datasets,
+    #             save_path="multi_study_comparison.png"
+    #         )
+    # except Exception as e:
+    #     print(f"Multi-file loading failed: {e}")
     
-    # 3D plot with gamma
-    fig3 = plotter.plot_3d_pareto(
-        third_param='gamma',
-        save_path="pareto_front_3d_gamma.png"
-    )
-    
-    # Show plots
-    plt.show()
+    # # Show plots
+    # plt.show()
     
     print("\nPlotting complete! Check the generated PNG files.")
 
 
 if __name__ == "__main__":
-    main() 
+    main()
