@@ -104,7 +104,7 @@ def spnc_narma10(Ntrain,Ntest,Nvirt,m0, bias,
     snr = single_node_reservoir(Nin, Nout, Nvirt, m0, res = transform)
     net = linear(Nin, Nout, bias = bias)
 
-    fixed_mask = kwargs.get('fixed_mask', False)
+    fixed_mask = kwargs.get('fixed_mask', True)
     if fixed_mask==True:
         # print("Deterministic mask will be used")
         seed_mask = kwargs.get('seed_mask', 1234)
@@ -551,6 +551,7 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
 
     print("Samples for training: ", len(train_signal))
     print("Samples for test: ", len(test_signal))
+
 
 
     # Pre-processing
