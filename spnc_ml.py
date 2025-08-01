@@ -91,6 +91,10 @@ def spnc_narma10(Ntrain,Ntest,Nvirt,m0, bias,
     y_train = d[:Ntrain]
     x_test = u[Ntrain:]
     y_test = d[Ntrain:]
+    
+    # print first 10 elements of x_train and y_train
+    print("first 10 elements of x_train: ", x_train[:10])
+
 
     # print("Samples for training: ", len(x_train))
     # print("Samples for test: ", len(x_test))
