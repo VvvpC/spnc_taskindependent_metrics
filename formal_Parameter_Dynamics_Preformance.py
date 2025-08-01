@@ -416,7 +416,11 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
         outputs.append(output)
     States = np.stack(outputs, axis=0)
     States = States/np.amax(States)
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)  # <--- 用Nreadouts
+    if kwargs.get('threshold') is not None:
+        threshold = kwargs.get('threshold')
+    else:
+        threshold = 0.001
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold)  # <--- 用Nreadouts
     return {'KR': KR, 'GR': GR}
 
 
@@ -475,13 +479,16 @@ def test_one_reservoir(reservoir_params, **kwargs):
 
 if __name__ == "__main__":
     # 设定reservoir_params
-    reservoir_params = ReservoirParams(h=0.4, m0=0.008, Nvirt=200, beta_prime= 20, params={'gamma': 0.09737503590304286, 'theta': 0.07883177553412853, 'Nvirt': 200})
+    reservoir_params = ReservoirParams(
+        h=0.4, m0=0.008, Nvirt=200, beta_prime=	50.0,
+        params={'theta': 0.11577824609314408, 'gamma': 0.04447510407651761, 'Nvirt': 200}
+    )
 
     # 执行test_one_reservoir任务
     outputs = test_one_reservoir(reservoir_params)
 
     # 保存数据
-    save_path = f"./Results/SingleTests/uniform_bestphase_NARMA10.pkl"
+    save_path = f"./Results/SingleTests/uniform_29_NARMA10.pkl"
     with open(save_path, 'wb') as f:
         pickle.dump(outputs, f)
     print(f"Saved results to {save_path}")
