@@ -558,17 +558,24 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
 
 
 
-    # Pre-processing
+    # Pre-processing, input is a list of utterances, and output is a list containg the mfcc features of each utterance
     if prepro == "mfcc":
         print('Using MFCC preprocessing')
         pre_process = mfcc(rate=train_rate[0], nfft=1024)
 
     x_train = pre_process.fit_transform(train_signal)
+    print('the shape of x_train is: ', x_train.shape)
+    print('the feature of the first utterance is: ', x_train[0])
+    print('the shape of the first utterance is: ', x_train[0].shape)
 
 
     #Normalise the input into the range 0 - 1
+    # becuse the mfcc features might have different value range between different dimensions, example: the value range is [0,1] for the first dimension, and [0,100] for the second dimension
+    # so we need to normalise the input into the range 0 - 1
     prescaler = normaliser()
     xn = prescaler.fit_transform(x_train)
+    print('the shape of xn is: ', xn.shape)
+    print('after normalise, the first feature value is: ', xn[0][0])
 
 
     Nin = x_train[0].shape[-1]
@@ -583,6 +590,7 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
     if fixed_mask: # 这里有个问题：没有注明seed。
         print("Deterministic mask will be used")
         SNR.M = fixed_seed_mask(Nin, Nvirt, m0)
+        print('the shape of the mask is: ', SNR.M.M.shape)
 
     S_train, J_train = SNR.transform(xn, params)
 
@@ -606,11 +614,14 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
     # act and inv_act are the activation function and it's inverse
     # either leave blank or set to linear to not apply activation fn
     net = linear(Nvirt, Nout, bias=bias)
+    print('net',net)
 
 
     # Select how many utterances to train on
     Ntrain_utter = 8
     split1, split2 = stratified_split((train_speaker, train_label), Ntrain_utter)
+    print('split1',split1)
+    print('split2',split2)
 
 
     # Create desired 1 hot output for the training
@@ -619,7 +630,10 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
     # Since TI46 is stored as a list of np arrays stack these into a flat array
     z_train_flat = np.vstack(z_train[split1])
     y_train_1h_flat = np.vstack(y_train_1h[split1])
-
+    print('the shape of z_train_flat is: ', z_train_flat.shape)
+    print('the shape of y_train_1h_flat is: ', y_train_1h_flat.shape)
+    print('the first element of z_train_flat is: ', z_train_flat[0])
+    print('the first element of y_train_1h_flat is: ', y_train_1h_flat[0])
 
     # Use the ridge regression training routine
     alpha = RR.Kfold_train(net, z_train_flat, y_train_1h_flat, 5, quiet=True)
