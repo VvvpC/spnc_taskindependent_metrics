@@ -38,6 +38,69 @@ def MSE(pred, desired):
 def NRMSE(pred, y_test, spacer=0.001):
     return np.sqrt(MSE(pred, y_test) / np.var(y_test))
 
+def eva_narma10(reservoir_params: ReservoirParams, 
+                        Ntrain: int = 2000, Ntest: int = 1000) -> Tuple[float, np.ndarray, np.ndarray]:
+        """评估NARMA-10任务"""
+
+        # 创建储层
+        spn = spnc_anisotropy(
+            h=reservoir_params.h,
+            theta_H=reservoir_params.theta_H,
+            k_s=reservoir_params.k_s_0,
+            phi=reservoir_params.phi,
+            beta_prime=reservoir_params.beta_prime,
+            restart=True
+        )
+
+        transform = spn.gen_signal_slow_delayed_feedback
+        
+        # 运行NARMA-10任务
+        (y_test, pred) = spnc_narma10(
+            Ntrain,
+            Ntest,
+            reservoir_params.Nvirt,
+            reservoir_params.m0,
+            reservoir_params.bias,
+            transform,
+            reservoir_params.params,
+            seed_NARMA=1234,
+            fixed_mask=True,
+            seed_mask=1234,
+            return_outputs=True,
+        )
+        
+        # 计算NRMSE
+        nrmse = NRMSE(pred, y_test)
+        
+        return nrmse, y_test, pred
+    
+def eva_ti46(reservoir_params: ReservoirParams, 
+                    speakers: Optional[List[str]] = None) -> float:
+    """评估TI46任务"""
+    
+    # 创建储层
+    spn = spnc_anisotropy(
+        h=reservoir_params.h,
+        theta_H=reservoir_params.theta_H,
+        k_s=reservoir_params.k_s_0,
+        phi=reservoir_params.phi,
+        beta_prime=reservoir_params.beta_prime,
+        restart=True
+    )
+
+    transform = spn.gen_signal_slow_delayed_feedback
+    
+    # 运行TI46任务
+    accuracy = spnc_TI46(
+        speakers,
+        reservoir_params.Nvirt,
+        reservoir_params.m0,
+        reservoir_params.bias,
+        transform,
+        reservoir_params.params)
+    
+    return accuracy
+
 @dataclass
 class ParetoPointParams:
     """Pareto点参数数据类"""
