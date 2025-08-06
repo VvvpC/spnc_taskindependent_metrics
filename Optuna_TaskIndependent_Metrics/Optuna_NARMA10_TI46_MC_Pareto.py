@@ -14,7 +14,7 @@ from formal_Parameter_Dynamics_Preformance import (
     evaluate_MC,
     evaluate_KRandGR,
 )
-from ParetoFront_CQandMC.CQ_MC_ParetofrontPoints import evaluate_NARMA10, evaluate_TI46
+from ParetoFront_CQandMC.CQ_MC_ParetofrontPoints import eva_narma10, eva_ti46
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. Search‑space definition
@@ -52,8 +52,8 @@ def objective(trial: optuna.Trial):
     )
 
     # Evaluate task
-    narma10_dict = evaluate_NARMA10(rparams)
-    ti46_dict = evaluate_TI46(rparams)
+    narma10_dict = eva_narma10(rparams)
+    ti46_dict = eva_ti46(rparams)
     error_rate = (1-ti46_dict['accuracy'])*100
       # Nwash = 7, Nequal = 7
     narma10_nrmse = float(narma10_dict.get("NRMSE", 0.0))
