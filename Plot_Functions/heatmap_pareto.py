@@ -17,7 +17,7 @@ from tqdm import tqdm
 import sys
 from pathlib import Path
 
-from ParetoFront_CQandMC.CQ_MC_ParetofrontPoints import evaluate_NARMA10, evaluate_TI46
+
 
 # 添加上级目录到Python路径
 parent_dir = Path(__file__).parent.parent
@@ -27,7 +27,7 @@ if str(parent_dir) not in sys.path:
 from formal_Parameter_Dynamics_Preformance import ReservoirParams, evaluate_KRandGR, evaluate_MC
 from spnc import spnc_anisotropy
 
-
+from ParetoFront_CQandMC.CQ_MC_ParetofrontPoints import eva_narma10, eva_ti46
 def MSE(pred, desired):
     return np.mean(np.square(np.subtract(pred, desired)))
 
@@ -47,14 +47,14 @@ class ReservoirParams:
         self.beta_prime = beta_prime
 
         # Network parameters 
-        self.Nvirt = 50
-        self.m0 = 0.003
+        self.Nvirt = 200
+        self.m0 = 0.008
         self.bias = True
         self.Nwarmup = 0
         self.verbose_repr = False
 
         self.params = {
-            'theta': 0.3,
+            'theta': 0.156493839,
             'gamma': gamma,
             'delay_feedback': 0,
             'Nvirt': self.Nvirt,
@@ -87,7 +87,7 @@ class HeatmapEvaluator:
         """评估记忆容量(MC)"""
         try:
             MC = evaluate_MC(reservoir_params)
-            return MC
+            return MC['MC']
         except Exception as e:
             print(f"MC evaluation error: {e}")
             return np.nan
@@ -95,17 +95,17 @@ class HeatmapEvaluator:
     def evaluate_CQ(self, reservoir_params: ReservoirParams):
         """评估计算质量(CQ) - 返回KR, GR"""
         try:
-            KR, GR = evaluate_KRandGR(reservoir_params)
-            CQ = KR-GR
-            return CQ, KR, GR
+            results = evaluate_KRandGR(reservoir_params)
+            CQ = results['KR']-results['GR']
+            return CQ, results['KR'], results['GR']
         except Exception as e:
             print(f"CQ evaluation error: {e}")
-            return np.nan, np.nan
+            return np.nan, np.nan, np.nan
     
     def evaluate_NARMA10(self, reservoir_params: ReservoirParams):
         """评估NARMA-10任务性能"""
         try:
-            nrmse, y_test, pred = evaluate_NARMA10(reservoir_params)
+            nrmse, y_test, pred = eva_narma10(reservoir_params)
             return nrmse, y_test, pred
         except Exception as e:
             print(f"NARMA10 evaluation error: {e}")
@@ -114,7 +114,7 @@ class HeatmapEvaluator:
     def evaluate_TI46(self, reservoir_params: ReservoirParams):
         """评估TI46任务性能"""
         try:
-            ti46_accuracy = evaluate_TI46(reservoir_params)
+            ti46_accuracy = eva_ti46(reservoir_params)
             error_rate = (1 - ti46_accuracy) * 100
             return error_rate
         except Exception as e:
@@ -187,6 +187,8 @@ class HeatmapEvaluator:
             for beta_prime in beta_prime_range:
                 # 创建储层参数
                 reservoir_params = self.create_reservoir_params(gamma, beta_prime)
+                # 打印所有参数
+                print(f"Reservoir parameters: Nvirt={reservoir_params.Nvirt}, m0={reservoir_params.m0}, gamma={reservoir_params.params['gamma']}, beta_prime={reservoir_params.beta_prime}")
                 
                 # 存储基本参数
                 results['gamma'].append(gamma)
@@ -197,25 +199,26 @@ class HeatmapEvaluator:
                 
                 if 'MC' in tasks:
                     mc = self.evaluate_MC(reservoir_params)
+                    print(f"MC: {mc}")
                     results['MC'].append(mc)
-                    current_results['MC'] = f'{mc:.3f}' if not np.isnan(mc) else 'NaN'
+                    current_results['MC'] = mc
                 
                 if 'CQ' in tasks:
                     cq, kr, gr = self.evaluate_CQ(reservoir_params)
                     results['CQ'].append(cq)
                     results['KR'].append(kr)
                     results['GR'].append(gr)
-                    current_results['CQ'] = f'{cq:.3f}' if not np.isnan(cq) else 'NaN'
+                    current_results['CQ'] = cq
                 
                 if 'NARMA10' in tasks:
                     narma10_nrmse, _, _ = self.evaluate_NARMA10(reservoir_params)
                     results['NARMA10_NRMSE'].append(narma10_nrmse)
-                    current_results['NARMA10'] = f'{narma10_nrmse:.3f}' if not np.isnan(narma10_nrmse) else 'NaN'
+                    current_results['NARMA10'] = narma10_nrmse
                 
                 if 'TI46' in tasks:
                     ti46_error_rate = self.evaluate_TI46(reservoir_params)
                     results['TI46_error_rate'].append(ti46_error_rate)
-                    current_results['TI46'] = f'{ti46_error_rate:.3f}' if not np.isnan(ti46_error_rate) else 'NaN'
+                    current_results['TI46'] = ti46_error_rate
                 
                 # 更新进度条
                 progress_info = {
@@ -394,124 +397,6 @@ def create_heatmaps(filename, save_plots=True, plots_dir="heatmap_plots", file_f
     return fig, axes
 
 
-def create_seaborn_heatmaps(filename, save_plots=True, plots_dir="heatmap_plots", file_format='csv'):
-    """
-    使用seaborn创建独立的热力图
-    
-    Parameters:
-    -----------
-    filename : str
-        数据文件路径 (支持 .csv 或 .pkl 文件)
-    save_plots : bool
-        是否保存图片
-    plots_dir : str
-        图片保存目录
-    file_format : str
-        文件格式 ('csv' 或 'pkl')
-    """
-    
-    # 加载数据
-    if file_format.lower() == 'csv' or filename.endswith('.csv'):
-        try:
-            results_df = pd.read_csv(filename)
-        except Exception as e:
-            print(f"Error loading CSV file: {e}")
-            return None, None
-    elif file_format.lower() == 'pkl' or filename.endswith('.pkl'):
-        try:
-            with open(filename, 'rb') as f:
-                results_df = pickle.load(f)
-        except Exception as e:
-            print(f"Error loading pickle file: {e}")
-            return None, None
-    else:
-        print(f"Unsupported file format. Use 'csv' or 'pkl'")
-        return None, None
-    
-    print(f"Loaded data from {filename}")
-    print(f"Data shape: {results_df.shape}")
-    
-    # 创建保存目录
-    if save_plots:
-        os.makedirs(plots_dir, exist_ok=True)
-    
-    # 检查必要的列是否存在
-    required_cols = ['gamma', 'beta_prime']
-    missing_cols = [col for col in required_cols if col not in results_df.columns]
-    if missing_cols:
-        print(f"Missing required columns: {missing_cols}")
-        return None, None
-    
-    # 定义要绘制的指标
-    available_metrics = [col for col in results_df.columns 
-                        if col not in ['gamma', 'beta_prime']]
-    
-    # 根据可用指标数量调整子图布局 
-    n_metrics = len(available_metrics)
-    if n_metrics <= 3:
-        nrows, ncols = 1, n_metrics
-        figsize = (7*n_metrics, 6)
-    elif n_metrics <= 6:
-        nrows, ncols = 2, 3
-        figsize = (21, 12)
-    else:
-        nrows = (n_metrics + 2) // 3
-        ncols = 3
-        figsize = (21, 6*nrows)
-    
-    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
-    if n_metrics == 1:
-        axes = [axes]
-    else:
-        axes = axes.flatten() if n_metrics > 1 else axes
-    
-    for i, metric in enumerate(available_metrics):
-        if i >= len(axes):
-            break
-            
-        try:
-            # 创建透视表
-            pivot_data = results_df.pivot(index='beta_prime', columns='gamma', values=metric)
-            
-            # 使用seaborn绘制热力图
-            sns.heatmap(pivot_data, ax=axes[i], cmap='viridis', 
-                       annot=True, fmt='.3f', cbar=True,
-                       xticklabels=[f'{x:.3f}' for x in pivot_data.columns],
-                       yticklabels=[f'{y:.1f}' for y in pivot_data.index],
-                       cbar_kws={'shrink': 0.8})
-            
-            axes[i].set_title(f'{metric} Heatmap', fontsize=14, fontweight='bold')
-            axes[i].set_xlabel('Gamma', fontsize=12)
-            axes[i].set_ylabel('Beta Prime', fontsize=12)
-            axes[i].tick_params(axis='both', labelsize=10)
-            
-        except Exception as e:
-            print(f"Error plotting {metric}: {e}")
-            axes[i].text(0.5, 0.5, f'Error plotting\n{metric}', 
-                        ha='center', va='center', transform=axes[i].transAxes)
-    
-    # 移除多余的子图
-    if n_metrics < len(axes):
-        for i in range(n_metrics, len(axes)):
-            fig.delaxes(axes[i])
-    
-    plt.tight_layout()
-    
-    # 保存图片
-    if save_plots:
-        plot_file = os.path.join(plots_dir, 'seaborn_parameter_heatmaps.png')
-        plt.savefig(plot_file, dpi=300, bbox_inches='tight')
-        print(f"Seaborn heatmaps saved to {plot_file}")
-        
-        # 也保存为PDF格式
-        pdf_file = os.path.join(plots_dir, 'seaborn_parameter_heatmaps.pdf')
-        plt.savefig(pdf_file, bbox_inches='tight')
-        print(f"Seaborn heatmaps also saved to {pdf_file}")
-    
-    plt.show()
-    
-    return fig, axes
-
 
 def main():
     """主函数 - 示例用法"""
@@ -519,26 +404,12 @@ def main():
     evaluator = HeatmapEvaluator()
     
     # 定义参数范围
-    gamma_range = np.linspace(0, 0.5, 6)  # 从0到0.5，6个点
-    beta_prime_range = np.linspace(10, 50, 5)  # 从10到50，5个点
+    gamma_range = np.linspace(0.04, 0.08, 10)  # 从0到0.5，6个点
+    beta_prime_range = np.linspace(20, 50, 10)  # 从10到50，5个点
     
     print("开始参数扫描...")
     print(f"Gamma范围: {gamma_range}")
     print(f"Beta_prime范围: {beta_prime_range}")
-    
-    # 示例1: 只评估MC和CQ
-    print("\n=== 示例1: 只评估MC和CQ ===")
-    results1 = evaluator.run_parameter_sweep(
-        gamma_range, beta_prime_range, 
-        tasks=['MC', 'CQ']
-    )
-    
-    # 示例2: 只评估NARMA10
-    print("\n=== 示例2: 只评估NARMA10 ===")
-    results2 = evaluator.run_parameter_sweep(
-        gamma_range, beta_prime_range, 
-        tasks=['NARMA10']
-    )
     
     # 示例3: 评估所有任务（默认）
     print("\n=== 示例3: 评估所有任务 ===")
@@ -548,7 +419,7 @@ def main():
     )
     
     print("\n分析完成！")
-    return results1, results2, results3
+    return  results3
 
 
 if __name__ == "__main__":
