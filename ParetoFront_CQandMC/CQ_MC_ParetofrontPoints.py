@@ -642,8 +642,8 @@ def main(filename):
             source=filename,
             narma_config=narma_config,
             ti46_config=ti46_config,
-            trial_numbers=[155,89,144,125,205,130],
-            output_filename="uniform_chaos_task_results"
+            # trial_numbers=[155,89,144,125,205,130],
+            output_filename="uniform_beta_50_task_results"
         )
         print(f"CSV评估完成！共处理{len(results_csv)}个Pareto点")
     except FileNotFoundError:
@@ -682,5 +682,6 @@ def main(filename):
     
 
 
+
 if __name__ == "__main__":
-    main("Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049_trials.csv")
+    main("CQ_MC_Pareto_beta50_20250825_121711_pareto.csv")
