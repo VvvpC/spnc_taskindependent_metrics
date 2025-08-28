@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import tqdm as tqdm
 import pickle
 import spnc_ml as ml
+import itertools
 
 
 from pathlib import Path
@@ -136,6 +137,7 @@ def linear_MC(signal, states, splits=[0.2, 0.8], delays=50):
             bestMC = MC
     return bestMC
 
+# 整合成一个
 # ------------------------ KRandGR ----------------------------
 '''
 23/06/25 Chen
@@ -198,12 +200,111 @@ def RunSpnc(signal,Nin,Nout,Nvirt,m0,transform, params,**kwargs):
     
     return S
 
+# ------------------------ Evaluation tasks ----------------------------
+# ##########
+# MC task function
+# ##########
+def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
+
+    signal = generate_signal(signal_len, seed=kwargs.get('seed', 1234))
+    # 打印signal的前10个元素
+    spn = spnc_anisotropy(
+        reservoir_params.h,
+        reservoir_params.theta_H,
+        reservoir_params.k_s_0,
+        reservoir_params.phi,
+        reservoir_params.beta_prime,
+        restart=True
+    )
+
+    transform = spn.gen_signal_slow_delayed_feedback
+
+    Output = RunSpnc(
+        signal,
+        1,                 
+        1,       
+        reservoir_params.Nvirt,
+        reservoir_params.m0,
+        transform,
+        reservoir_params.params,
+        fixed_mask=True,
+        seed_mask=1234
+    )
+    MC = linear_MC(signal, Output, splits=[0.2,0.6], delays=10)
+
+    return {'MC': MC}
+
+# ##########
+# KRandGR task function
+# ##########
+def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
+    
+    Nreadouts= reservoir_params.Nvirt
+    inputs = gen_KR_GR_input(Nreadouts, Nwash, seed=1234)   # <--- 用Nreadouts
+    outputs = []
+    for input_row in inputs:
+        input_row = input_row.reshape(-1, 1)
+        spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
+                              reservoir_params.k_s_0, reservoir_params.phi,
+                              reservoir_params.beta_prime, restart=True)
+        transforms = spn.gen_signal_slow_delayed_feedback
+        output = RunSpnc(input_row, 1, 1, reservoir_params.Nvirt,
+                         reservoir_params.m0, transforms, reservoir_params.params, fixed_mask=True, seed_mask=1234)
+        outputs.append(output)
+    States = np.stack(outputs, axis=0)
+    States = States/np.amax(States)
+    if kwargs.get('threshold') is not None:
+        threshold = kwargs.get('threshold')
+    else:
+        threshold = 0.001
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold) 
+    
+    CQ = KR - GR 
+    return {'KR': KR, 'GR': GR, 'CQ': CQ}
+
+
+# ##########
+# NARMA10 task function
+# ##########
+def MSE(pred, desired):
+    return np.mean(np.square(np.subtract(pred, desired)))
+
+def NRMSE(pred, y_test, spacer=0.001):
+    return np.sqrt(MSE(pred, y_test) / np.var(y_test)) 
+
+
+def evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
+    spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
+                          reservoir_params.k_s_0, reservoir_params.phi,
+                          reservoir_params.beta_prime, restart=True)
+    transform = spn.gen_signal_slow_delayed_feedback
+    (y_test, pred) = ml.spnc_narma10(Ntrain, Ntest, reservoir_params.Nvirt,
+                            reservoir_params.m0, reservoir_params.bias,
+                            transform, reservoir_params.params,
+                            seed_NARMA=1234, fixed_mask=True, return_outputs=True)
+    nrmse = NRMSE(pred, y_test)
+
+    return {'NRMSE': nrmse, 'y_test': y_test, 'pred': pred}
+
+# ##########
+# TI46 task function
+# ##########
+
+def evaluate_Ti46(reservoir_params, **kwargs):
+    spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
+                          reservoir_params.k_s_0, reservoir_params.phi,
+                          reservoir_params.beta_prime, restart=True)
+    transform = spn.gen_signal_slow_delayed_feedback
+    speakers = ['f1','f2','f3','f4','f5']
+    acc = ml.spnc_TI46(speakers, reservoir_params.Nvirt, reservoir_params.m0, reservoir_params.bias, transform, reservoir_params.params)
+    return {'acc': acc}
+    
 # ------------------------ Reservoir Parameters Dictionary --------------------------
 
 class  ReservoirParams:
     def __init__(self, **kwargs):
             # Reservoir parameters 
-            self.h = 0.4473502275692851
+            self.h = 0.4
             self.theta_H = 90
             self.k_s_0 = 0
             self.phi = 45
@@ -276,25 +377,82 @@ class  ReservoirParams:
 # ##########
 
 class ReservoirPerformanceEvaluator:
-    def __init__(self, task, param_name, param_range, result_keys, result_labels, reservoir_params = None, extra_args = None):
+    def __init__(self, task, param_name=None, param_range=None, param_grid=None, result_keys=None, result_labels=None, reservoir_params=None, extra_args=None, reservoir_tag='default'):
         self.task = task
-        self.param_name = param_name
-        self.param_range = param_range
         self.result_keys = result_keys
         self.result_labels = result_labels
         self.reservoir_params = reservoir_params 
         self.extra_args = extra_args or {}
+        self.reservoir_tag = reservoir_tag
+        
+        # Determine if single-parameter or multi-parameter scanning
+        if param_grid is not None:
+            self.is_multi_param = True
+            self.param_grid = param_grid
+            self.param_names = list(param_grid.keys())
+            self.param_combinations = self._generate_param_combinations()
+        elif param_name is not None and param_range is not None:
+            self.is_multi_param = False
+            self.param_name = param_name
+            self.param_range = param_range
+            self.param_names = [param_name]
+        else:
+            raise ValueError("Either (param_name, param_range) or param_grid must be provided")
 
-    def evaluate(self, save_dir='./Results', plot = False, verbose = False, filename_prefix = None):
+    def _generate_param_combinations(self):
+        """Generate all parameter combinations for multi-parameter grid search"""
+        if not self.is_multi_param:
+            return None
+        
+        param_values = list(self.param_grid.values())
+        combinations = list(itertools.product(*param_values))
+        
+        # Convert to list of dictionaries for easier handling
+        param_combinations = []
+        for combo in combinations:
+            param_dict = dict(zip(self.param_names, combo))
+            param_combinations.append(param_dict)
+        
+        return param_combinations
 
-        result_dict = {self.param_name: self.param_range}
+    def evaluate(self, save_dir='./Res_Tasks_Results', verbose = False):
+        
+        # Initialize result dictionary
+        if self.is_multi_param:
+            result_dict = {'param_combinations': []}
+            # Add each parameter name as a key for easy access
+            for param_name in self.param_names:
+                result_dict[param_name] = []
+            # Prepare iteration over parameter combinations
+            param_iterator = self.param_combinations
+            total_iterations = len(self.param_combinations)
+        else:
+            result_dict = {self.param_name: self.param_range}
+            param_iterator = self.param_range
+            total_iterations = len(self.param_range)
+
         for key in self.result_keys:
             result_dict[key] = []
 
-        for v in tqdm.tqdm(self.param_range):
-            self.reservoir_params.update_params(**{self.param_name: v})
-            if verbose:
-                self.reservoir_params.print_params(verbose=True)
+        # Main evaluation loop
+        for i, param_config in enumerate(tqdm.tqdm(param_iterator, total=total_iterations)):
+            if self.is_multi_param:
+                # Update all parameters for multi-parameter case
+                self.reservoir_params.update_params(**param_config)
+                result_dict['param_combinations'].append(param_config.copy())
+                # Also store individual parameter values for easy access
+                for param_name, param_value in param_config.items():
+                    result_dict[param_name].append(param_value)
+                
+                if verbose:
+                    print(f"Evaluating combination {i+1}/{total_iterations}: {param_config}")
+                    self.reservoir_params.print_params(verbose=True)
+            else:
+                # Update single parameter for backward compatibility
+                self.reservoir_params.update_params(**{self.param_name: param_config})
+                if verbose:
+                    print(f"Evaluating {self.param_name}={param_config}")
+                    self.reservoir_params.print_params(verbose=True)
 
             try:
                 task_result = self.task(self.reservoir_params, **self.extra_args)
@@ -302,203 +460,50 @@ class ReservoirPerformanceEvaluator:
                     result_dict[key].append(task_result[key])
 
             except Exception as e:
-                                print(f"Error evaluating {self.param_name}={v}: {e}")
-                                for key in self.result_keys:
-                                    result_dict[key].append(np.nan)
+                if self.is_multi_param:
+                    print(f"Error evaluating combination {param_config}: {e}")
+                else:
+                    print(f"Error evaluating {self.param_name}={param_config}: {e}")
+                for key in self.result_keys:
+                    result_dict[key].append(np.nan)
 
-        # Save results
-        if filename_prefix is None:
-            filename_prefix = f"{self.task.__name__}_{self.param_name}"
-        filename = f"{filename_prefix}_evaluate_{self.param_name}_{self.param_range[0]}to{self.param_range[-1]}_step{self.param_range[1]-self.param_range[0]}.pkl"         
-        save_path = os.path.join(save_dir, filename)
-        os.makedirs(save_dir, exist_ok=True)
+        # combine the result_dict with the reservoir_tag
+        root_path = os.path.join(save_dir, f"Reservoir_{self.reservoir_tag}")
+
+        os.makedirs(root_path, exist_ok=True)
+
+        save_path = os.path.join(root_path, "results.pkl")
+
+        if os.path.exists(save_path):
+            with open(save_path, 'rb') as f:
+                saved_results = pickle.load(f)
+        else:
+            saved_results = {'reservoir_tag': self.reservoir_tag, 'runs':[]}
+
+        run_entry = {
+            'task': getattr(self.task, '__name__', 'task'),
+            'is_multi_param': self.is_multi_param,
+            'results': result_dict
+        }
+        
+        # Add parameter information based on scanning type
+        if self.is_multi_param:
+            run_entry['param_grid'] = self.param_grid
+            run_entry['param_names'] = self.param_names
+            run_entry['total_combinations'] = len(self.param_combinations)
+        else:
+            run_entry['param_name'] = self.param_name
+            run_entry['param_range'] = self.param_range
+        saved_results['runs'].append(run_entry)
+
         with open(save_path, 'wb') as f:
-            pickle.dump(result_dict, f)
+            pickle.dump(saved_results, f)
+
         print(f"Results saved to {save_path}")
 
-        # Plot results 
-        fig, ax = plt.subplots(figsize=(8,5))
-        if len(self.result_keys) == 1:
-            ax.plot(self.param_range, result_dict[self.result_keys[0]], marker='o')
-            ax.set_xlabel(self.param_name)
-            ax.set_ylabel(self.result_labels[0])
-            ax.set_title(f"{self.result_labels[0]} vs {self.param_name}")
-            
-        elif len(self.result_keys) == 2:
-            color1, color2 = 'tab:blue', 'tab:orange'
-            ax1 = ax
-            ax1.set_xlabel(self.param_name)
-            ax1.set_ylabel(self.result_labels[0], color=color1)
-            ax1.plot(self.param_range, result_dict[self.result_keys[0]], marker='o', color=color1)
-            ax1.tick_params(axis='y', labelcolor=color1)
-            ax2 = ax1.twinx()
-            ax2.set_ylabel(self.result_labels[1], color=color2)
-            ax2.plot(self.param_range, result_dict[self.result_keys[1]], marker='x', linestyle='--', color=color2)
-            ax2.tick_params(axis='y', labelcolor=color2)
-            fig.suptitle(f"{self.result_labels[0]} & {self.result_labels[1]} vs {self.param_name}")
-            
-        fig.tight_layout()
-
-        if filename_prefix is None:
-            filename_prefix = f"{self.task.__name__}_{self.param_name}"
-        plot_filename = f"{filename_prefix}_evaluate_{self.param_name}_{self.param_range[0]}to{self.param_range[-1]}_step{self.param_range[1]-self.param_range[0]}.png"
-        os.makedirs(save_dir, exist_ok=True)
-        fig.savefig(os.path.join(save_dir, plot_filename))
-        print(f"Figure saved to {os.path.join(save_dir, plot_filename)}")
-
-
-        if plot:
-            plt.show()
-
-        plt.close(fig)
-
-
         return result_dict
+        
     
-
-# ##########
-# MC task function
-# ##########
-def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
-
-    signal = generate_signal(signal_len, seed=kwargs.get('seed', 1234))
-    # 打印signal的前10个元素
-
-
-    spn = spnc_anisotropy(
-        reservoir_params.h,
-        reservoir_params.theta_H,
-        reservoir_params.k_s_0,
-        reservoir_params.phi,
-        reservoir_params.beta_prime,
-        restart=True
-    )
-
-    transform = spn.gen_signal_slow_delayed_feedback
-
-    Output = RunSpnc(
-        signal,
-        1,                 
-        1,       
-        reservoir_params.Nvirt,
-        reservoir_params.m0,
-        transform,
-        reservoir_params.params,
-        fixed_mask=True,
-        seed_mask=1234
-    )
-
-
-    MC = linear_MC(signal, Output, splits=[0.2,0.6], delays=10)
-
-    return {'MC': MC}
-
-# ##########
-# KRandGR task function
-
-# ##########
-
-
-def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
-    
-    Nreadouts= reservoir_params.Nvirt
-
-    inputs = gen_KR_GR_input(Nreadouts, Nwash, seed=1234)   # <--- 用Nreadouts
-    outputs = []
-    for input_row in inputs:
-        input_row = input_row.reshape(-1, 1)
-        spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
-                              reservoir_params.k_s_0, reservoir_params.phi,
-                              reservoir_params.beta_prime, restart=True)
-        transforms = spn.gen_signal_slow_delayed_feedback
-        output = RunSpnc(input_row, 1, 1, reservoir_params.Nvirt,
-                         reservoir_params.m0, transforms, reservoir_params.params, fixed_mask=True, seed_mask=1234)
-        outputs.append(output)
-    States = np.stack(outputs, axis=0)
-    States = States/np.amax(States)
-    if kwargs.get('threshold') is not None:
-        threshold = kwargs.get('threshold')
-    else:
-        threshold = 0.001
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold)  # <--- 用Nreadouts
-    return {'KR': KR, 'GR': GR}
-
-
-# ##########
-# NARMA10 task function
-# ##########
-
-def evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
-    spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
-                          reservoir_params.k_s_0, reservoir_params.phi,
-                          reservoir_params.beta_prime, restart=True)
-    transform = spn.gen_signal_slow_delayed_feedback
-    NRMSE = ml.spnc_narma10(Ntrain, Ntest, reservoir_params.Nvirt,
-                            reservoir_params.m0, reservoir_params.bias,
-                            transform, reservoir_params.params,
-                            seed_NARMA=1234, fixed_mask=True, return_NRMSE=True)
-    return {'NRMSE': NRMSE}
-
-def evaluate_NARMA10_with_outputs(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
-    spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
-                          reservoir_params.k_s_0, reservoir_params.phi,
-                          reservoir_params.beta_prime, restart=True)
-    transform = spn.gen_signal_slow_delayed_feedback
-    outputs = ml.spnc_narma10(Ntrain, Ntest, reservoir_params.Nvirt,
-                            reservoir_params.m0, reservoir_params.bias,
-                            transform, reservoir_params.params,
-                            seed_NARMA=1234, fixed_mask=True, return_outputs=True)
-    return {'outputs': outputs}
-
-# ##########
-# test one reservoir with given parameters
-# ##########
-
-def test_one_reservoir(reservoir_params, **kwargs):
-
-# # 执行MC任务
-#     MC = evaluate_MC(reservoir_params, signal_len=550, **kwargs)
-# # 执行KRandGR任务
-
-#     krgr_result = evaluate_KRandGR(reservoir_params, Nreadouts=reservoir_params.Nvirt, Nwash=10, **kwargs)
-#     KR = krgr_result['KR']
-#     GR = krgr_result['GR']
-#     print(KR, GR)   
-
-    # 执行NARMA10任务
-    # NRMSE = evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs)
-
-    # 执行NARMA10_with_outputs任务
-    outputs = evaluate_NARMA10_with_outputs(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs)
-
-# 返回MC和KR,GR
-    # return {'MC': MC, 'KR': KR, 'GR': GR, 'NRMSE': NRMSE}
-    return {'outputs': outputs}
-    
-# 执行test_one_reservoir任务
-
-if __name__ == "__main__":
-    # 设定reservoir_params
-    reservoir_params = ReservoirParams(
-        h=0.4, m0=0.008, Nvirt=200, beta_prime=	50.0,
-        params={'theta': 0.11577824609314408, 'gamma': 0.04447510407651761, 'Nvirt': 200}
-    )
-
-    # 执行test_one_reservoir任务
-    outputs = test_one_reservoir(reservoir_params)
-
-    # 保存数据
-    save_path = f"./Results/SingleTests/uniform_29_NARMA10.pkl"
-    with open(save_path, 'wb') as f:
-        pickle.dump(outputs, f)
-    print(f"Saved results to {save_path}")
-
-
-
-
-
-
-
 
 # ##########
 # run the evaluation
@@ -506,28 +511,31 @@ if __name__ == "__main__":
 
 def run_evaluation(
     task_type,
-    param_name,
-    param_range,
+    param_name=None,
+    param_range=None,
+    param_grid=None,
     reservoir_params=None,
-    result_dir="./results",
-    plot=True,
-    verbose=False,
+    result_dir="./Res_Tasks_Results",   
     extra_args=None,
-    filename_prefix=None
+    reservoir_tag='default'
 ):
 
     if task_type.upper() == 'MC':
         task = evaluate_MC
         result_keys = ['MC']
         result_labels = ['Memory Capacity']
-    elif task_type.upper() in ['KR_GR', 'KRGR', 'KR&GR','KRandGR']:
+    elif task_type.upper() in ['KRANDGR', 'KR_GR', 'KR&GR']:
         task = evaluate_KRandGR
-        result_keys = ['KR','GR']
-        result_labels = ['KR','GR']
+        result_keys = ['KR','GR','CQ']
+        result_labels = ['KR','GR','CQ']
     elif task_type.upper() == 'NARMA10':
         task = evaluate_NARMA10
-        result_keys = ['NRMSE']
-        result_labels = ['NRMSE']
+        result_keys = ['NRMSE', 'y_test', 'pred']
+        result_labels = ['NRMSE', 'Desired', 'Predicted']
+    elif task_type.upper() == 'TI46':
+        task = evaluate_Ti46
+        result_keys = ['acc']
+        result_labels = ['TI46 Accuracy']
     else:
         raise ValueError(f"Unknown task_type: {task_type}")
 
@@ -535,338 +543,130 @@ def run_evaluation(
         task=task,
         param_name=param_name,
         param_range=param_range,
+        param_grid=param_grid,
         result_keys=result_keys,
         result_labels=result_labels,
         reservoir_params=reservoir_params or ReservoirParams(),
-        extra_args=extra_args
+        extra_args=extra_args,
+        reservoir_tag=reservoir_tag
     )
-    return scanner.evaluate(save_dir=result_dir, plot=plot, verbose=verbose, filename_prefix=filename_prefix)
+    return scanner.evaluate(save_dir=result_dir)
+
+# Usage Examples:
+# 
+# ## Single Parameter Scanning (Backward Compatible)
+# result = run_evaluation(
+#     task_type='MC',
+#     param_name='beta_prime',
+#     param_range=[10, 20, 30, 50],
+#     reservoir_params=ReservoirParams(),
+#     reservoir_tag='single_param_test'
+# )
+#
+# Multi-Parameter Grid Scanning (New Feature)
+if __name__ == "__main__":
+    reservoir_params = ReservoirParams(
+        beta_prime=50,
+        Nvirt=200,
+        m0=0.008,
+        params={'theta': 0.2, 'gamma': 0.1}
+    )
+
+    all_results = {}
+    task_types = ['MC', 'KRandGR', 'NARMA10']
+
+    m0_range = np.linspace(0.03,0.055, 10)
+    gamma_range = np.linspace(0.045, 0.053, 10)
+    for task in task_types:
+        print(f"\n>>> Running task: {task}")
+        result = run_evaluation(
+            task_type=task,
+            param_grid={'m0': m0_range, 'gamma': gamma_range},
+            reservoir_params=reservoir_params,
+            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053'
+        )
+        all_results[task] = result
+
+# # load the results
+# with open('./Res_Tasks_Results/Reservoir_Res_beta30-40_gamma0.05-0.06/results.pkl', 'rb') as f:
+#     results = pickle.load(f)
+
+#     MC_results = []
+#     params = None
 
 
-# Single Parameter Evaluation Example
+#     for run in results['runs']:
+#         # Check if it's multi-parameter or single-parameter run
+#         is_multi_param = run.get('is_multi_param', False)
+        
+#         if run['task'] == 'evaluate_MC':
+#             if is_multi_param:
+#                 # For multi-parameter, results are stored as lists with param_combinations
+#                 MC_results.extend(run['results']['MC'])
+#             else:
+#                 # For single-parameter, append the entire result list
+#                 MC_results.append(run['results']['MC'])
+#     if results['runs'] and results['runs'][0].get('is_multi_param', False):
+#         params = results['runs'][0]['results'].get('param_combinations', [])
+
+#     print(MC_results[1])    
+#     print(params[1])
+
+
+
+# 
+# ## Mixed Parameter Scanning
+# scanner = ReservoirPerformanceEvaluator(
+#     task=evaluate_MC,
+#     param_name='beta_prime',
+#     param_range=[50],
+#     param_grid={'h': [0.2, 0.4], 'Nvirt': [20, 30]},  # This will override param_name/param_range
+#     result_keys=['MC'],
+#     result_labels=['Memory Capacity'],
+#     reservoir_params=ReservoirParams(),
+#     reservoir_tag='mixed_test'
+# )
 
 # if __name__ == "__main__":
-#     task_types = ['MC', 'KR_GR', 'NARMA10']
-#     param_name = 'theta'
-#     param_range = np.linspace(0.01, 0.8, 21)  # Example range for theta
-#     reservoir_params = ReservoirParams(h=0.4, m0=0.003, Nvirt=200, params={'gamma': 0.113, 'Nvirt': 200})
+#     # create a new ReservoirParams object
+#     reservoir_params = ReservoirParams(
+#         beta_prime=50,
+#         Nvirt=10,
+#         m0=0.008,
+#         params={'theta': 0.3, 'gamma': 0.1}
+#     )
+
+
+#     # set the task types
+#     task_types = ['MC', 'KRandGR', 'NARMA10', 'TI46']
 
 #     all_results = {}
 
-#     for task_type in task_types:
-#         print(f"\n=== Evaluating Task: {task_type} ===")
-        
+#     for task in task_types:
+#         print(f"\n>>> Running task: {task}")
 #         result = run_evaluation(
-#             task_type=task_type,
-#             param_name=param_name,
-#             param_range=param_range,
+#             task_type=task,
+#             param_name='beta_prime',
+#             param_range=[50],   # 这里只有一个参数点
 #             reservoir_params=reservoir_params,
-#             result_dir="./Results",
-#             plot=False,
-#             verbose=False
+#             result_dir="./Res_Tasks_Results",
+#             reservoir_tag='Res_beta50'
 #         )
-#         all_results[task_type] = result
+#         all_results[task] = result
+
+#     print("\n四个任务全部完成")
 
 
-# Multiple Parameter Evaluation Example
-params_configs = {
-    # 'beta_prime': np.arange(20, 25, 2),
-    'beta_prime': np.arange(20, 51, 2),
-    'theta': np.linspace(0.01, 0.8, 21),
-    'gamma': np.linspace(0.01, 0.3, 21),
-    'm0': np.linspace(0.001, 0.006, 21),
-    'h': np.linspace(0.3, 0.5, 21)
-}
+# # load the results
+# with open('./Res_Tasks_Results/Reservoir_Res_beta50/results.pkl', 'rb') as f:
+#     results = pickle.load(f)
 
+# nrmse = []
+# for run in results['runs']:
+#     if run['task'] == 'evaluate_NARMA10':
+#         nrmse.append(run['results']['NRMSE'])
 
-# if __name__ == "__main__":
-#     task_types = ['KR_GR']
-#     base_params = dict(h=0.4, m0=0.003, Nvirt=200, params={'gamma': 0.113, 'theta': 0.3, 'Nvirt': 200})
-#     results_all = {}
-
-#     for param_name, param_range in params_configs.items():
-#         print(f"\n== Scanning parameter: {param_name} ==")
-        
-#         for task_type in task_types:
-#             print(f"\n--- Evaluating Task: {task_type} ---")
-
-#             reservoir_params = ReservoirParams(**base_params)
-#             result = run_evaluation(
-#                 task_type=task_type,
-#                 param_name=param_name,
-#                 param_range=param_range,
-#                 reservoir_params=reservoir_params,
-#                 result_dir=f"./Results/{param_name}",
-#                 plot=False,
-#                 verbose=False,
-#                 filename_prefix=f"Nwash=7"
-#             )
-
-#             results_all[(param_name, task_type)] = result
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-
-def run_2d_heatmap_scan(
-    task_type, param1_name, param1_range, param2_name, param2_range,
-    reservoir_params_base=None, result_dir='./Results', plot=True, verbose=False, extra_args=None, filename_prefix=None
-):
-
-    heatmap_data = np.zeros((len(param1_range), len(param2_range)))
-
-    all_heatmaps = {}
-
-    for i, v1 in enumerate(param1_range):
-        for j, v2 in enumerate(param2_range):
-            params = reservoir_params_base or ReservoirParams()
-
-            params = ReservoirParams(**vars(params))
-
-            params.update_params(**{param1_name: v1, param2_name: v2})
-            if verbose:
-                print(f"Running {task_type} with {param1_name}={v1}, {param2_name}={v2}")
-                params.print_params(verbose=True)
-
-            if task_type.upper() == 'MC':
-                result = evaluate_MC(params, **(extra_args or {}))
-                key = 'MC'
-            elif task_type.upper() in ['KR_GR', 'KRGR', 'KR&GR','KRandGR']:
-                result = evaluate_KRandGR(params, **(extra_args or {}))
-                key = ['KR', 'GR']
-            elif task_type.upper() == 'NARMA10':
-                result = evaluate_NARMA10(params, **(extra_args or {}))
-                key = 'NRMSE'
-            else:
-                raise ValueError(f"Unknown task_type: {task_type}")
-
-
-            if isinstance(key, list):  
-                for k in key:
-                    if k not in all_heatmaps:
-                        all_heatmaps[k] = np.zeros((len(param1_range), len(param2_range)))
-                    all_heatmaps[k][i, j] = result[k]
-            else:  
-                if key not in all_heatmaps:
-                    all_heatmaps[key] = np.zeros((len(param1_range), len(param2_range)))
-                all_heatmaps[key][i, j] = result[key]
-
-
-    os.makedirs(result_dir, exist_ok=True)
-    for k, data in all_heatmaps.items():
-        if filename_prefix is None:
-            base = f"heatmap_{task_type}_{k}"
-        else:
-            base = f"{filename_prefix}_{task_type}_{k}"
-        npy_path = os.path.join(
-            result_dir,
-            f"{base}_{param1_name}_{param1_range[0]}to{param1_range[-1]}_{param2_name}_{param2_range[0]}to{param2_range[-1]}.npy"
-        )
-        np.save(npy_path, data)
-        print(f"Saved heatmap data for {k} to {npy_path}")
-
-        if plot:
-            plt.figure(figsize=(8,6))
-            plt.imshow(data, aspect='auto', origin='lower',
-                    extent=[param2_range[0], param2_range[-1], param1_range[0], param1_range[-1]])
-            plt.colorbar(label=k)
-            plt.xlabel(param2_name)
-            plt.ylabel(param1_name)
-            plt.title(f"{task_type} {k} heatmap")
-            plt.tight_layout()
-            plt.savefig(os.path.join(
-                result_dir,
-                f"{base}_{param1_name}_{param1_range[0]}to{param1_range[-1]}_{param2_name}_{param2_range[0]}to{param2_range[-1]}.png"
-            ))
-            plt.show()
-    return all_heatmaps
-
-
-# if __name__ == "__main__":
-#     param1_name = 'gamma'
-#     param1_range = np.linspace(0.01, 0.3, 11)  # Example range for gamma
-#     param2_name = 'beta_prime'
-#     param2_range = np.arange(20, 51, 3)
-
-#     base_params = ReservoirParams(h=0.4, m0=0.003, Nvirt=200, params={'theta': 0.3, 'Nvirt': 200})
-
-
-#     for task_type in ['NARMA10']:
-#         print(f"\n=== HEATMAP for Task: {task_type} ({param1_name} vs {param2_name}) ===")
-#         all_heatmaps = run_2d_heatmap_scan(
-#             task_type=task_type,
-#             param1_name=param1_name, param1_range=param1_range,
-#             param2_name=param2_name, param2_range=param2_range,
-#             reservoir_params_base=base_params,
-#             result_dir='./Results/heatmaps',
-#             plot=False, verbose=False,
-#             filename_prefix=None
-#         )
-
-from scipy.ndimage import zoom
-
-def plot_heatmap(filepath, 
-                          param1_range, param2_range,
-                          param1_name='param1', param2_name='param2', 
-                          metric_name='Metric', 
-                          cmap='viridis', 
-                          vmin=None, vmax=None, 
-                          save_path=None):
-
-    data = np.load(filepath)
-    data_hr = zoom(data,(2,2), order=3)  # Upsample by a factor of 2 for better resolution
-
-    plt.figure(figsize=(8,6))
-    plt.imshow(data, interpolation='bicubic',aspect='auto', origin='lower',
-            extent=[param2_range[0], param2_range[-1], param1_range[0], param1_range[-1]],
-            cmap='viridis', vmin=vmin, vmax=vmax)
-    plt.colorbar(label=f"{metric_name} ")
-    plt.xlabel(param2_name)
-    plt.ylabel(param1_name)
-    plt.title(f"{metric_name} Heatmap")
-    plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path)
-        print(f"Saved figure to {save_path}")
-    plt.show()
-
-
-# plt.figure(figsize=(8,6))
-# # pick up data from the KR
-# filepath = './Results/heatmaps/heatmap_KR_GR_KR_gamma_0.01to0.3_beta_prime_20to50.npy'
-# data_KR = np.load(filepath)
-# # pick up data from the GR
-# filepath = './Results/heatmaps/heatmap_KR_GR_GR_gamma_0.01to0.3_beta_prime_20to50.npy'
-# data_GR = np.load(filepath)
-
-# # Calculate the CQ = KR - GR
-# data_CQ = data_KR - data_GR
-
-# plt.imshow(data_CQ, interpolation='bicubic', aspect='auto',
-#            extent=[20, 50, 0.01, 0.3],)
-# plt.colorbar(label='CQ (KR - GR)')
-# plt.xlabel('Beta Prime')
-# plt.ylabel('Theta')
-# plt.title('CQ Heatmap (KR - GR)')
-# plt.tight_layout()
-# plt.show()           
+# print(nrmse[0])
 
 
 
-
-# Example usage of plot_heatmap
-# if __name__ == "__main__":
-
-#     filepath = './Results/heatmaps/Nwash=7_KR_GR_KR_gamma_0.01to0.3_beta_prime_20to50.npy'
-
-   
-#     param1_range = np.linspace(0.01, 0.3, 11)
-#     param2_range = np.arange(20, 51, 3)
-#     plot_heatmap(
-#         filepath,
-#         param1_range=param1_range, param2_range=param2_range,
-#         param1_name='Gamma', param2_name='Beta Prime',
-#         metric_name='KR',
-#         cmap='viridis',
-#         save_path='./Results/heatmaps/Nwash=7_KR_GR_KR_gamma_0.01to0.3_beta_prime_20to50.png'
-#     )
-
-# #######
-# plot several curves of various parameters with MC in one figure
-# #######
-
-def plot_multiple_curves(file_infos, save_path=True):
-
-    plt.figure(figsize=(10, 6))
-
-    for info in file_infos:
-        if isinstance(info, dict):
-            filename = info['filename']
-            param_name = info['param_name']
-            metric_name = info['metric_name']
-            label = info.get('label', f"{param_name}_{metric_name}")
-
-        with open(filename, 'rb') as f:
-            d = pickle.load(f)
-        x = d[param_name]
-        # normalize x 
-        x = (x - np.min(x)) / (np.max(x) - np.min(x))
-        y = d[metric_name]
-
-        plt.plot(x, y, marker='o', label=label)
-
-    plt.xlabel('Parameter')
-    plt.ylabel(metric_name)
-    plt.title(f"{metric_name} vs {param_name}")
-    plt.legend()    
-    plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path)
-        print(f"Saved figure to {save_path}")
-    plt.show()
-
-# Example usage of plot_multiple_curves
-# if __name__ == "__main__":
-
-#     file_infos = [
-#         {'filename': './Results/beta_prime/evaluate_KRandGR_beta_prime_evaluate_beta_prime_20to50_step2.pkl', 'param_name': 'beta_prime', 'metric_name': 'GR', },
-#         {'filename': './Results/theta/evaluate_KRandGR_theta_evaluate_theta_0.01to0.8_step0.0395.pkl', 'param_name': 'theta', 'metric_name': 'GR', },
-#         {'filename': './Results/gamma/evaluate_KRandGR_gamma_evaluate_gamma_0.01to0.3_step0.0145.pkl', 'param_name': 'gamma', 'metric_name': 'GR', },
-#         {'filename': './Results/h/evaluate_KRandGR_h_evaluate_h_0.3to0.5_step0.010000000000000009.pkl', 'param_name': 'h', 'metric_name': 'GR', },
-#         {'filename': './Results/m0/evaluate_KRandGR_m0_evaluate_m0_0.001to0.006_step0.00025.pkl', 'param_name': 'm0', 'metric_name': 'GR', },
-#     ]
-
-#     plot_multiple_curves(
-#         file_infos,
-#         save_path='./Results/multiple_curves_GR.png'
-#     )
-
-
-# Single Test for a given parameter
-def evaluate_and_save_single_reservoir(params, save_dir="./Results/SingleTests"):
-    
-    result_mc = evaluate_MC(params)
-    result_krgr = evaluate_KRandGR(params)
-    result_narma10 = evaluate_NARMA10(params)
-
-    CQ = result_krgr['KR'] - result_krgr['GR']
-
-    # 打包所有参数和结果
-    record = {
-        'params_dict': {
-            'h': params.h,
-            'beta_prime': params.beta_prime,
-            'Nvirt': params.Nvirt,
-            'theta': params.params['theta'],
-            'm0': params.m0,
-        },
-        'results': {
-            'MC': result_mc['MC'],
-            'KR': result_krgr['KR'],
-            'GR': result_krgr['GR'],
-            'CQ': CQ,
-            'NRMSE': result_narma10['NRMSE']
-        }
-    }
-
-
-
-    filename = f"SingleTest_Nvirt{params.Nvirt}_beta_prime{params.beta_prime:.2f}.pkl"
-    os.makedirs(save_dir, exist_ok=True)
-    filepath = os.path.join(save_dir, filename)
-
-    with open(filepath, 'wb') as f:
-        pickle.dump(record, f)
-    print(f"Single test results saved to {filepath}")
-
-    return record
-
-# Example usage of evaluate_and_save_single_reservoir
-# if __name__ == "__main__":
-#     params = ReservoirParams(
-#         h=0.4431531552026543, m0=0.005641983615625242, Nvirt=315, beta_prime=40.66463236801917,
-#         params={'theta': 0.4198538148599367, 'gamma': 0.017005257078706242, 'Nvirt': 315}
-#     )
-#     res = evaluate_and_save_single_reservoir(params)
-#     print(res)
