@@ -549,11 +549,11 @@ def spnc_TI46(speakers, Nvirt, m0, bias=True, res_transform = None, params = Non
 
     # Specifying digits_only=True and train=True returns only the spoken digits part of TI20 training set
     # It returns the signal, label, sampling rate and speaker of the data
-    train_signal, train_label, train_rate, train_speaker = TI46.load_TI20(speakers, digits_only=True, train=True,rngseed=1234)
+    train_signal, train_label, train_rate, train_speaker = TI46.load_TI20(speakers, digits_only=True, train=True)
 
 
     # To load the test data, specify train=False
-    test_signal, test_label, test_rate, test_speaker = TI46.load_TI20(speakers, digits_only=True, train=False, rngseed=123)
+    test_signal, test_label, test_rate, test_speaker = TI46.load_TI20(speakers, digits_only=True, train=False)
 
     print("Samples for training: ", len(train_signal))
     print('first 5 samples for training: ', train_signal[:5])
