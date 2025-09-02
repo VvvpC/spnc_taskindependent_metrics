@@ -166,8 +166,6 @@ def objective(trial: optuna.Trial):
 # 3. Study setup
 # ──────────────────────────────────────────────────────────────────────────────
 
-
-
 def create_study():
     # Create a study, and add a suffix to the study if the study name already exists
     suffix = 0
