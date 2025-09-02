@@ -231,6 +231,7 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
         seed_mask=1234
     )
     MC = linear_MC(signal, Output, splits=[0.2,0.6], delays=10)
+    print(f"res_m0: {reservoir_params.m0}, res_gamma: {reservoir_params.params['gamma']}, MC: {MC}")
 
     return {'MC': MC}
 
@@ -444,12 +445,22 @@ class ReservoirPerformanceEvaluator:
                 for param_name, param_value in param_config.items():
                     result_dict[param_name].append(param_value)
                 
+                # Print current parameter values for verification
+                print(f"[{i+1}/{total_iterations}] Config: {param_config}")
+                print(f"  → reservoir_params.m0 = {self.reservoir_params.m0}")
+                print(f"  → reservoir_params.Nvirt = {self.reservoir_params.Nvirt}")
+                print(f"  → reservoir_params.beta_prime = {self.reservoir_params.beta_prime}")
+                print(f"  → reservoir_params.params = {self.reservoir_params.params}")
+                
                 if verbose:
                     print(f"Evaluating combination {i+1}/{total_iterations}: {param_config}")
                     self.reservoir_params.print_params(verbose=True)
             else:
                 # Update single parameter for backward compatibility
                 self.reservoir_params.update_params(**{self.param_name: param_config})
+                print(f"[{i+1}/{total_iterations}] Single param {self.param_name}={param_config}")
+                print(f"  → reservoir_params.{self.param_name} = {getattr(self.reservoir_params, self.param_name, 'NOT_FOUND')}")
+                
                 if verbose:
                     print(f"Evaluating {self.param_name}={param_config}")
                     self.reservoir_params.print_params(verbose=True)
@@ -567,23 +578,25 @@ def run_evaluation(
 if __name__ == "__main__":
     reservoir_params = ReservoirParams(
         beta_prime=50,
-        Nvirt=200,
+        Nvirt=50,
         m0=0.008,
-        params={'theta': 0.2, 'gamma': 0.1}
+        params={'theta': 0.2, 'gamma': 0.1, 'Nvirt': 50}
     )
 
     all_results = {}
-    task_types = ['MC', 'KRandGR', 'NARMA10']
+    task_types = ['TI46']
 
     m0_range = np.linspace(0.03,0.055, 10)
     gamma_range = np.linspace(0.045, 0.053, 10)
     for task in task_types:
         print(f"\n>>> Running task: {task}")
+        # Reset reservoir_params to initial state before each task
+        reservoir_params.update_params(m0=0.008, **{'theta': 0.2, 'gamma': 0.1})
         result = run_evaluation(
             task_type=task,
             param_grid={'m0': m0_range, 'gamma': gamma_range},
             reservoir_params=reservoir_params,
-            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053'
+            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053_TI46'
         )
         all_results[task] = result
 
