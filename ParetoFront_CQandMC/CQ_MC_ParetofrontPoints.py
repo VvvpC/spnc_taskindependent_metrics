@@ -25,81 +25,11 @@ parent_dir = Path(__file__).parent.parent
 if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
-# 直接导入所需模块
+# 然后进行所有导入
 from spnc import spnc_anisotropy
-from formal_Parameter_Dynamics_Preformance import ReservoirParams
-from Reservoirs_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
-from spnc_ml import spnc_narma10, spnc_TI46
-from formal_Parameter_Dynamics_Preformance import evaluate_KRandGR
+from formal_Parameter_Dynamics_Preformance import ReservoirParams, evaluate_NARMA10, evaluate_Ti46, evaluate_KRandGR, MSE, NRMSE
+from Morphology_Research.Reservoirs_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
 
-def MSE(pred, desired):
-    return np.mean(np.square(np.subtract(pred, desired)))
-
-def NRMSE(pred, y_test, spacer=0.001):
-    return np.sqrt(MSE(pred, y_test) / np.var(y_test))
-
-def eva_narma10(reservoir_params: ReservoirParams, 
-                        Ntrain: int = 2000, Ntest: int = 1000) -> Tuple[float, np.ndarray, np.ndarray]:
-        """评估NARMA-10任务"""
-
-        # 创建储层
-        spn = spnc_anisotropy(
-            h=reservoir_params.h,
-            theta_H=reservoir_params.theta_H,
-            k_s=reservoir_params.k_s_0,
-            phi=reservoir_params.phi,
-            beta_prime=reservoir_params.beta_prime,
-            restart=True
-        )
-
-        transform = spn.gen_signal_slow_delayed_feedback
-        
-        # 运行NARMA-10任务
-        (y_test, pred) = spnc_narma10(
-            Ntrain,
-            Ntest,
-            reservoir_params.Nvirt,
-            reservoir_params.m0,
-            reservoir_params.bias,
-            transform,
-            reservoir_params.params,
-            seed_NARMA=1234,
-            fixed_mask=True,
-            seed_mask=1234,
-            return_outputs=True,
-        )
-        
-        # 计算NRMSE
-        nrmse = NRMSE(pred, y_test)
-        
-        return nrmse, y_test, pred
-    
-def eva_ti46(reservoir_params: ReservoirParams, 
-                    speakers: Optional[List[str]] = None) -> float:
-    """评估TI46任务"""
-    
-    # 创建储层
-    spn = spnc_anisotropy(
-        h=reservoir_params.h,
-        theta_H=reservoir_params.theta_H,
-        k_s=reservoir_params.k_s_0,
-        phi=reservoir_params.phi,
-        beta_prime=reservoir_params.beta_prime,
-        restart=True
-    )
-
-    transform = spn.gen_signal_slow_delayed_feedback
-    
-    # 运行TI46任务
-    accuracy = spnc_TI46(
-        speakers,
-        reservoir_params.Nvirt,
-        reservoir_params.m0,
-        reservoir_params.bias,
-        transform,
-        reservoir_params.params)
-    
-    return accuracy
 
 @dataclass
 class ParetoPointParams:
@@ -136,8 +66,8 @@ class TaskResults:
 @dataclass
 class ParameterSource:
     """参数来源配置类"""
-    source_type: str  # 'csv' or 'dict'
-    data: Union[str, Dict, List[Dict]]  # CSV文件名或参数字典/字典列表
+    source_type: str  # 'csv'
+    data: str  # CSV文件名
 
 class ParetoPointEvaluator:
     """Pareto点评估器"""
@@ -145,62 +75,6 @@ class ParetoPointEvaluator:
     def __init__(self):
         self.manager = ReservoirMorphologyManager()
     
-    @staticmethod
-    def validate_param_dict(params: Dict) -> Dict:
-        """
-        验证并标准化参数字典
-        
-        Args:
-            params: 原始参数字典
-            
-        Returns:
-            Dict: 验证后的参数字典
-            
-        Raises:
-            ValueError: 参数验证失败时抛出
-        """
-        # 必需参数及其合理范围
-        required_param_ranges = {
-            'gamma': (0.001, 10.0),
-            'theta': (0.001, 10.0), 
-            'm0': (0.0001, 1),
-            'beta_prime': (10.0, 100.0)
-        }
-        
-        # 可选参数及其合理范围
-        optional_param_ranges = {
-            'cq_value': (0.1, 1000.0),
-            'mc_value': (0.1, 100.0)
-        }
-        
-        validated_params = {}
-        
-        # 验证必需参数
-        for param_name, (min_val, max_val) in required_param_ranges.items():
-            if param_name not in params:
-                raise ValueError(f"缺少必需参数: {param_name}")
-            
-            value = float(params[param_name])
-            
-            if not (min_val <= value <= max_val):
-                print(f"警告: 参数 {param_name}={value} 超出建议范围 [{min_val}, {max_val}]")
-            
-            validated_params[param_name] = value
-        
-        # 验证可选参数
-        for param_name, (min_val, max_val) in optional_param_ranges.items():
-            if param_name in params:
-                value = float(params[param_name])
-                
-                if not (min_val <= value <= max_val):
-                    print(f"警告: 参数 {param_name}={value} 超出建议范围 [{min_val}, {max_val}]")
-                
-                validated_params[param_name] = value
-        
-        # 处理其他可选参数
-        validated_params['trial_number'] = params.get('trial_number', 0)
-        
-        return validated_params
         
     def load_pareto_csv(self, filename: str) -> List[ParetoPointParams]:
         """
@@ -259,57 +133,15 @@ class ParetoPointEvaluator:
                 print(f" trial_number={pt.trial_number}, CQ={pt.cq_value}, MC={pt.mc_value}, gamma={pt.gamma}, theta={pt.theta}, m0={pt.m0}, beta_prime={pt.beta_prime}")
         return pareto_points
     
-    def load_pareto_dict(self, param_dict: Union[Dict, List[Dict]]) -> List[ParetoPointParams]:
-        """
-        从字典或字典列表加载Pareto点参数
-        
-        Args:
-            param_dict: 单个参数字典或参数字典列表
-                       每个字典必须包含: gamma, theta, m0, beta_prime
-                       可选字段: cq_value, mc_value, trial_number (默认为索引)
-        
-        Returns:
-            List[ParetoPointParams]: Pareto点参数列表
-        """
-        # 如果输入是单个字典，转换为列表
-        if isinstance(param_dict, dict):
-            param_list = [param_dict]
-        elif isinstance(param_dict, list):
-            param_list = param_dict
-        else:
-            raise TypeError("param_dict必须是字典或字典列表")
-        
-        pareto_points = []
-        for i, params in enumerate(param_list):
-            # 验证并标准化参数
-            validated_params = self.validate_param_dict(params)
-            
-            # 创建ParetoPointParams对象
-            pareto_point = ParetoPointParams(
-                trial_number=validated_params.get('trial_number', i),  # 如果没有提供trial_number，使用索引
-                gamma=validated_params['gamma'],
-                theta=validated_params['theta'],
-                m0=validated_params['m0'],
-                beta_prime=validated_params['beta_prime'],
-                cq_value=validated_params.get('cq_value'),  # 可选参数，可能为None
-                mc_value=validated_params.get('mc_value')   # 可选参数，可能为None
-            )
-            pareto_points.append(pareto_point)
-        
-        print(f"成功从字典加载{len(pareto_points)}个点")
-
-        return pareto_points
     
-    def load_parameters(self, source: Union[str, Dict, List[Dict], ParameterSource]) -> List[ParetoPointParams]:
+    def load_parameters(self, source: Union[str, ParameterSource]) -> List[ParetoPointParams]:
         """
-        灵活的参数加载接口，支持多种输入格式
+        参数加载接口，支持CSV文件输入
         
         Args:
             source: 参数来源，可以是：
                    - str: CSV文件名
-                   - Dict: 单个参数字典
-                   - List[Dict]: 参数字典列表
-                   - ParameterSource: 参数源配置对象
+                   - ParameterSource: 参数源配置对象（仅支持CSV类型）
         
         Returns:
             List[ParetoPointParams]: 加载的Pareto点参数列表
@@ -318,21 +150,15 @@ class ParetoPointEvaluator:
             # 字符串输入，假设是CSV文件名
             return self.load_pareto_csv(source)
         
-        elif isinstance(source, (dict, list)):
-            # 字典或字典列表输入
-            return self.load_pareto_dict(source)
-        
         elif isinstance(source, ParameterSource):
             # ParameterSource对象输入
             if source.source_type == 'csv':
                 return self.load_pareto_csv(source.data)
-            elif source.source_type == 'dict':
-                return self.load_pareto_dict(source.data)
             else:
-                raise ValueError(f"不支持的参数源类型: {source.source_type}")
+                raise ValueError(f"仅支持CSV参数源类型，不支持: {source.source_type}")
         
         else:
-            raise TypeError(f"不支持的输入类型: {type(source)}")
+            raise TypeError(f"仅支持str或ParameterSource类型，不支持: {type(source)}")
     
     def create_reservoir_params(self, pareto_point: ParetoPointParams) -> ReservoirParams:
         """根据Pareto点参数创建储层参数"""
@@ -340,88 +166,11 @@ class ParetoPointEvaluator:
             h=0.4, m0 = pareto_point.m0, Nvirt=200, beta_prime=pareto_point.beta_prime,
             params={'theta': pareto_point.theta, 'gamma': pareto_point.gamma, 'Nvirt': 200})
 
-    def create_uniform_reservoir(self, reservoir_params: ReservoirParams):
-        """创建均质储层（uniform类型）"""
-        return spnc_anisotropy(
-            h=reservoir_params.h,
-            theta_H=reservoir_params.theta_H,
-            k_s=reservoir_params.k_s_0,
-            phi=reservoir_params.phi,
-            beta_prime=reservoir_params.beta_prime,
-            restart=True
-        )
     
-    def evaluate_narma10(self, reservoir_params: ReservoirParams, 
-                        Ntrain: int = 2000, Ntest: int = 1000) -> Tuple[float, np.ndarray, np.ndarray]:
-        """评估NARMA-10任务"""
-
-        # 创建储层
-        spn = spnc_anisotropy(
-            h=reservoir_params.h,
-            theta_H=reservoir_params.theta_H,
-            k_s=reservoir_params.k_s_0,
-            phi=reservoir_params.phi,
-            beta_prime=reservoir_params.beta_prime,
-            restart=True
-        )
-
-        transform = spn.gen_signal_slow_delayed_feedback
-        
-        # 运行NARMA-10任务
-        (y_test, pred) = spnc_narma10(
-            Ntrain,
-            Ntest,
-            reservoir_params.Nvirt,
-            reservoir_params.m0,
-            reservoir_params.bias,
-            transform,
-            reservoir_params.params,
-            seed_NARMA=1234,
-            fixed_mask=True,
-            seed_mask=1234,
-            return_outputs=True,
-        )
-        
-        # 计算NRMSE
-        nrmse = NRMSE(pred, y_test)
-        
-        return nrmse, y_test, pred
     
-    def evaluate_ti46(self, reservoir_params: ReservoirParams, 
-                     speakers: Optional[List[str]] = None) -> float:
-        """评估TI46任务"""
-        
-        # 创建储层
-        spn = spnc_anisotropy(
-            h=reservoir_params.h,
-            theta_H=reservoir_params.theta_H,
-            k_s=reservoir_params.k_s_0,
-            phi=reservoir_params.phi,
-            beta_prime=reservoir_params.beta_prime,
-            restart=True
-        )
-
-        transform = spn.gen_signal_slow_delayed_feedback
-        
-        # 运行TI46任务
-        accuracy = spnc_TI46(
-            speakers,
-            reservoir_params.Nvirt,
-            reservoir_params.m0,
-            reservoir_params.bias,
-            transform,
-            reservoir_params.params)
-        
-        return accuracy
-    
-    def evaluate_KRandGR_threshold(self, reservoir_params: ReservoirParams, threshold: float = 0.1) -> float:
-        
-        results = evaluate_KRandGR(reservoir_params, threshold=threshold)
-        return results['KR'], results['GR']
-    
-    def evaluate_single_point(self, pareto_point: ParetoPointParams, 
+    def _evaluate_single_point(self, pareto_point: ParetoPointParams, 
                             narma_config: Dict = None, ti46_config: Dict = None) -> TaskResults:
-        """评估单个Pareto点"""
+        """内部方法：评估单个Pareto点"""
         
         # 设置默认配置
         if narma_config is None:
@@ -438,19 +187,23 @@ class ParetoPointEvaluator:
         
         # 评估NARMA-10
         print("  评估NARMA-10...")
-        narma10_nrmse, narma10_y_test, narma10_pred = self.evaluate_narma10(
-        reservoir_params, **narma_config
-        )
+        narma10_result = evaluate_NARMA10(reservoir_params, **narma_config)
+        narma10_nrmse = narma10_result['NRMSE']
+        narma10_y_test = narma10_result['y_test']
+        narma10_pred = narma10_result['pred']
         print(f"  NARMA-10 NRMSE: {narma10_nrmse:.4f}")
         
         # 评估TI46
         print("  评估TI46...")
-        ti46_accuracy = self.evaluate_ti46(reservoir_params, speakers=ti46_config)
+        ti46_result = evaluate_Ti46(reservoir_params)
+        ti46_accuracy = ti46_result['acc']
         print(f"  TI46 Accuracy: {ti46_accuracy:.4f}")
 
         # 评估KR和GR阈值
         print("  评估KR和GR阈值...")
-        kr, gr = self.evaluate_KRandGR_threshold(reservoir_params, threshold=0.1)
+        kr_gr_result = evaluate_KRandGR(reservoir_params, threshold=0.1)
+        kr = kr_gr_result['KR']
+        gr = kr_gr_result['GR']
         print(f"  KR: {kr}, GR: {gr}")
         
         return TaskResults(
@@ -467,7 +220,7 @@ class ParetoPointEvaluator:
             gr_threshold=gr
         )
     
-    def evaluate_all_points(self, source: Union[str, Dict, List[Dict], ParameterSource], 
+    def evaluate_all_points(self, source: Union[str, ParameterSource], 
                           narma_config: Dict = None, ti46_config: Dict = None,
                           output_filename: str = None, 
                           trial_numbers: Union[int, List[int]] = None) -> List[TaskResults]:
@@ -475,7 +228,7 @@ class ParetoPointEvaluator:
         评估所有Pareto点或指定的特定trial
         
         Args:
-            source: 参数来源，支持多种格式（CSV文件名、字典、字典列表等）
+            source: 参数来源，支持CSV文件名或ParameterSource对象（仅支持CSV类型）
             narma_config: NARMA-10任务配置
             ti46_config: TI46任务配置  
             output_filename: 输出文件名
@@ -521,7 +274,7 @@ class ParetoPointEvaluator:
         for i, point in enumerate(pareto_points):
             print(f"\n进度: {i+1}/{len(pareto_points)} (Trial {point.trial_number})")
             try:
-                result = self.evaluate_single_point(point, narma_config, ti46_config)
+                result = self._evaluate_single_point(point, narma_config, ti46_config)
                 all_results.append(result)
             except Exception as e:
                 print(f"  错误：评估Trial {point.trial_number}时出现异常: {e}")
@@ -532,40 +285,21 @@ class ParetoPointEvaluator:
             # 根据输入类型生成输出文件名
             if isinstance(source, str):
                 base_name = Path(source).stem
-                if trial_numbers is not None:
-                    trials_str = "_".join(map(str, target_trials)) if len(target_trials) <= 5 else f"{len(target_trials)}trials"
-                    output_filename = f"ParetoFront_TaskResults_{base_name}_trials_{trials_str}"
-                else:
-                    output_filename = f"ParetoFront_TaskResults_{base_name}"
+            elif isinstance(source, ParameterSource) and source.source_type == 'csv':
+                base_name = Path(source.data).stem
             else:
-                if trial_numbers is not None:
-                    trials_str = "_".join(map(str, target_trials)) if len(target_trials) <= 5 else f"{len(target_trials)}trials"
-                    output_filename = f"ParetoFront_TaskResults_dict_trials_{trials_str}"
-                else:
-                    output_filename = f"ParetoFront_TaskResults_dict_input"
+                base_name = "unknown_source"
+                
+            if trial_numbers is not None:
+                trials_str = "_".join(map(str, target_trials)) if len(target_trials) <= 5 else f"{len(target_trials)}trials"
+                output_filename = f"ParetoFront_TaskResults_{base_name}_trials_{trials_str}"
+            else:
+                output_filename = f"ParetoFront_TaskResults_{base_name}"
         
         self.save_results(all_results, output_filename)
         
         return all_results
     
-    def evaluate_single_dict_point(self, param_dict: Dict, 
-                                 narma_config: Dict = None, ti46_config: Dict = None) -> TaskResults:
-        """
-        便捷方法：直接从单个参数字典评估储层性能
-        
-        Args:
-            param_dict: 包含储层参数的字典
-            narma_config: NARMA-10任务配置
-            ti46_config: TI46任务配置
-        
-        Returns:
-            TaskResults: 评估结果
-        """
-        # 从字典创建ParetoPointParams
-        pareto_points = self.load_pareto_dict(param_dict)
-        
-        # 评估单个点
-        return self.evaluate_single_point(pareto_points[0], narma_config, ti46_config)
     
     def save_results(self, results: List[TaskResults], output_filename: str):
         """保存评估结果"""
@@ -619,69 +353,27 @@ class ParetoPointEvaluator:
 
 def main(filename):
     """主函数示例，展示各种使用方法"""
-    
     # 创建评估器
     evaluator = ParetoPointEvaluator()
-    
     # 配置参数
     narma_config = {
         'Ntrain': 2000,
         'Ntest': 1000
     }
-    
     ti46_config = ['f1', 'f2', 'f3', 'f4', 'f5']  # 使用所有说话者
-    
-    print("=" * 60)
-    print("示例1: 从CSV文件评估（原有功能）")
-    print("=" * 60)
-    
-    # filename = "Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049_pareto.csv"
-    
+     
     try:
         results_csv = evaluator.evaluate_all_points(
             source=filename,
             narma_config=narma_config,
             ti46_config=ti46_config,
             # trial_numbers=[155,89,144,125,205,130],
-            output_filename="uniform_beta_50_task_results"
+            output_filename=filename[:-4] if filename.lower().endswith('.csv') else filename
         )
         print(f"CSV评估完成！共处理{len(results_csv)}个Pareto点")
     except FileNotFoundError:
         print(f"未找到CSV文件，跳过CSV评估示例")
     
     
-    # # 定义多个储层参数
-    # param_list = [
-    #     {
-    #         'gamma': 0.10,
-    #         'theta': 0.25,
-    #         'm0': 0.002,
-    #         'beta_prime': 25.0,
-    #         'cq_value': 4.0,
-    #         'mc_value': 6.5
-    #     },
-    #     {
-    #         'gamma': 0.20,
-    #         'theta': 0.35,
-    #         'm0': 0.004,
-    #         'beta_prime': 35.0,
-    #         'cq_value': 6.0,
-    #         'mc_value': 5.5
-    #     }
-    # ]
-    
-    # # 评估多个参数点
-    # multi_results = evaluator.evaluate_all_points(
-    #     source=param_list,
-    #     narma_config=narma_config,
-    #     ti46_config=ti46_config,
-    #     output_filename="custom_dict_evaluation"
-    # )
-    
-    # print(f"多点评估完成！共处理{len(multi_results)}个自定义参数点")
-    
-
-
-
 if __name__ == "__main__":
-    main("CQ_MC_Pareto_beta50_20250825_121711_pareto.csv")
+    main("CQ_MC_Pareto_SoftGate_20250831_140645_pareto.csv")
