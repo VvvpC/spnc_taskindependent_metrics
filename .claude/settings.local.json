@@ -10,7 +10,11 @@
       "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Test_Temporary/**)",
       "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Test_Temporary/**)",
       "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Test_Temporary/**)",
-      "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Test_Temporary/**)"
+      "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Test_Temporary/**)",
+      "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Optuna_TaskIndependent_Metrics/**)",
+      "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Optuna_TaskIndependent_Metrics/**)",
+      "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Optuna_TaskIndependent_Metrics/**)",
+      "Read(/C:\\Users\\Chen\\Desktop\\Repository\\spnc_taskindependent_metrics\\Optuna_TaskIndependent_Metrics/**)"
     ],
     "deny": []
   }
