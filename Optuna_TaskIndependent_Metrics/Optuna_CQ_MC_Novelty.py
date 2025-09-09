@@ -44,7 +44,7 @@ import pandas as pd
 import plotly.express as px
 import optuna
 from optuna.trial import TrialState
-from optuna.samplers import AutoSampler
+import optunahub
 
 # 新增：从scikit-learn导入用于计算距离和数据归一化的工具
 from sklearn.preprocessing import MinMaxScaler
@@ -123,7 +123,7 @@ def objective(trial: optuna.Trial):
 
     # give a higher score to ealier trials
     if len(past_trials) < k_neighbor:
-        return 1e6
+        return 10
 
     # pick all CQ and MC values from past trials
     past_behaviors = np.array([
@@ -173,42 +173,21 @@ def create_study():
             print(f"Study '{new_study_name}' doesn't exist, Create it。")
             break
     
-    sampler = AutoSampler()
+    module = optunahub.load_module(package="samplers/auto_sampler")
+
+
     # set up the object of the study
     study = optuna.create_study(
         # set the samplers
-        sampler=sampler,
+        sampler=module.AutoSampler(),
         # set the direction of the objectives
-        directions="maximize",  
+        direction="maximize",  
         storage=storage,
         study_name=new_study_name,
     )
+    
     return study
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 5. Run the study
-# ──────────────────────────────────────────────────────────────────────────────
 
-def run_study():
-    
-    study = create_study()
-
-    study.optimize(
-        objective,
-        n_trials=400,  # Number of trials from command line argument
-        catch=(ValueError, FloatingPointError),
-    )
-
-    print("\nPareto front (all non-dominated trials):")
-    for t in study.best_trials:
-        print('  Values: ', t.values)
-        print('  Params:')
-        for key, value in t.params.items():
-            print(f'    {key}: {value}')
-        print('-------------------')
-
-
-if __name__ == "__main__":
-    run_study()
     
