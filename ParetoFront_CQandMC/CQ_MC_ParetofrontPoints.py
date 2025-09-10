@@ -2,7 +2,7 @@
 CQ_MC_ParetofrontPoints.py
 =========================
 
-从Pareto前沿文件中提取参数，创建储层，并评估NARMA-10和TI46任务性能。
+从Pareto前沿文件中提取参数,创建储层,并评估NARMA-10和TI46任务性能。
 
 Author: Chen
 Date: 2025-01-25
@@ -136,12 +136,12 @@ class ParetoPointEvaluator:
     
     def load_parameters(self, source: Union[str, ParameterSource]) -> List[ParetoPointParams]:
         """
-        参数加载接口，支持CSV文件输入
+        参数加载接口,支持CSV文件输入
         
         Args:
             source: 参数来源，可以是：
                    - str: CSV文件名
-                   - ParameterSource: 参数源配置对象（仅支持CSV类型）
+                   - ParameterSource: 参数源配置对象(仅支持CSV类型)
         
         Returns:
             List[ParetoPointParams]: 加载的Pareto点参数列表
@@ -155,10 +155,10 @@ class ParetoPointEvaluator:
             if source.source_type == 'csv':
                 return self.load_pareto_csv(source.data)
             else:
-                raise ValueError(f"仅支持CSV参数源类型，不支持: {source.source_type}")
+                raise ValueError(f"仅支持CSV参数源类型,不支持: {source.source_type}")
         
         else:
-            raise TypeError(f"仅支持str或ParameterSource类型，不支持: {type(source)}")
+            raise TypeError(f"仅支持str或ParameterSource类型,不支持: {type(source)}")
     
     def create_reservoir_params(self, pareto_point: ParetoPointParams) -> ReservoirParams:
         """根据Pareto点参数创建储层参数"""
@@ -169,8 +169,8 @@ class ParetoPointEvaluator:
     
     
     def _evaluate_single_point(self, pareto_point: ParetoPointParams, 
-                            narma_config: Dict = None, ti46_config: Dict = None) -> TaskResults:
-        """内部方法：评估单个Pareto点"""
+                            narma_config: Dict = None, ti46_config: Dict = None, ti46_nvirt: int = None) -> TaskResults:
+        """内部方法:评估单个Pareto点"""
         
         # 设置默认配置
         if narma_config is None:
@@ -195,7 +195,11 @@ class ParetoPointEvaluator:
         
         # 评估TI46
         print("  评估TI46...")
-        ti46_result = evaluate_Ti46(reservoir_params)
+        if ti46_nvirt is not None:
+            ti46_result = evaluate_Ti46(reservoir_params, nvirt_ti46=ti46_nvirt)
+            print(f"  使用TI46专用Nvirt={ti46_nvirt}")
+        else:
+            ti46_result = evaluate_Ti46(reservoir_params)
         ti46_accuracy = ti46_result['acc']
         print(f"  TI46 Accuracy: {ti46_accuracy:.4f}")
 
@@ -223,16 +227,18 @@ class ParetoPointEvaluator:
     def evaluate_all_points(self, source: Union[str, ParameterSource], 
                           narma_config: Dict = None, ti46_config: Dict = None,
                           output_filename: str = None, 
-                          trial_numbers: Union[int, List[int]] = None) -> List[TaskResults]:
+                          trial_numbers: Union[int, List[int]] = None,
+                          ti46_nvirt: int = None) -> List[TaskResults]:
         """
         评估所有Pareto点或指定的特定trial
         
         Args:
-            source: 参数来源，支持CSV文件名或ParameterSource对象（仅支持CSV类型）
+            source: 参数来源,支持CSV文件名或ParameterSource对象(仅支持CSV类型)
             narma_config: NARMA-10任务配置
             ti46_config: TI46任务配置  
             output_filename: 输出文件名
-            trial_numbers: 指定要评估的trial编号，可以是单个数字或数字列表。如果为None则评估所有
+            trial_numbers: 指定要评估的trial编号,可以是单个数字或数字列表。如果为None则评估所有
+            ti46_nvirt: TI46任务专用的Nvirt值。如果指定,TI46任务将使用此值而非储层默认Nvirt
         
         Returns:
             List[TaskResults]: 评估结果列表
@@ -274,7 +280,7 @@ class ParetoPointEvaluator:
         for i, point in enumerate(pareto_points):
             print(f"\n进度: {i+1}/{len(pareto_points)} (Trial {point.trial_number})")
             try:
-                result = self._evaluate_single_point(point, narma_config, ti46_config)
+                result = self._evaluate_single_point(point, narma_config, ti46_config, ti46_nvirt)
                 all_results.append(result)
             except Exception as e:
                 print(f"  错误：评估Trial {point.trial_number}时出现异常: {e}")
@@ -368,12 +374,15 @@ def main(filename):
             narma_config=narma_config,
             ti46_config=ti46_config,
             # trial_numbers=[155,89,144,125,205,130],
+            ti46_nvirt=150,  # TI46任务使用Nvirt=150，其他任务仍使用200
             output_filename=filename[:-4] if filename.lower().endswith('.csv') else filename
         )
-        print(f"CSV评估完成！共处理{len(results_csv)}个Pareto点")
+        print(f"CSV评估完成:共处理{len(results_csv)}个Pareto点")
     except FileNotFoundError:
-        print(f"未找到CSV文件，跳过CSV评估示例")
+        print(f"未找到CSV文件,跳过CSV评估")
     
     
 if __name__ == "__main__":
-    main("CQ_MC_Pareto_SoftGate_20250831_140645_pareto.csv")
+    main("CQ_MC_Pareto_SoftGate_Tri_20250906_203559_pareto.csv")
+
+

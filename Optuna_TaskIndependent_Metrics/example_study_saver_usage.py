@@ -9,10 +9,7 @@ Author: Chen
 Date: 2025-01-XX
 """
 
-import os
 import optuna
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 from optuna_study_saver import OptunaStudySaver, save_study, load_study
 
@@ -183,125 +180,7 @@ def example_data_filtering():
     high_performance = saver.filter_trials(study_data, state="COMPLETE", min_cq=0.1, min_mc=0.5)
     print(f"  CQ>0.1且MC>0.5的试验数: {len(high_performance)}")
 
-def example_visualization():
-    """示例4: 数据可视化"""
-    print("\n" + "=" * 60)
-    print("示例4: 数据可视化")
-    print("=" * 60)
-    
-    # 获取数据
-    result = example_load_and_analyze()
-    if result is None:
-        return
-    
-    study_data, trials_df, pareto_df = result
-    
-    # 创建可视化
-    plt.style.use('default')
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    fig.suptitle('Optuna Study数据分析', fontsize=16)
-    
-    # 提取完成的试验数据
-    completed_trials = trials_df[trials_df['state'] == 'COMPLETE']
-    
-    if not completed_trials.empty and 'values' in completed_trials.columns:
-        values_list = completed_trials['values'].tolist()
-        if values_list and isinstance(values_list[0], list):
-            cq_values = [v[0] for v in values_list if len(v) > 0]
-            mc_values = [v[1] for v in values_list if len(v) > 1]
-            
-            # 1. CQ-MC散点图
-            axes[0, 0].scatter(cq_values, mc_values, alpha=0.6, s=30)
-            if not pareto_df.empty:
-                pareto_cq = [v[0] for v in pareto_df['values']]
-                pareto_mc = [v[1] for v in pareto_df['values']]
-                axes[0, 0].scatter(pareto_cq, pareto_mc, color='red', s=50, 
-                                 label='Pareto Front', marker='*')
-                axes[0, 0].legend()
-            axes[0, 0].set_xlabel('CQ')
-            axes[0, 0].set_ylabel('MC')
-            axes[0, 0].set_title('CQ vs MC散点图')
-            axes[0, 0].grid(True, alpha=0.3)
-            
-            # 2. CQ分布直方图
-            axes[0, 1].hist(cq_values, bins=20, alpha=0.7, edgecolor='black')
-            axes[0, 1].set_xlabel('CQ')
-            axes[0, 1].set_ylabel('频次')
-            axes[0, 1].set_title('CQ值分布')
-            axes[0, 1].grid(True, alpha=0.3)
-            
-            # 3. MC分布直方图
-            axes[1, 0].hist(mc_values, bins=20, alpha=0.7, color='orange', edgecolor='black')
-            axes[1, 0].set_xlabel('MC')
-            axes[1, 0].set_ylabel('频次')
-            axes[1, 0].set_title('MC值分布')
-            axes[1, 0].grid(True, alpha=0.3)
-            
-            # 4. 试验收敛图
-            trial_numbers = completed_trials['number'].tolist()
-            axes[1, 1].plot(trial_numbers, cq_values, 'o-', alpha=0.6, markersize=3, label='CQ')
-            axes[1, 1].plot(trial_numbers, mc_values, 's-', alpha=0.6, markersize=3, label='MC')
-            axes[1, 1].set_xlabel('Trial Number')
-            axes[1, 1].set_ylabel('Value')
-            axes[1, 1].set_title('优化收敛过程')
-            axes[1, 1].legend()
-            axes[1, 1].grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    
-    # 保存图片
-    viz_dir = "saved_studies/visualizations"
-    os.makedirs(viz_dir, exist_ok=True)
-    plt.savefig(os.path.join(viz_dir, "study_analysis.png"), dpi=300, bbox_inches='tight')
-    print(f"\n可视化图片已保存到: {os.path.join(viz_dir, 'study_analysis.png')}")
-    
-    plt.show()
 
-def example_csv_analysis():
-    """示例5: 使用CSV文件进行分析"""
-    print("\n" + "=" * 60)
-    print("示例5: 使用CSV文件进行分析")
-    print("=" * 60)
-    
-    # 首先保存数据
-    try:
-        study_name = get_first_available_study_name()
-        saved_files = example_save_existing_study(study_name)
-    except ValueError as e:
-        print(f"错误: {e}")
-        return
-    
-    if not saved_files or "trials_csv" not in saved_files:
-        print("没有可用的CSV文件。")
-        return
-    
-    # 载入CSV数据
-    trials_csv = saved_files["trials_csv"]
-    print(f"\n从CSV文件载入数据: {trials_csv}")
-    
-    df = pd.read_csv(trials_csv)
-    print(f"数据形状: {df.shape}")
-    
-    # 基本统计
-    print("\n基本统计信息:")
-    if 'values' in df.columns:
-        # 解析values列（如果是字符串格式）
-        import ast
-        try:
-            df['CQ'] = df['values'].apply(lambda x: ast.literal_eval(x)[0] if isinstance(x, str) else x[0])
-            df['MC'] = df['values'].apply(lambda x: ast.literal_eval(x)[1] if isinstance(x, str) else x[1])
-            
-            print(f"  CQ统计: 均值={df['CQ'].mean():.4f}, 标准差={df['CQ'].std():.4f}")
-            print(f"  MC统计: 均值={df['MC'].mean():.4f}, 标准差={df['MC'].std():.4f}")
-            
-            # 找到最佳平衡点
-            df['combined_score'] = df['CQ'] + df['MC']  # 简单相加作为综合得分
-            best_idx = df['combined_score'].idxmax()
-            print(f"\n最佳综合得分试验:")
-            print(f"  Trial {df.loc[best_idx, 'number']}: CQ={df.loc[best_idx, 'CQ']:.4f}, MC={df.loc[best_idx, 'MC']:.4f}")
-            
-        except Exception as e:
-            print(f"解析values列时出错: {e}")
 
 # if __name__ == "__main__":
 #     """运行所有示例"""

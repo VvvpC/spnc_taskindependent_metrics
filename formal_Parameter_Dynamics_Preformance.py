@@ -160,7 +160,7 @@ def gen_KR_GR_input(Nreadouts, Nwash=10, seed=1234):
     return all_inputs
 
 
-def Evaluate_KR_GR(states, Nreadouts, threshold=0.001):
+def Evaluate_KR_GR(states, Nreadouts, threshold=0.1):
     GR_states = states[:,-1,:]
     '''
     Change the last 7 columns to GR states, the rest are KR states
@@ -257,7 +257,7 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     if kwargs.get('threshold') is not None:
         threshold = kwargs.get('threshold')
     else:
-        threshold = 0.001
+        threshold = 0.1
     KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold) 
     
     CQ = KR - GR 
@@ -292,12 +292,26 @@ def evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
 # ##########
 
 def evaluate_Ti46(reservoir_params, **kwargs):
+    # 获取TI46专用的Nvirt，如果未指定则使用默认值
+    nvirt_override = kwargs.get('nvirt_ti46', reservoir_params.Nvirt)
+    
+    # 创建临时参数副本用于TI46任务
+    import copy
+    temp_params = copy.deepcopy(reservoir_params)
+    temp_params.Nvirt = nvirt_override
+    temp_params.params['Nvirt'] = nvirt_override
+    
+    # 打印下temp_params的详细信息让我来确认是否override
+    # from pprint import pprint
+    # print("temp_params.__dict__:")
+    # pprint(temp_params.__dict__)
+
     spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
                           reservoir_params.k_s_0, reservoir_params.phi,
                           reservoir_params.beta_prime, restart=True)
     transform = spn.gen_signal_slow_delayed_feedback
     speakers = ['f1','f2','f3','f4','f5']
-    acc = ml.spnc_TI46(speakers, reservoir_params.Nvirt, reservoir_params.m0, reservoir_params.bias, transform, reservoir_params.params)
+    acc = ml.spnc_TI46(speakers, nvirt_override, reservoir_params.m0, reservoir_params.bias, transform, temp_params.params)
     return {'acc': acc}
     
 # ------------------------ Reservoir Parameters Dictionary --------------------------
@@ -578,13 +592,13 @@ def run_evaluation(
 if __name__ == "__main__":
     reservoir_params = ReservoirParams(
         beta_prime=50,
-        Nvirt=50,
+        Nvirt=200,
         m0=0.008,
-        params={'theta': 0.2, 'gamma': 0.1, 'Nvirt': 50}
+        params={'theta': 0.2, 'gamma': 0.1, 'Nvirt': 200}
     )
 
     all_results = {}
-    task_types = ['TI46']
+    task_types = ['KRandGR']
 
     m0_range = np.linspace(0.03,0.055, 10)
     gamma_range = np.linspace(0.045, 0.053, 10)
@@ -596,7 +610,8 @@ if __name__ == "__main__":
             task_type=task,
             param_grid={'m0': m0_range, 'gamma': gamma_range},
             reservoir_params=reservoir_params,
-            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053_TI46'
+            extra_args={'nvirt_ti46': 150},
+            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053_KRandGR'
         )
         all_results[task] = result
 

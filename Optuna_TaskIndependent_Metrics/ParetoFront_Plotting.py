@@ -392,27 +392,27 @@ class ParetoFrontPlotter:
                   marker='*', label=f'Pareto Front', zorder=5)
         
         # Annotate Pareto front points with their trial numbers
-        for _, row in self.pareto_front_df.iterrows():
-            # 为了尽量避免重叠，采用交错的xytext偏移和对齐方式
-            idx = list(self.pareto_front_df.index).index(row.name)
-            # 交错偏移和对齐
-            offset_options = [
-                ((8, 8), 'left', 'bottom'),
-                ((-8, 8), 'right', 'bottom'),
-                ((8, -8), 'left', 'top'),
-                ((-8, -8), 'right', 'top'),
-                ((0, 15), 'center', 'bottom'),
-                ((0, -15), 'center', 'top'),
-            ]
-            offset, ha, va = offset_options[idx % len(offset_options)]
-            ax.annotate(
-                f'{row["CQ"]:.0f}, {row["MC"]:.2f}',
-                (row['CQ'], row['MC']),
-                xytext=offset, textcoords='offset points',
-                fontsize=10, alpha=0.95, fontweight='bold', color='darkgreen',
-                ha=ha, va=va,
-                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="green", lw=0.8, alpha=0.7)
-            )
+        # for _, row in self.pareto_front_df.iterrows():
+        #     # 为了尽量避免重叠，采用交错的xytext偏移和对齐方式
+        #     idx = list(self.pareto_front_df.index).index(row.name)
+        #     # 交错偏移和对齐
+        #     offset_options = [
+        #         ((8, 8), 'left', 'bottom'),
+        #         ((-8, 8), 'right', 'bottom'),
+        #         ((8, -8), 'left', 'top'),
+        #         ((-8, -8), 'right', 'top'),
+        #         ((0, 15), 'center', 'bottom'),
+        #         ((0, -15), 'center', 'top'),
+        #     ]
+        #     offset, ha, va = offset_options[idx % len(offset_options)]
+        #     ax.annotate(
+        #         f'{row["CQ"]:.0f}, {row["MC"]:.2f}',
+        #         (row['CQ'], row['MC']),
+        #         xytext=offset, textcoords='offset points',
+        #         fontsize=10, alpha=0.95, fontweight='bold', color='darkgreen',
+        #         ha=ha, va=va,
+        #         bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="green", lw=0.8, alpha=0.7)
+        #     )
         
         # Formatting
         ax.set_xlabel('Computational Quality (CQ)', fontsize=16)
@@ -431,6 +431,12 @@ class ParetoFrontPlotter:
         # Add file info and distance threshold to the plot
         
         plt.tight_layout()
+        
+        # Auto-generate save_path based on loaded pareto filename if not provided
+        if save_path is None and 'pareto' in self.loaded_files:
+            pareto_filename = self.loaded_files['pareto']
+            save_path = pareto_filename.replace('.csv', '.png')
+            print(f"Auto-generated save path: {save_path}")
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -505,15 +511,15 @@ def main():
     # Load specific files (modify these names according to your files)
     try:
         plotter.load_data_by_filename(
-            pareto_filename="Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049_pareto.csv",  # Replace with your file
-            all_trials_filename="Reservoir_Morphology_CQ_MC_Pareto_uniform_2_20250725_104049_trials.csv"  # Optional
+            pareto_filename="CQ_MC_Pareto_SoftGate_th01_beta50_20250905_123602_pareto.csv",  # Replace with your file
+            all_trials_filename="CQ_MC_Pareto_SoftGate_th01_beta50_20250905_123602_trials.csv"  # Optional
         )
         
-        # Create 2D plot
+        # Create 2D plot (save_path will be auto-generated from pareto filename)
         fig1 = plotter.plot_pareto_front_2d(
             distance_threshold=0.3,
             max_near_points=30,
-            save_path="pareto_front_2d_specific.png",
+            # save_path will be auto-generated as: CQ_MC_Pareto_SoftGate_th01_beta50_20250905_123602_pareto.png
             title_suffix="Specific File Load"
         )
         plt.show()
@@ -526,8 +532,8 @@ def main():
         plotter.load_data()
         fig1 = plotter.plot_pareto_front_2d(
             distance_threshold=0.3,
-            max_near_points=30,
-            save_path="pareto_front_2d_auto.png"
+            max_near_points=30
+            # save_path will be auto-generated from detected pareto filename
         )
     
     # # Example 2: Load multiple files for comparison
