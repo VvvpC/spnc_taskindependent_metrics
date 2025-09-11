@@ -526,32 +526,27 @@ class spnc_anisotropy:
 
         return mag
     
-    def gen_signal_slow_delayed_feedback_varing_temp(self, K_s, params, beta_ref, h, *args,**kwargs):
+    def gen_signal_slow_delayed_feedback_noise(self, K_s, params, beta_cons, *args,**kwargs):
 
         # determine the phase of machine learning
-        warmup_samples = params.get('warmup_sample', 100)
         train_samples = params.get('train_sample', 2000)
         test_samples = params.get('test_sample', 1000)
         
         length = len(K_s)
-        if length == warmup_samples:
-            phase = 'warmup period'
-        elif length == train_samples:
-            phase = 'train period'
-        else:
-            phase = 'test period'
+        phase = 'train period' if length == train_samples else 'test period'
 
-        print('----------------------')
-        print('current phase:', phase)
-        print('----------------------')
+        print(f"{'='*22}\ncurrent phase: {phase}\n{'='*22}")
 
         # pick up public parameters
         theta_T   = params['theta']
         gamma     = params['gamma']
         delay_fb  = params['delay_feedback']
         Nvirt     = params['Nvirt']
-        omega_ref = self.get_omega_ref(beta_ref, h)
-        delta = omega_ref / (self.get_omega_prime())
+
+        _saved_beta = self.beta_prime
+
+        omega_cons = self.get_omega_cons(beta_cons)
+        delta = omega_cons / (self.get_omega_prime())
         self.k_s = 0
         T = 1./(self.get_omega_prime()* delta *self.f0)
         theta = theta_T*T
@@ -560,77 +555,34 @@ class spnc_anisotropy:
         johnson_noise = params.get('johnson_noise', False)
         thermal_noise = params.get('thermal_noise', False)
 
-        if johnson_noise == True:
-            seed_johnson_noise = params.get('seed_johnson_noise', None)
-            print('seed_johnson_noise:', seed_johnson_noise)
-            rng_johnson = np.random.default_rng(seed_johnson_noise)
-            mean_johnson_noise = params.get('mean_johnson_noise', 0.000)
-            print('mean_johnson_noise:', mean_johnson_noise)
-            std_johnson_noise = params.get('std_johnson_noise', 0.00001)
-            print('std_johnson_noise:', std_johnson_noise)
+        johnson_setup = self._set_johnson_noise(params) if johnson_noise == True else None
+        thermal_setup = self._set_thermal_noise(params) if thermal_noise == True else None
 
-        # Set the thermal fluctuation noise
-        
-        if thermal_noise == True:
-            lambda_ou = params.get('lambda_ou', 1.0) # regression rate
-            print('lambda_ou:', lambda_ou)
-            sigma_ou = params.get('sigma_ou', 0.1) # noise strength
-            print('sigma_ou:', sigma_ou)
-            seed_thermal_noise = params.get('seed_thermal_noise', None)
-            rng_thermal = np.random.default_rng(seed_thermal_noise)
-
-        # Set the Primep1
-        if phase == 'warmup period':
-           
-            if self.Primep1 is not None:
-                self.p1 = self.Primep1
-            self.p2 = 1 - self.p1
-            print('Initial p1 in warmup period:', self.p1)
-
-        elif phase == 'train period':
-            print('Initial p1 in train period:', self.p1)
-
-        else: 
-            print('Initial p1 in test period:', self.p1)
-
-        # Generate OU 
-        N = len(K_s)
-        T_ou = np.zeros(N)
-        if thermal_noise == True:
-            base_beta_prime = self.beta_prime
-            dt_ou = theta  
-
-            dW = rng_thermal.normal(0, 1, N)
-            for i in range(1, N):
-                T_ou[i] = T_ou[i-1] + (-lambda_ou * T_ou[i-1]) * dt_ou + sigma_ou * np.sqrt(dt_ou) * dW[i]
+        # Generate OU noise
+        T_ou = self._generate_ou_noise(K_s, theta, thermal_setup) if thermal_noise == True else None
 
 
         # Main loop
+        N = len(K_s)
         mag = np.zeros(N)
         for idx, j in enumerate(K_s):
             # Delayed Feedback
             self.k_s = j + gamma*mag[(idx-Nvirt-delay_fb)%N]
-            
+
+            # Thermal noise
             if thermal_noise == True:
-                self.beta_prime = base_beta_prime + T_ou[idx]
+                self.beta_prime = _saved_beta + T_ou[idx]
 
             calculate_energy_barriers(self)
             self.evolve(self.f0, theta)
 
+            mag[idx] = self.get_m()
             if johnson_noise == True:
-                    mag[idx] = self.get_m() + rng_johnson.normal(mean_johnson_noise, std_johnson_noise,1)
-            else:
-                    mag[idx] = self.get_m()
+                mag[idx] += johnson_setup['rng'].normal(johnson_setup['mean'], johnson_setup['std'])
+
 
         # Print out noise information
-        if thermal_noise == True and johnson_noise == True:
-            print('johnson noise and thermal noise are added')
-        elif thermal_noise == True:
-            print('only thermal noise is added')
-        elif johnson_noise == True:
-            print('only johnson noise is added')
-        else:
-            print('noise-free raw output')
+        self._log_noise_info(thermal_noise, johnson_noise)
         
         
         if self.restart:
@@ -640,12 +592,67 @@ class spnc_anisotropy:
             print('reservoir skip restarting..')
 
         return mag
-        
-    '''
-    let me amend the code with omega_cons
-    from now, the only correct name of omega is omega_cons, and omega_ref equals to omega_cons
 
-    '''
+    def _set_johnson_noise(self, params):
+        '''
+        set the johnson noise
+        '''
+        seed = params.get('seed_johnson_noise', None)
+        mean = params.get('mean_johnson_noise', 0.000)
+        std = params.get('std_johnson_noise', 0.00001)
+
+        print(f'seed_johnson_noise: {seed}')
+        print(f'mean_johnson_noise: {mean}')
+        print(f'std_johnson_noise: {std}')
+
+        return {
+            'rng': np.random.default_rng(seed),
+            'mean': mean,
+            'std': std
+        }
+
+    def _set_thermal_noise(self, params):
+        '''
+        set the thermal noise
+        '''
+        lambda_ou = params.get('lambda_ou', 1.0)
+        sigma_ou = params.get('sigma_ou', 0.1)
+        seed = params.get('seed_thermal_noise', None)
+        
+        print(f'lambda_ou: {lambda_ou}')
+        print(f'sigma_ou: {sigma_ou}')
+
+        return {
+            'rng': np.random.default_rng(seed),
+            'lambda_ou': lambda_ou,
+            'sigma_ou': sigma_ou
+        }
+    
+    def _generate_ou_noise(self, K_s, theta,thermal_setup):
+        '''
+        generate the OU noise
+        '''
+        T_ou = np.zeros(len(K_s))
+        
+        dw = thermal_setup['rng'].normal(0, 1, len(K_s))
+
+        for i in range(1, len(K_s)):
+            T_ou[i] = (T_ou[i-1] +
+                    (-thermal_setup['lambda_ou'] * T_ou[i-1]) * theta +
+                    thermal_setup['sigma_ou'] * np.sqrt(theta) * dw[i])
+        
+        return T_ou
+
+    def _log_noise_info(self, thermal_noise, johnson_noise):
+        if thermal_noise == True and johnson_noise == True:
+            print('johnson noise and thermal noise are added')
+        elif thermal_noise == True:
+            print('only thermal noise is added')
+        elif johnson_noise == True:
+            print('only johnson noise is added')
+        else:
+            print('noise-free raw output')
+
 
     def get_omega_cons(self, beta_cons):
         cons = spnc_anisotropy(0.4, 90, 0, 45, beta_cons)
