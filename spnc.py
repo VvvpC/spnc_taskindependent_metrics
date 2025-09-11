@@ -555,11 +555,11 @@ class spnc_anisotropy:
         johnson_noise = params.get('johnson_noise', False)
         thermal_noise = params.get('thermal_noise', False)
 
-        johnson_setup = self._set_johnson_noise(params) if johnson_noise == True else None
-        thermal_setup = self._set_thermal_noise(params) if thermal_noise == True else None
+        johnson_setup = self._set_johnson_noise(params) if johnson_noise else None
+        thermal_setup = self._set_thermal_noise(params) if thermal_noise else None
 
         # Generate OU noise
-        T_ou = self._generate_ou_noise(K_s, theta, thermal_setup) if thermal_noise == True else None
+        T_ou = self._generate_ou_noise(K_s, theta, thermal_setup) if thermal_noise else None
 
 
         # Main loop
@@ -570,14 +570,14 @@ class spnc_anisotropy:
             self.k_s = j + gamma*mag[(idx-Nvirt-delay_fb)%N]
 
             # Thermal noise
-            if thermal_noise == True:
+            if thermal_noise:
                 self.beta_prime = _saved_beta + T_ou[idx]
 
             calculate_energy_barriers(self)
             self.evolve(self.f0, theta)
 
             mag[idx] = self.get_m()
-            if johnson_noise == True:
+            if johnson_noise:
                 mag[idx] += johnson_setup['rng'].normal(johnson_setup['mean'], johnson_setup['std'])
 
 
@@ -644,11 +644,11 @@ class spnc_anisotropy:
         return T_ou
 
     def _log_noise_info(self, thermal_noise, johnson_noise):
-        if thermal_noise == True and johnson_noise == True:
+        if thermal_noise and johnson_noise:
             print('johnson noise and thermal noise are added')
-        elif thermal_noise == True:
+        elif thermal_noise:
             print('only thermal noise is added')
-        elif johnson_noise == True:
+        elif johnson_noise:
             print('only johnson noise is added')
         else:
             print('noise-free raw output')
