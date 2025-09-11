@@ -257,7 +257,7 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     if kwargs.get('threshold') is not None:
         threshold = kwargs.get('threshold')
     else:
-        threshold = 0.1
+        threshold = 0.01
     KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold) 
     
     CQ = KR - GR 
@@ -611,7 +611,7 @@ if __name__ == "__main__":
             param_grid={'m0': m0_range, 'gamma': gamma_range},
             reservoir_params=reservoir_params,
             extra_args={'nvirt_ti46': 150},
-            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053_KRandGR'
+            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053_KRandGR01'
         )
         all_results[task] = result
 
