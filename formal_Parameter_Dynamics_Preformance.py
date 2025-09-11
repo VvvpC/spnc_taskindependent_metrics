@@ -217,7 +217,13 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
         restart=True
     )
 
-    transform = spn.gen_signal_slow_delayed_feedback
+    # Select transform based on noise parameters
+    if reservoir_params.params.get('johnson_noise', False) or reservoir_params.params.get('thermal_noise', False):
+        transform = spn.gen_signal_slow_delayed_feedback_noise
+        print("Using transform: gen_signal_slow_delayed_feedback_noise")
+    else:
+        transform = spn.gen_signal_slow_delayed_feedback
+        print("Using transform: gen_signal_slow_delayed_feedback")
 
     Output = RunSpnc(
         signal,
@@ -248,9 +254,15 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
         spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
                               reservoir_params.k_s_0, reservoir_params.phi,
                               reservoir_params.beta_prime, restart=True)
-        transforms = spn.gen_signal_slow_delayed_feedback
+            # Select transform based on noise parameters
+        if reservoir_params.params.get('johnson_noise', False) or reservoir_params.params.get('thermal_noise', False):
+            transform = spn.gen_signal_slow_delayed_feedback_noise
+            print("Using transform: gen_signal_slow_delayed_feedback_noise")
+        else:
+            transform = spn.gen_signal_slow_delayed_feedback
+            print("Using transform: gen_signal_slow_delayed_feedback")
         output = RunSpnc(input_row, 1, 1, reservoir_params.Nvirt,
-                         reservoir_params.m0, transforms, reservoir_params.params, fixed_mask=True, seed_mask=1234)
+                         reservoir_params.m0, transform, reservoir_params.params, fixed_mask=True, seed_mask=1234)
         outputs.append(output)
     States = np.stack(outputs, axis=0)
     States = States/np.amax(States)
@@ -278,7 +290,13 @@ def evaluate_NARMA10(reservoir_params, Ntrain=2000, Ntest=1000, **kwargs):
     spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
                           reservoir_params.k_s_0, reservoir_params.phi,
                           reservoir_params.beta_prime, restart=True)
-    transform = spn.gen_signal_slow_delayed_feedback
+        # Select transform based on noise parameters
+    if reservoir_params.params.get('johnson_noise', False) or reservoir_params.params.get('thermal_noise', False):
+        transform = spn.gen_signal_slow_delayed_feedback_noise
+        print("Using transform: gen_signal_slow_delayed_feedback_noise")
+    else:
+        transform = spn.gen_signal_slow_delayed_feedback
+        print("Using transform: gen_signal_slow_delayed_feedback")
     (y_test, pred) = ml.spnc_narma10(Ntrain, Ntest, reservoir_params.Nvirt,
                             reservoir_params.m0, reservoir_params.bias,
                             transform, reservoir_params.params,
@@ -309,7 +327,13 @@ def evaluate_Ti46(reservoir_params, **kwargs):
     spn = spnc_anisotropy(reservoir_params.h, reservoir_params.theta_H,
                           reservoir_params.k_s_0, reservoir_params.phi,
                           reservoir_params.beta_prime, restart=True)
-    transform = spn.gen_signal_slow_delayed_feedback
+        # Select transform based on noise parameters
+    if reservoir_params.params.get('johnson_noise', False) or reservoir_params.params.get('thermal_noise', False):
+        transform = spn.gen_signal_slow_delayed_feedback_noise
+        print("Using transform: gen_signal_slow_delayed_feedback_noise")
+    else:
+        transform = spn.gen_signal_slow_delayed_feedback
+        print("Using transform: gen_signal_slow_delayed_feedback")
     speakers = ['f1','f2','f3','f4','f5']
     acc = ml.spnc_TI46(speakers, nvirt_override, reservoir_params.m0, reservoir_params.bias, transform, temp_params.params)
     return {'acc': acc}
@@ -327,18 +351,18 @@ class  ReservoirParams:
 
             # Network parameters 
             self.Nvirt = 30
-            self.m0 = 0.007586422893538462
+            self.m0 = 0.003
             self.bias = True
-            self.Nwarmup = 0
+            # self.Nwarmup = 0
             self.verbose_repr = False
 
             self.params = {
-                'theta': 0.5540233436467944,
-                'gamma': 0.13738441393289658,
+                'theta': 0.3,
+                'gamma': 0.03,
                 'delay_feedback': 0,
                 'Nvirt': self.Nvirt,
-                'length_warmup': self.Nwarmup,
-                'warmup_sample': self.Nwarmup * self.Nvirt,
+                # 'length_warmup': self.Nwarmup,
+                # 'warmup_sample': self.Nwarmup * self.Nvirt,
                 'voltage_noise': False,
                 'seed_voltage_noise': 1234,
                 'delta_V': 0.1,
