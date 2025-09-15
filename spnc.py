@@ -526,16 +526,18 @@ class spnc_anisotropy:
 
         return mag
     
-    def gen_signal_slow_delayed_feedback_noise(self, K_s, params, beta_cons, *args,**kwargs):
+    def gen_signal_slow_delayed_feedback_noise(self, K_s, params, *args,**kwargs):
 
         # determine the phase of machine learning
         train_samples = params.get('train_sample', 2000)
         test_samples = params.get('test_sample', 1000)
+
+        beta_cons = self.beta_prime
         
         length = len(K_s)
         phase = 'train period' if length == train_samples else 'test period'
 
-        print(f"{'='*22}\ncurrent phase: {phase}\n{'='*22}")
+        # print(f"{'='*22}\ncurrent phase: {phase}\n{'='*22}")
 
         # pick up public parameters
         theta_T   = params['theta']
@@ -581,15 +583,13 @@ class spnc_anisotropy:
                 mag[idx] += johnson_setup['rng'].normal(johnson_setup['mean'], johnson_setup['std'])
 
 
-        # Print out noise information
-        self._log_noise_info(thermal_noise, johnson_noise)
+        # #Print out noise information
+        # self._log_noise_info(thermal_noise, johnson_noise)
         
         
         if self.restart:
             self.minirestart()
-            print('reservoir restarted')
-        else:
-            print('reservoir skip restarting..')
+
 
         return mag
 
@@ -601,9 +601,9 @@ class spnc_anisotropy:
         mean = params.get('mean_johnson_noise', 0.000)
         std = params.get('std_johnson_noise', 0.00001)
 
-        print(f'seed_johnson_noise: {seed}')
-        print(f'mean_johnson_noise: {mean}')
-        print(f'std_johnson_noise: {std}')
+        # print(f'seed_johnson_noise: {seed}')
+        # print(f'mean_johnson_noise: {mean}')
+        # print(f'std_johnson_noise: {std}')
 
         return {
             'rng': np.random.default_rng(seed),
@@ -619,8 +619,8 @@ class spnc_anisotropy:
         sigma_ou = params.get('sigma_ou', 0.1)
         seed = params.get('seed_thermal_noise', None)
         
-        print(f'lambda_ou: {lambda_ou}')
-        print(f'sigma_ou: {sigma_ou}')
+        # print(f'lambda_ou: {lambda_ou}')
+        # print(f'sigma_ou: {sigma_ou}')
 
         return {
             'rng': np.random.default_rng(seed),
