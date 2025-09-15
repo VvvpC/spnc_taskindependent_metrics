@@ -220,10 +220,8 @@ def evaluate_MC(reservoir_params, signal_len = 550, **kwargs):
     # Select transform based on noise parameters
     if reservoir_params.params.get('johnson_noise', False) or reservoir_params.params.get('thermal_noise', False):
         transform = spn.gen_signal_slow_delayed_feedback_noise
-        print("Using transform: gen_signal_slow_delayed_feedback_noise")
     else:
         transform = spn.gen_signal_slow_delayed_feedback
-        print("Using transform: gen_signal_slow_delayed_feedback")
 
     Output = RunSpnc(
         signal,
@@ -257,10 +255,8 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
             # Select transform based on noise parameters
         if reservoir_params.params.get('johnson_noise', False) or reservoir_params.params.get('thermal_noise', False):
             transform = spn.gen_signal_slow_delayed_feedback_noise
-            print("Using transform: gen_signal_slow_delayed_feedback_noise")
         else:
             transform = spn.gen_signal_slow_delayed_feedback
-            print("Using transform: gen_signal_slow_delayed_feedback")
         output = RunSpnc(input_row, 1, 1, reservoir_params.Nvirt,
                          reservoir_params.m0, transform, reservoir_params.params, fixed_mask=True, seed_mask=1234)
         outputs.append(output)
