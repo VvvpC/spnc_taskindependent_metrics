@@ -69,8 +69,8 @@ HYPERSPACE = {
     "theta": (0.2, 0.2),       
     "m0": (0.03, 0.055),                   
     "beta_prime": (50, 50),
-    "n_instances": (3, 7),
-    "beta_range_delta": (0, 5),
+    "n_instances": (3, 10),
+    "beta_range_delta": (0, 3),
     "weights": (0.01, 1),
     
 }
@@ -160,7 +160,7 @@ def objective(trial: optuna.Trial, morph_type: str = "uniform"):
         # 搜索 beta_range_delta
         # Evaluate task‑independent metrics
         mc_dict = evaluate_heterogeneous_MC(rparams, config, weights, signal_len=550, seed=1234)            
-        kgr_dict = evaluate_heterogeneous_KRandGR(rparams, config, weights, Nwash=10, seed=1234)      # Nwash = 7, Nequal = 7
+        kgr_dict = evaluate_heterogeneous_KRandGR(rparams, config, weights, Nwash=10, seed=1234, threshold=0.001)      # Nwash = 7, Nequal = 7
 
         MC = float(mc_dict.get("MC", 0.0))
         KR = float(kgr_dict.get("KR", 0.0))
