@@ -15,7 +15,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional
 
 # 导入储层创造模块
-from Reservoirs_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
+from .Reservoirs_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
 
 # 导入参数和评估函数
 from formal_Parameter_Dynamics_Preformance import (
@@ -75,11 +75,20 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
     --------
     dict: {'MC': float}
     """
+    print(f"\n=== 开始评估储层MC ===")
+    print(f"储层配置类型: {config.morph_type}")
+    print(f"储层参数 - h: {reservoir_params.h}, m0: {reservoir_params.m0}, Nvirt: {reservoir_params.Nvirt}")
+    print(f"beta_prime: {reservoir_params.beta_prime}")
+    print(f"信号长度: {signal_len}")
+    
     # 生成测试信号
     signal = generate_signal(signal_len, seed=kwargs.get('seed', 1234))
+    print(f"测试信号种子: {kwargs.get('seed', 1234)}")
+    
     # 判断储层类型
     if config.morph_type == 'uniform':
         # 均质储层：使用 RunSpnc
+        print("使用均质储层计算")
         spn = spnc_anisotropy(
             reservoir_params.h,
             reservoir_params.theta_H,
@@ -105,16 +114,22 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
 
     else:
         # 异质储层：使用 RunSpnc_heterogenous
+        print("使用异质储层计算")
         
         # 设置储层设计
         manager = ReservoirMorphologyManager()
 
         # 生成 deltabeta_list
         deltabeta_list = manager.generate_deltabeta_list(config, reservoir_params.beta_prime)
+        print(f"生成的deltabeta_list: {deltabeta_list}")
+        print(f"deltabeta_list长度: {len(deltabeta_list)}")
 
         # 生成权重 
         if not weights:
             weights = [1.0/len(deltabeta_list)] * len(deltabeta_list)
+        
+        print(f"使用的权重: {weights}")
+        print(f"权重长度: {len(weights)}")
 
         assert len(weights) == len(deltabeta_list), f"Weights count ({len(weights)}) should match deltabeta_list count ({len(deltabeta_list)})"
 
@@ -129,8 +144,12 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
             'h': reservoir_params.h,
             'deltabeta_list': deltabeta_list
         }
+        
+        print(f"temp_params: {temp_params}")
+        print(f"res_params: {res_params}")
 
         # 运行储层
+        print("开始运行异质储层...")
         Output = RunSpnc_heterogenous(
             signal, 
             1, 
@@ -144,7 +163,10 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
             seed_mask=1234)
     
     # calculate the MC
+    print("计算MC...")
     MC = linear_MC(signal, Output, splits=[0.2, 0.6], delays=10)
+    print(f"计算得到的MC值: {MC}")
+    print("=== MC评估完成 ===\n")
     
     return {'MC': MC}
 
@@ -237,15 +259,21 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
     
     # 将输出堆叠为3D数组 [samples, time_steps, features]
     States = np.stack(outputs, axis=0)
-    States = States/np.amax(States)
+    # States = States/np.amax(States)
+    if kwargs.get('threshold') is not None:
+        threshold = kwargs.get('threshold')
+    else:
+        threshold = 0.1
     
     # 计算KR和GR
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold)
+
+    CQ = KR - GR
     
-    return {'KR': KR, 'GR': GR}
+    return {'KR': KR, 'GR': GR, 'CQ': CQ}
 
 
-def evaluate_reservoir_performance(reservoir_params: ReservoirParams, config: MorphologyConfig, **kwargs):
+def evaluate_reservoir_metrics(reservoir_params: ReservoirParams, config: MorphologyConfig, **kwargs):
     """
     综合评估储层性能，包括MC、KR和GR
     
@@ -262,18 +290,23 @@ def evaluate_reservoir_performance(reservoir_params: ReservoirParams, config: Mo
     --------
     dict: {'MC': float, 'KR': float, 'GR': float, 'CQ': float}
     """
-    mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, **kwargs)
-    kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, **kwargs)
+
+    if kwargs.get('weights') is not None:
+        weights = kwargs.get('weights')
+    else:
+        weights = None
+
+    mc_dict = evaluate_heterogeneous_MC(reservoir_params, config, weights, **kwargs)
+    kgr_dict = evaluate_heterogeneous_KRandGR(reservoir_params, config, weights, **kwargs)
     
     # 合并结果
     results = {
         'MC': mc_dict.get('MC', 0.0),
         'KR': kgr_dict.get('KR', 0.0),
-        'GR': kgr_dict.get('GR', 0.0)
+        'GR': kgr_dict.get('GR', 0.0),
+        'CQ': kgr_dict.get('CQ', 0.0)
     }
     
-    # 计算CQ并保存到results中
-    results['CQ'] = results['KR'] - results['GR']
     
 
     return results 
