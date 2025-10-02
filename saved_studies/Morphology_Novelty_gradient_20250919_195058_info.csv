@@ -1,0 +1,2 @@
+study_name,directions,n_objectives,sampler_name,creation_time,n_trials,n_completed_trials
+Morphology_Novelty_gradient,['MAXIMIZE'],1,TPESampler,2025-09-19T19:50:58.283052,400,400
