@@ -253,12 +253,27 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
                          reservoir_params.m0, transforms, reservoir_params.params, fixed_mask=True, seed_mask=1234)
         outputs.append(output)
     States = np.stack(outputs, axis=0)
-    States = States/np.amax(States)
+    # rescale the stage by divide the maximum
+    # Normalized_States = States/np.amax(States)
+
+    # rescale the stage to the range of [-1,1]
+    # States_min = np.amin(States)
+    # States_max = np.amax(States)
+    # Normalized_States = 2 * (States - States_min) / (States_max - States_min) - 1
+    # rescale the stage to the range of [0,1]
+    # States_min = np.amin(States)
+    # States_max = np.amax(States)
+    # States = (States - States_min) / (States_max - States_min)
+
+
+    # without rescaling
+    Normalized_States = States
+
     if kwargs.get('threshold') is not None:
         threshold = kwargs.get('threshold')
     else:
-        threshold = 0.01
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold) 
+        threshold = 0.001
+    KR, GR = Evaluate_KR_GR(Normalized_States, Nreadouts, threshold=threshold) 
     
     CQ = KR - GR 
     return {'KR': KR, 'GR': GR, 'CQ': CQ}
@@ -598,10 +613,10 @@ if __name__ == "__main__":
     )
 
     all_results = {}
-    task_types = ['KRandGR']
+    task_types = ['MC', 'KRandGR', 'NARMA10', 'TI46']
 
-    m0_range = np.linspace(0.03,0.055, 10)
-    gamma_range = np.linspace(0.045, 0.053, 10)
+    m0_range = np.linspace(0.03,0.18, 10)
+    gamma_range = np.linspace(0.045, 0.1, 10)
     for task in task_types:
         print(f"\n>>> Running task: {task}")
         # Reset reservoir_params to initial state before each task
@@ -611,7 +626,7 @@ if __name__ == "__main__":
             param_grid={'m0': m0_range, 'gamma': gamma_range},
             reservoir_params=reservoir_params,
             extra_args={'nvirt_ti46': 150},
-            reservoir_tag='Res_m00.03-0.055_gamma0.045-0.053_KRandGR01'
+            reservoir_tag='Res_m00.03-0.18_gamma0.045-0.1_without'
         )
         all_results[task] = result
 

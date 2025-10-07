@@ -205,7 +205,7 @@ class ParetoPointEvaluator:
 
         # 评估KR和GR阈值
         print("  评估KR和GR阈值...")
-        kr_gr_result = evaluate_KRandGR(reservoir_params, threshold=0.1)
+        kr_gr_result = evaluate_KRandGR(reservoir_params, threshold=0.001)
         kr = kr_gr_result['KR']
         gr = kr_gr_result['GR']
         print(f"  KR: {kr}, GR: {gr}")
@@ -314,13 +314,13 @@ class ParetoPointEvaluator:
         output_dir.mkdir(exist_ok=True)
         
         # 保存为pickle文件（包含所有数据）
-        pickle_file = output_dir / f"{output_filename}.pkl"
+        pickle_file = output_dir / f"{output_filename}_normalized01.pkl"
         with open(pickle_file, 'wb') as f:
             pickle.dump(results, f)
         print(f"完整结果已保存至: {pickle_file}")
         
         # 保存为CSV文件（汇总数据）
-        csv_file = output_dir / f"{output_filename}.csv"
+        csv_file = output_dir / f"{output_filename}_normalized01.csv"
         summary_data = []
         for result in results:
             summary_data.append({
@@ -340,7 +340,7 @@ class ParetoPointEvaluator:
         print(f"汇总结果已保存至: {csv_file}")
         
         # 保存详细的NARMA-10数据（只保存有效数据）
-        narma_data_file = output_dir / f"{output_filename}_narma10_detailed.pkl"
+        narma_data_file = output_dir / f"{output_filename}_normalized01_narma10_detailed.pkl"
         narma_data = {}
         for result in results:
             # 只保存有NARMA-10结果的数据
@@ -383,6 +383,6 @@ def main(filename):
     
     
 if __name__ == "__main__":
-    main("CQ_MC_Pareto_SoftGate_Tri_20250906_203559_pareto.csv")
+    main("CQ_MC_Pareto_beta50_20250825_121711_pareto.csv")
 
 
