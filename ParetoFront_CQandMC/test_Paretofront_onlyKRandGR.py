@@ -1,8 +1,5 @@
 """
-test_Paretofront_differentnormalized.py
-======================================
-
-Load Pareto front parameter sets and evaluate KR/GR thresholds only.
+这个test的目的是从pareto前沿文件中提取参数,创建储层,遍历所有储层仅计算KR和GR
 """
 
 
