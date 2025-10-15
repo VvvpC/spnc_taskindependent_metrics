@@ -125,7 +125,7 @@ def spnc_narma10(Ntrain,Ntest,Nvirt,m0, bias,
     S_train, J_train = snr.transform(x_train,params)
     np.size(S_train)
     seed_training = kwargs.get('seed_training', 1234)
-    RR.Kfold_train(net,S_train,y_train,10, quiet = True, seed_training=seed_training)
+    RR.Kfold_train(net,S_train,y_train,10, quiet = False, seed_training=seed_training)
 
 
     # Testing

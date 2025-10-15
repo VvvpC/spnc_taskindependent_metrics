@@ -254,7 +254,7 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
         outputs.append(output)
     States = np.stack(outputs, axis=0)
     # rescale the stage by divide the maximum
-    # Normalized_States = States/np.amax(States)
+    Normalized_States = States/np.amax(States)
 
     # rescale the stage to the range of [-1,1]
     # States_min = np.amin(States)
@@ -267,7 +267,7 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
 
 
     # without rescaling
-    Normalized_States = States
+    # Normalized_States = States
 
     if kwargs.get('threshold') is not None:
         threshold = kwargs.get('threshold')
@@ -626,7 +626,7 @@ if __name__ == "__main__":
             param_grid={'m0': m0_range, 'gamma': gamma_range},
             reservoir_params=reservoir_params,
             extra_args={'nvirt_ti46': 150},
-            reservoir_tag='Res_m00.03-0.18_gamma0.045-0.1_without'
+            reservoir_tag='Res_m00.03-0.18_gamma0.045-0.1_max'
         )
         all_results[task] = result
 
