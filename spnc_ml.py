@@ -959,3 +959,110 @@ def spnc_TI46_test(speakers, Nvirt, m0, bias=True, res_transform = None, params 
 
 
     return accuracy_score(test_label, pred_labels)
+
+# 16/10/25 新增MNIST手写数字识别任务， by Chen
+
+from sklearn.datasets import make_circles, make_moons
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.decomposition import PCA, KernelPCA
+
+from datasets.load_mnist import load_mnist
+
+def spnc_MNIST(Nvirt, m0, bias=True, transform = None, params = None, *args, **kwargs):
+    compute = True
+
+    # 加载MNIST数据集
+    xr_train, l_train, xr_test, l_test = load_mnist()
+
+    # 设置PCA降维的组件数
+    Ncomp = 20
+    pca = PCA(n_components=Ncomp)
+
+    #划分和降维训练集
+    xr_train = xr_train[:5000]
+    x_train = pca.fit_transform(xr_train)
+
+    #反PCA还原训练集
+    f_train = pca.inverse_transform(x_train)
+
+    #量化相似度
+    R2 = 1 - (np.sum(np.square(xr_train - f_train))/np.sum(np.square(x_train)))
+    print(R2)
+
+    #设定Nin和Nout
+    Nin = x_train.shape[-1]
+    Nout = 10
+    Ntrain = len(x_train)
+
+    #均一化数据
+    scaler = MinMaxScaler()
+    u_train = scaler.fit_transform(x_train)
+
+    #生成 one-hot 训练标签
+    y_train = np.zeros((Ntrain, Nout))
+    for i in range(Ntrain):
+        y_train[i, l_train[i]] = 1.0
+
+    #创建储层
+    snr = single_node_reservoir(Nin, Nout, Nvirt, m0, res=transform)
+
+    fixed_mask = kwargs.get('fixed_mask', False)
+    if fixed_mask:
+        print("Deterministic mask will be used")
+        snr.M = fixed_seed_mask(Nin, Nvirt, m0)
+
+    S_train, J_train = snr.transform(u_train, params)
+
+    #均一化S_train
+    res_scaler = MinMaxScaler()
+    z_train = res_scaler.fit_transform(S_train)
+
+    #创建线性输出层
+    net = linear(Nin, Nout, bias=bias)
+
+    #使用ridge回归训练
+    RR.Kfold_train(net, z_train, y_train, 5, quiet=True)
+
+    #训练
+    pred = net.forward(z_train)
+    yp = np.argmax(pred, axis=1)
+
+    #打印分类报告
+    print(classification_report(l_train[:Ntrain], yp, digits=3))
+    conf_mat = confusion_matrix(l_train[:Ntrain], yp)
+
+    plt.imshow(conf_mat)
+    plt.show()
+
+    #测试
+    #创建测试集
+    Ntest = 1000
+    xr_test = xr_test[:Ntest]
+    x_test = pca.transform(xr_test)
+    u_test = scaler.transform(x_test)
+
+    #创建测试标签
+    y_test = np.zeros((Ntest, Nout))
+    for i in range(Ntest):
+        y_test[i, l_test[i]] = 1.0
+    
+    #储层转换数据
+    S_test, J_test = snr.transform(u_test, params)
+
+    #均一化S_test
+    z_test = res_scaler.transform(S_test)
+
+    #预测
+    pred = net.forward(z_test)
+    yp_test = np.argmax(pred, axis=1)
+
+    #打印分类报告
+    print(classification_report(l_test[:Ntest], yp_test, digits=3))
+    conf_mat_test = confusion_matrix(l_test[:Ntest], yp_test)
+    plt.imshow(conf_mat_test)
+    plt.show()
+    
+
+    
+

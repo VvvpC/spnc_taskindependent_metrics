@@ -203,11 +203,9 @@ class ParetoPointEvaluator:
         ti46_accuracy = ti46_result['acc']
         print(f"  TI46 Accuracy: {ti46_accuracy:.4f}")
 
-        # 评估KR和GR阈值
-        print("  评估KR和GR阈值...")
-        kr_gr_result = evaluate_KRandGR(reservoir_params, threshold=0.001)
-        kr = kr_gr_result['KR']
-        gr = kr_gr_result['GR']
+        # 跳过评估KR和GR
+        kr = 0
+        gr = 0
         print(f"  KR: {kr}, GR: {gr}")
         
         return TaskResults(
