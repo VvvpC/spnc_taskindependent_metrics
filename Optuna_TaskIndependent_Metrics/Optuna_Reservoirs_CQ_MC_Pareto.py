@@ -29,11 +29,11 @@ import matplotlib.cm as cm
 from typing import Dict, List, Tuple, Optional
 
 # 导入储层创造和评估模块
-from Reservoirs_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
-from Reservoirs_morphology_evaluation import (
+from Morphology_Research.Reservoirs_morphology_creator import MorphologyConfig, ReservoirMorphologyManager
+from Morphology_Research.Reservoirs_morphology_evaluation import (
     evaluate_heterogeneous_MC,
     evaluate_heterogeneous_KRandGR,
-    evaluate_reservoir_performance
+    evaluate_reservoir_performance,
 )
 from formal_Parameter_Dynamics_Preformance import ReservoirParams
 
