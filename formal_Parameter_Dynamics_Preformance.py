@@ -264,8 +264,6 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
     # States_min = np.amin(States)
     # States_max = np.amax(States)
     # States = (States - States_min) / (States_max - States_min)
-
-
     # without rescaling
     # Normalized_States = States
 
