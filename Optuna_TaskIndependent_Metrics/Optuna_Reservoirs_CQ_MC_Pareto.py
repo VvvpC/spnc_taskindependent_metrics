@@ -18,8 +18,18 @@ Date: 2025-01-XX
 
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+from pathlib import Path
 
+repo_root = Path(__file__).resolve().parents[1]
+repo_root_str = str(repo_root)
+if repo_root_str not in sys.path:
+    sys.path.insert(0, repo_root_str)
+
+# Ensure the current module directory remains on the path for local relative imports
+module_dir = repo_root / "Optuna_TaskIndependent_Metrics"
+module_dir_str = str(module_dir)
+if module_dir_str not in sys.path:
+    sys.path.insert(0, module_dir_str)
 from contextlib import suppress
 import optuna
 from optuna.samplers import GPSampler
@@ -33,7 +43,6 @@ from Morphology_Research.Reservoirs_morphology_creator import MorphologyConfig, 
 from Morphology_Research.Reservoirs_morphology_evaluation import (
     evaluate_heterogeneous_MC,
     evaluate_heterogeneous_KRandGR,
-    evaluate_reservoir_performance,
 )
 from formal_Parameter_Dynamics_Preformance import ReservoirParams
 
