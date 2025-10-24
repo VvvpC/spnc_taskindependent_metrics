@@ -304,4 +304,4 @@ def main(filename: str) -> None:
 
 
 if __name__ == "__main__":
-    main("CQ_MC_Pareto_beta50_theta02_maxth0001_20251011_231442_pareto copy.csv")
+    main("CQ_MC_Pareto_beta50_20250825_121711_dominatedpoints.csv")

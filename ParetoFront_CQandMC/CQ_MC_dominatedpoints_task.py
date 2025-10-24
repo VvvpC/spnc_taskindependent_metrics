@@ -222,10 +222,10 @@ def evaluate_nearpareto_with_existing_evaluator(
 
 if __name__ == "__main__":
     out_df, out_path = select_trials_near_pareto(
-        trials_csv="CQ_MC_Pareto_beta50_01_20251009_104203_trials.csv",
-        pareto_csv="CQ_MC_Pareto_beta50_01_20251009_104203_pareto.csv",
-        out_csv="CQ_MC_Pareto_beta50_01_20251009_104203_nearpareto_2.csv",
-        n_select=30,
+        trials_csv="CQ_MC_Pareto_beta50_20250825_121711_trials.csv",
+        pareto_csv="CQ_MC_Pareto_beta50_20250825_121711_pareto.csv",
+        out_csv="CQ_MC_Pareto_beta50_20250825_121711_dominatedpoints.csv",
+        n_select=40,
         distance_scale="iqr",
         temperature=None,
         hard_quantile=0.95,

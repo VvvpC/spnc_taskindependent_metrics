@@ -312,13 +312,13 @@ class ParetoPointEvaluator:
         output_dir.mkdir(exist_ok=True)
         
         # 保存为pickle文件（包含所有数据）
-        pickle_file = output_dir / f"{output_filename}_normalized01.pkl"
+        pickle_file = output_dir / f"{output_filename}.pkl"
         with open(pickle_file, 'wb') as f:
             pickle.dump(results, f)
         print(f"完整结果已保存至: {pickle_file}")
         
         # 保存为CSV文件（汇总数据）
-        csv_file = output_dir / f"{output_filename}_normalized01.csv"
+        csv_file = output_dir / f"{output_filename}.csv"
         summary_data = []
         for result in results:
             summary_data.append({
@@ -338,7 +338,7 @@ class ParetoPointEvaluator:
         print(f"汇总结果已保存至: {csv_file}")
         
         # 保存详细的NARMA-10数据（只保存有效数据）
-        narma_data_file = output_dir / f"{output_filename}_normalized01_narma10_detailed.pkl"
+        narma_data_file = output_dir / f"{output_filename}_narma10_detailed.pkl"
         narma_data = {}
         for result in results:
             # 只保存有NARMA-10结果的数据
