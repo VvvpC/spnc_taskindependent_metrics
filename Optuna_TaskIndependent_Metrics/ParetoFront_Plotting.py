@@ -17,6 +17,9 @@ import os
 from scipy.spatial.distance import cdist
 from typing import List, Tuple, Optional, Union, Dict
 import warnings
+
+import plot_style_config
+
 warnings.filterwarnings('ignore')
 
 class ParetoFrontPlotter:
@@ -36,6 +39,8 @@ class ParetoFrontPlotter:
         self.pareto_front_df = None
         self.all_trials_df = None
         self.loaded_files = {}  # Track loaded files for multi-file support
+
+        plot_style_config.set_pub_style()
     
     def list_available_files(self, pattern: str = "*.csv") -> List[Path]:
         """
@@ -299,7 +304,8 @@ class ParetoFrontPlotter:
                 self.list_available_files()
                 raise FileNotFoundError("No suitable Pareto files found. Please use load_data_by_filename() to specify files explicitly.")
     
-    def find_near_pareto_points(self, distance_threshold: float = 0.5, 
+    def find_near_pareto_points(self, min_distance_threshold: float = 0.5, 
+                               max_distance_threshold: float = 100,
                                max_points: int = 50) -> pd.DataFrame:
         """
         Find points from all trials that are close to the Pareto front.
@@ -333,13 +339,17 @@ class ParetoFrontPlotter:
         # Calculate minimum distance from each point to the Pareto front
         distances = cdist(all_normalized, pareto_normalized, metric='euclidean')
         min_distances = np.min(distances, axis=1)
+
+        print(f"min_distances: {min_distances}")
+        print(f"self.all_trials_df['number']: {self.all_trials_df['number']}")
+
         
         # Find points within distance threshold, excluding Pareto front points
         pareto_numbers = set(self.pareto_front_df['number'].values)
         near_indices = []
         
         for i, (distance, trial_number) in enumerate(zip(min_distances, self.all_trials_df['number'])):
-            if distance <= distance_threshold and trial_number not in pareto_numbers:
+            if distance <= max_distance_threshold and distance >= min_distance_threshold and trial_number not in pareto_numbers:
                 near_indices.append(i)
         
         # Sort by distance and limit to max_points
@@ -347,8 +357,11 @@ class ParetoFrontPlotter:
         
         return self.all_trials_df.iloc[near_indices].copy()
     
-    def plot_pareto_front_2d(self, figsize: Tuple[int, int] = (8, 5),
-                            distance_threshold: float = 0.5,
+
+    
+    def plot_pareto_front_2d(self, figsize: Optional[Tuple[float, float]] = None,
+                            min_distance_threshold: float = 0.5,
+                            max_distance_threshold: float = 100,
                             max_near_points: int = 50,
                             save_path: Optional[str] = None,
                             title_suffix: str = "") -> plt.Figure:
@@ -369,63 +382,35 @@ class ParetoFrontPlotter:
             raise ValueError("Data not loaded. Call load_data_by_filename() first.")
         
         # Find near-Pareto points
-        near_pareto_df = self.find_near_pareto_points(distance_threshold, max_near_points)
+        near_pareto_df = self.find_near_pareto_points(min_distance_threshold, max_distance_threshold, max_near_points)
+        # randomly select n_points from the Pareto front
+        # near_pareto_df = self.sample_random_trials(n_points=30)
         
+        
+        fig_size = plot_style_config.get_figsize('single', plot_style_config.RATIO_GOLDEN)
+
         # Create the plot
-        fig, ax = plt.subplots(figsize=figsize)
-        
-        # Plot all trials as background points
-        # ax.scatter(self.all_trials_df['CQ'], self.all_trials_df['MC'], 
-        #           alpha=0.3, s=20, c='lightgray', label=f'All Trials (n={len(self.all_trials_df)})')
+        fig, ax = plt.subplots(figsize=fig_size)
+
+        # Get style params
+        ms = plot_style_config.STYLE_PARAMS['markersize']
+        colors = plot_style_config.STYLE_PARAMS['color_cycle']
+
         
         # Plot near-Pareto points
         if len(near_pareto_df) > 0:
             ax.scatter(near_pareto_df['CQ'], near_pareto_df['MC'], 
-                      alpha=0.5, s=40, c='blue', label=f'Dominated Points')
+                      alpha=0.6, s=ms**2 * 2, c=colors[0], label='Dominated Points',
+                      edgecolors='none')
         
-        # Plot Pareto front
-        pareto_sorted = self.pareto_front_df.sort_values('CQ')
-        # ax.plot(pareto_sorted['CQ'], pareto_sorted['MC'], 
-        #        'r-', linewidth=2, alpha=0.7, label='Pareto Front Connection')
         ax.scatter(self.pareto_front_df['CQ'], self.pareto_front_df['MC'], 
-                  s=400, c='green', linewidth=1, 
-                  marker='*', label=f'Pareto Front', zorder=5)
+                  s=ms**2 * 7, c=colors[2], 
+                  marker='*', label='Pareto Front', zorder=5,
+                  linewidth=0.5, edgecolor='black')
         
-        # Annotate Pareto front points with their trial numbers
-        # for _, row in self.pareto_front_df.iterrows():
-        #     # 为了尽量避免重叠，采用交错的xytext偏移和对齐方式
-        #     idx = list(self.pareto_front_df.index).index(row.name)
-        #     # 交错偏移和对齐
-        #     offset_options = [
-        #         ((8, 8), 'left', 'bottom'),
-        #         ((-8, 8), 'right', 'bottom'),
-        #         ((8, -8), 'left', 'top'),
-        #         ((-8, -8), 'right', 'top'),
-        #         ((0, 15), 'center', 'bottom'),
-        #         ((0, -15), 'center', 'top'),
-        #     ]
-        #     offset, ha, va = offset_options[idx % len(offset_options)]
-        #     ax.annotate(
-        #         f'{row["CQ"]:.0f}, {row["MC"]:.2f}',
-        #         (row['CQ'], row['MC']),
-        #         xytext=offset, textcoords='offset points',
-        #         fontsize=10, alpha=0.95, fontweight='bold', color='darkgreen',
-        #         ha=ha, va=va,
-        #         bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="green", lw=0.8, alpha=0.7)
-        #     )
-        
-        # Formatting
-        ax.set_xlabel('Computational Quality (CQ)', fontsize=16)
-        ax.set_ylabel('Memory Capacity (MC)', fontsize=16)
-        # xiufu
-        # The original line is incorrect usage of set_ticklabels and 'xlabel' is undefined.
-        # If the intent is to set tick label font size, use tick_params:
-        ax.tick_params(axis='both', labelsize=14)
-
-        
-        
-        
-        ax.grid(True, alpha=0.3)
+        # Formatting (Fonts handled by set_pub_style)
+        ax.set_xlabel('Computational Quality (CQ)')
+        ax.set_ylabel('Memory Capacity (MC)')
         ax.legend(loc='best')
         
         # Add file info and distance threshold to the plot
@@ -435,7 +420,7 @@ class ParetoFrontPlotter:
         # Auto-generate save_path based on loaded pareto filename if not provided
         if save_path is None and 'pareto' in self.loaded_files:
             pareto_filename = self.loaded_files['pareto']
-            save_path = pareto_filename.replace('.csv', '.png')
+            save_path = pareto_filename.replace('.csv', '.svg')
             print(f"Auto-generated save path: {save_path}")
         
         if save_path:
@@ -511,14 +496,15 @@ def main():
     # Load specific files (modify these names according to your files)
     try:
         plotter.load_data_by_filename(
-            pareto_filename="CQ_MC_Pareto_SoftGate_th01_beta50_20250905_123602_pareto.csv",  # Replace with your file
-            all_trials_filename="CQ_MC_Pareto_SoftGate_th01_beta50_20250905_123602_trials.csv"  # Optional
+            pareto_filename="CQ_MC_Paretofront_beta50_theta02_01_thr0.003_1_20251027_091941_pareto.csv",  # Replace with your file
+            all_trials_filename="CQ_MC_Paretofront_beta50_theta02_01_thr0.003_1_20251027_091941_trials.csv"  # Optional
         )
         
         # Create 2D plot (save_path will be auto-generated from pareto filename)
         fig1 = plotter.plot_pareto_front_2d(
-            distance_threshold=0.3,
-            max_near_points=30,
+            min_distance_threshold=0.03,
+            max_distance_threshold=0.2,
+            max_near_points=100,
             # save_path will be auto-generated as: CQ_MC_Pareto_SoftGate_th01_beta50_20250905_123602_pareto.png
             title_suffix="Specific File Load"
         )
@@ -531,7 +517,7 @@ def main():
         # Fallback to automatic detection
         plotter.load_data()
         fig1 = plotter.plot_pareto_front_2d(
-            distance_threshold=0.3,
+            distance_threshold=10,
             max_near_points=30
             # save_path will be auto-generated from detected pareto filename
         )

@@ -381,6 +381,6 @@ def main(filename):
     
     
 if __name__ == "__main__":
-    main("CQ_MC_Pareto_beta50_20250825_121711_pareto.csv")
+    main("CQ_MC_Paretofront_beta50_theta02_01_thr0.003_1_20251027_091941_pareto.csv")
 
 

@@ -254,24 +254,24 @@ def evaluate_KRandGR(reservoir_params, Nreadouts=50, Nwash=10, **kwargs):
         outputs.append(output)
     States = np.stack(outputs, axis=0)
     # rescale the stage by divide the maximum
-    Normalized_States = States/np.amax(States)
+    # Normalized_States = States/np.amax(States)
 
     # rescale the stage to the range of [-1,1]
     # States_min = np.amin(States)
     # States_max = np.amax(States)
     # Normalized_States = 2 * (States - States_min) / (States_max - States_min) - 1
     # rescale the stage to the range of [0,1]
-    # States_min = np.amin(States)
-    # States_max = np.amax(States)
-    # States = (States - States_min) / (States_max - States_min)
+    States_min = np.amin(States)
+    States_max = np.amax(States)
+    States = (States - States_min) / (States_max - States_min)
     # without rescaling
     # Normalized_States = States
 
     if kwargs.get('threshold') is not None:
         threshold = kwargs.get('threshold')
     else:
-        threshold = 0.001
-    KR, GR = Evaluate_KR_GR(Normalized_States, Nreadouts, threshold=threshold) 
+        threshold = 0.003
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold) 
     
     CQ = KR - GR 
     return {'KR': KR, 'GR': GR, 'CQ': CQ}
@@ -613,8 +613,8 @@ if __name__ == "__main__":
     all_results = {}
     task_types = ['MC', 'KRandGR', 'NARMA10', 'TI46']
 
-    m0_range = np.linspace(0.03,0.18, 10)
-    gamma_range = np.linspace(0.045, 0.1, 10)
+    m0_range = np.linspace(0.001,0.008, 10)
+    gamma_range = np.linspace(0.01, 0.1, 10)
     for task in task_types:
         print(f"\n>>> Running task: {task}")
         # Reset reservoir_params to initial state before each task
@@ -624,7 +624,7 @@ if __name__ == "__main__":
             param_grid={'m0': m0_range, 'gamma': gamma_range},
             reservoir_params=reservoir_params,
             extra_args={'nvirt_ti46': 150},
-            reservoir_tag='Res_m00.03-0.18_gamma0.045-0.1_max'
+            reservoir_tag='Res_m00.001-0.008_gamma0.01-0.1_01_thr0.003'
         )
         all_results[task] = result
 
