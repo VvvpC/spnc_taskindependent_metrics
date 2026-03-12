@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "study_id": "uniform_vs_heterogeneous_tims_frontier_real_smoke_v1",
+  "run_id": "real_smoke_test_20260311",
+  "status": "completed",
+  "lifecycle": {
+    "created_at_utc": "2026-03-11T22:20:55Z",
+    "updated_at_utc": "2026-03-11T22:24:40Z",
+    "started_at_utc": "2026-03-11T22:20:55Z",
+    "finished_at_utc": "2026-03-11T22:24:40Z"
+  },
+  "resolved_config_path": "results/raw/uniform_vs_heterogeneous_tims_frontier_real_smoke_v1/real_smoke_test_20260311/resolved_config.yaml",
+  "source_config_path": "C:/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/real_smoke.yaml",
+  "config_schema_version": "0.3.1",
+  "resolved_config_schema_version": "1.0",
+  "result_schema_version": "1.0",
+  "specification_ref": "reports/specifications/tims_frontier_specification.md",
+  "execution_state": {
+    "current_stage": "completed",
+    "resume_supported": true,
+    "last_persisted_trial_id": "heterogeneous_trial_0001",
+    "last_persisted_at_utc": "2026-03-11T22:24:40Z"
+  },
+  "family_states": {
+    "uniform": {
+      "status": "completed",
+      "family_role": "baseline",
+      "optuna_study_name": "uniform_mc_cq_study",
+      "target_trials": 1,
+      "attempted_trials": 1,
+      "completed_trials": 1,
+      "failed_trials": 0,
+      "pruned_trials": 0,
+      "next_family_trial_index": 2,
+      "last_optuna_trial_number": 0,
+      "frontier_extracted": true,
+      "enabled": true
+    },
+    "heterogeneous": {
+      "status": "completed",
+      "family_role": "candidate",
+      "optuna_study_name": "heterogeneous_mc_cq_study",
+      "target_trials": 1,
+      "attempted_trials": 1,
+      "completed_trials": 1,
+      "failed_trials": 0,
+      "pruned_trials": 0,
+      "next_family_trial_index": 2,
+      "last_optuna_trial_number": 0,
+      "frontier_extracted": true,
+      "enabled": true
+    }
+  },
+  "artifacts": {
+    "run_root": "results/raw/uniform_vs_heterogeneous_tims_frontier_real_smoke_v1/real_smoke_test_20260311",
+    "trial_results_table": "results/raw/uniform_vs_heterogeneous_tims_frontier_real_smoke_v1/real_smoke_test_20260311/trial_results_table.csv",
+    "failure_log": "results/raw/uniform_vs_heterogeneous_tims_frontier_real_smoke_v1/real_smoke_test_20260311/failure_log.jsonl",
+    "run_summary": "results/raw/uniform_vs_heterogeneous_tims_frontier_real_smoke_v1/real_smoke_test_20260311/run_summary.json",
+    "frontier_points_table": "results/processed/uniform_vs_heterogeneous_tims_frontier_real_smoke_v1/frontier_points_table.csv",
+    "logs_dir": "results/raw/uniform_vs_heterogeneous_tims_frontier_real_smoke_v1/real_smoke_test_20260311/logs"
+  },
+  "checkpoints": {
+    "trial_table_last_flush_utc": "2026-03-11T22:24:40Z",
+    "failure_log_last_flush_utc": null,
+    "analysis_started": true,
+    "analysis_completed": true,
+    "reporting_completed": true
+  },
+  "latest_error": null,
+  "notes": []
+}

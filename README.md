@@ -29,6 +29,31 @@ This is code for the SPNC project!
     ``` python plotting/APL_2021/reservoir_response.py ```
 - This might need updating in legacy files (before this snippet was added in GIT)
 
+## Repository layout
+- `configs/`: experiment and environment configuration files
+- `src/`: reusable Python source modules, legacy evaluators, morphology research code, and optimization utilities
+- `scripts/`: execution entrypoints and notebook storage
+- `results/raw/`: raw experiment outputs, task scans, saved studies, plot data, and archived legacy results
+- `results/processed/`: processed Pareto tables and all-task summaries
+- `reports/`: project notes and moved markdown reports
+
+### Common paths
+- Optuna config: `configs/spnc_optuna.yml`
+- Formal environment config: `configs/[formal]SPNC.yml`
+- Saved studies: `results/raw/saved_studies/`
+- Task scan outputs: `results/raw/task_scans/`
+- Legacy raw outputs: `results/raw/legacy_results/`
+- Pareto post-processing outputs: `results/processed/pareto_front_cq_mc/`
+- All-task Pareto outputs: `results/processed/pareto_all_tasks/`
+
+### Working with the `src/` layout
+- Root-level Python modules have been moved under `src/`.
+- When running from PowerShell, use:
+  ```powershell
+  .\scripts\codex_python.ps1 -c "import spnc; print('ok')"
+  ```
+- `sitecustomize.py` also injects the main `src/` directories into `sys.path` when Python starts from the repo root.
+
 ## Jupyter notebooks
 - jupytext has been used to store python notebooks as text files for better version control.
 - Matching .ipynb files may exist and if so should update the text files when saved or committed

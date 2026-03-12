@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "study_id": "uniform_vs_heterogeneous_tims_frontier_smoke",
+  "run_id": "run_20260311_221202",
+  "status": "completed",
+  "lifecycle": {
+    "created_at_utc": "2026-03-11T22:12:02Z",
+    "updated_at_utc": "2026-03-11T22:12:02Z",
+    "started_at_utc": "2026-03-11T22:12:02Z",
+    "finished_at_utc": "2026-03-11T22:12:02Z"
+  },
+  "resolved_config_path": "$tmpRoot/results/raw/uniform_vs_heterogeneous_tims_frontier_smoke/run_20260311_221202/resolved_config.yaml",
+  "source_config_path": "C:/Users/Chen/AppData/Local/Temp/tims_frontier_cli_smoke_1c525abd2e294da88e03dc7fecc91c07/study.yaml",
+  "config_schema_version": "0.3.1",
+  "resolved_config_schema_version": "1.0",
+  "result_schema_version": "1.0",
+  "specification_ref": "reports/specifications/tims_frontier_specification.md",
+  "execution_state": {
+    "current_stage": "completed",
+    "resume_supported": true,
+    "last_persisted_trial_id": null,
+    "last_persisted_at_utc": null
+  },
+  "family_states": {
+    "uniform": {
+      "status": "pending",
+      "family_role": "baseline",
+      "optuna_study_name": "uniform_mc_cq_study",
+      "target_trials": 0,
+      "attempted_trials": 0,
+      "completed_trials": 0,
+      "failed_trials": 0,
+      "pruned_trials": 0,
+      "next_family_trial_index": 1,
+      "last_optuna_trial_number": null,
+      "frontier_extracted": true,
+      "enabled": true
+    },
+    "heterogeneous": {
+      "status": "pending",
+      "family_role": "candidate",
+      "optuna_study_name": "heterogeneous_mc_cq_study",
+      "target_trials": 0,
+      "attempted_trials": 0,
+      "completed_trials": 0,
+      "failed_trials": 0,
+      "pruned_trials": 0,
+      "next_family_trial_index": 1,
+      "last_optuna_trial_number": null,
+      "frontier_extracted": true,
+      "enabled": true
+    }
+  },
+  "artifacts": {
+    "run_root": "$tmpRoot/results/raw/uniform_vs_heterogeneous_tims_frontier_smoke/run_20260311_221202",
+    "trial_results_table": "$tmpRoot/results/raw/uniform_vs_heterogeneous_tims_frontier_smoke/run_20260311_221202/trial_results_table.csv",
+    "failure_log": "$tmpRoot/results/raw/uniform_vs_heterogeneous_tims_frontier_smoke/run_20260311_221202/failure_log.jsonl",
+    "run_summary": "$tmpRoot/results/raw/uniform_vs_heterogeneous_tims_frontier_smoke/run_20260311_221202/run_summary.json",
+    "frontier_points_table": "$tmpRoot/results/processed/uniform_vs_heterogeneous_tims_frontier_smoke/frontier_points_table.csv",
+    "logs_dir": "$tmpRoot/results/raw/uniform_vs_heterogeneous_tims_frontier_smoke/run_20260311_221202/logs"
+  },
+  "checkpoints": {
+    "trial_table_last_flush_utc": null,
+    "failure_log_last_flush_utc": null,
+    "analysis_started": true,
+    "analysis_completed": true,
+    "reporting_completed": true
+  },
+  "latest_error": null,
+  "notes": []
+}

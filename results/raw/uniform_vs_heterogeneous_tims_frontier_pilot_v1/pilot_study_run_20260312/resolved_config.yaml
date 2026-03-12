@@ -1,0 +1,298 @@
+schema_version: '1.0'
+source_config_schema_version: 0.3.1
+source_config_path: C:/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/pilot_study.yaml
+specification_ref:
+  spec_id: tims_frontier_specification
+  spec_path: reports/specifications/tims_frontier_specification.md
+result_schema_ref:
+  schema_id: tims_frontier_result_schema
+  schema_version: '1.0'
+  schema_path: reports/schemas/tims_frontier_result_schema.md
+run:
+  run_id: pilot_study_run_20260312
+  created_at_utc: '2026-03-12T12:22:24Z'
+  config_digest: sha256:69def7d3d9d2f1d52d34ccef322b83046e8b5b60be43aa98ac2fe36bf9406433
+  mode: study_run
+  status_at_creation: created
+study:
+  study_id: uniform_vs_heterogeneous_tims_frontier_pilot_v1
+  title: Uniform vs Heterogeneous TIMs Frontier Pilot Study
+  phase: phase1_tims_frontier
+  objective: compare_family_level_mc_cq_frontier
+  description: Research-grade pilot study using real builder and TIM evaluators.
+  tags:
+  - TIMs
+  - frontier
+  - pilot-study
+  - real-evaluator
+comparison:
+  compared_families:
+  - uniform
+  - heterogeneous
+  baseline_family: uniform
+  candidate_family: heterogeneous
+  primary_endpoint:
+    kind: pareto_frontier_difference
+    frontier_objectives:
+    - MC
+    - CQ
+    directions:
+      MC: maximize
+      CQ: maximize
+    output_artifact: frontier_points_table
+  secondary_endpoints:
+  - KR_summary
+  - GR_summary
+  fairness_protocol:
+    shared_non_geometric_search: true
+    shared_trial_budget: true
+    shared_exploration_strategy: true
+    shared_evaluators: true
+    shared_trial_seed_rule: true
+    geometry_match_required: false
+reservoir:
+  backend:
+    uniform_builder: legacy_uniform_spnc
+    heterogeneous_builder: legacy_morphology_reservoir
+  shared_defaults:
+    physical:
+      h: 0.4
+      theta_H: 90
+      k_s_0: 0
+      phi: 45
+    network:
+      bias: true
+      Nwarmup: 0
+      Nvirt: 100
+    simulation:
+      delay_feedback: 0
+      voltage_noise: false
+      johnson_noise: false
+      thermal_noise: false
+    mask:
+      fixed_mask: true
+      seed_mask_mode: derived_from_trial_seed
+      max_sequences_mask: false
+  bindings:
+    reference_beta_param: beta_prime
+families:
+  uniform:
+    enabled: true
+    family_kind: uniform
+    label: Uniform reservoir family
+    resolved_construction:
+      geometry_mode: uniform
+      parameters: {}
+  heterogeneous:
+    enabled: true
+    family_kind: heterogeneous
+    label: Heterogeneous reservoir family
+    resolved_construction:
+      geometry_mode: distributional_beta
+      morphology:
+        scheme: random
+        reference_beta_param: beta_prime
+        n_instances: 3
+        beta_spread: 3.0
+        beta_sampling_rule: uniform_in_reference_plus_minus_spread
+        clip_beta_to_positive: true
+        weights_mode: equal
+        morphology_seed_mode: derived_from_trial_seed
+evaluation:
+  tims:
+    recorded_metrics:
+    - MC
+    - KR
+    - GR
+    - CQ
+    primary_metrics:
+    - MC
+    - CQ
+    secondary_metrics:
+    - KR
+    - GR
+    metric_directions:
+      MC: maximize
+      KR: maximize
+      GR: minimize
+      CQ: maximize
+    mc:
+      signal_len: 120
+      delays: 10
+      splits:
+      - 0.2
+      - 0.6
+      signal_seed_mode: derived_from_trial_seed
+    kr_gr:
+      n_wash: 5
+      threshold: 0.001
+      signal_seed_mode: derived_from_trial_seed
+      state_normalization: divide_by_max
+      n_readouts_from: Nvirt
+      n_readouts_value: 100
+    cq:
+      mode: derived
+      formula: KR_minus_GR
+      expression: CQ = KR - GR
+      source_metrics:
+      - KR
+      - GR
+      store_as_explicit_metric: true
+  tasks:
+    enabled: false
+exploration:
+  method: optuna
+  study_mode: per_family_independent_studies
+  optuna:
+    sampler: NSGAIISampler
+    sampler_seed: 1234
+    pruner: null
+    n_trials_per_family: 50
+    n_startup_trials: 10
+    study_direction_mode: multi_objective
+    objective_metrics:
+    - MC
+    - CQ
+    objective_directions:
+      MC: maximize
+      CQ: maximize
+  coupling:
+    shared_trial_seed_rule: true
+    identical_trial_suggestions_across_families: false
+  budget:
+    equal_budget_across_families: true
+    max_failures_per_family: 20
+    timeout_seconds: null
+  search_space:
+    beta_prime:
+      type: float
+      low: 27.0
+      high: 33.0
+    theta:
+      type: float
+      low: 0.12
+      high: 0.28
+    gamma:
+      type: float
+      low: 0.03
+      high: 0.09
+    m0:
+      type: float
+      low: 0.006
+      high: 0.018
+    Nvirt:
+      type: fixed
+      value: 100
+execution:
+  run_id_mode: auto
+  seed_policy:
+    global_seed: 1234
+    trial_seed_mode: deterministic_from_trial_index
+    matched_trial_seed_across_families: true
+    derived_seed_targets:
+    - input_signal
+    - mask
+    - morphology
+  parallelism:
+    max_workers: 1
+  retry:
+    max_attempts_per_trial: 1
+    retry_on_exception: true
+  resume:
+    enabled: true
+    resume_mode: from_manifest
+  failure_policy:
+    on_trial_failure: record_and_continue
+  logging:
+    level: INFO
+    capture_stdout: true
+    save_trial_logs: true
+storage:
+  root_dir: results
+  raw_dir: results/raw
+  processed_dir: results/processed
+  report_dir: reports
+  path_templates:
+    study_root: results/raw/{study_id}
+    run_root: results/raw/{study_id}/{run_id}
+    processed_study_root: results/processed/{study_id}
+  save:
+    user_config_copy: true
+    resolved_config: true
+    trial_results_table_csv: true
+    frontier_points_table_csv: true
+    optuna_study_summary_json: true
+    failure_log_json: true
+    runtime_metadata_json: true
+    intermediate_states_npz: false
+    figures: false
+  formats:
+    table: csv
+    metadata: json
+    arrays: npz
+    figures: png
+  provenance:
+    record_git_commit: true
+    record_git_branch: true
+    record_hostname: true
+    record_python_version: true
+  paths:
+    study_root: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1
+    run_root: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1/pilot_study_run_20260312
+    processed_study_root: results/processed/uniform_vs_heterogeneous_tims_frontier_pilot_v1
+    resolved_config_path: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1/pilot_study_run_20260312/resolved_config.yaml
+    trial_results_table_path: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1/pilot_study_run_20260312/trial_results_table.csv
+    failure_log_path: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1/pilot_study_run_20260312/failure_log.jsonl
+    run_summary_path: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1/pilot_study_run_20260312/run_summary.json
+    run_manifest_path: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1/pilot_study_run_20260312/run_manifest.json
+    frontier_points_table_path: results/processed/uniform_vs_heterogeneous_tims_frontier_pilot_v1/frontier_points_table.csv
+    logs_dir: results/raw/uniform_vs_heterogeneous_tims_frontier_pilot_v1/pilot_study_run_20260312/logs
+analysis:
+  primary_output: frontier_points_table
+  frontier:
+    source_table: trial_results
+    algorithm: pareto_nondominated
+    dominance_epsilon: 0.0
+    deduplicate_points: true
+    deduplicate_tolerance: 1.0e-12
+    metrics:
+    - MC
+    - CQ
+    directions:
+      MC: maximize
+      CQ: maximize
+  comparison:
+    baseline_family: uniform
+    candidate_family: heterogeneous
+    compute_frontier_difference: true
+    compute_nondominated_overlap: true
+    compute_point_cloud_summary: true
+  secondary_metric_summaries:
+    enabled: true
+    metrics:
+      KR: maximize
+      GR: minimize
+reporting:
+  language: zh-CN
+  outputs:
+    markdown_summary: true
+    json_summary: true
+    figure_manifest: true
+    frontier_points_table: true
+  figures:
+    generate_primary_frontier_plot: false
+    primary_projection:
+    - MC
+    - CQ
+    generate_secondary_metric_plots: false
+  include:
+    study_metadata: true
+    comparison_protocol: true
+    key_findings: true
+    failure_summary: true
+    caveats: true
+source_trace:
+  exploration.optuna.objectives_resolved_from: comparison.primary_endpoint
+  analysis.frontier_resolved_from: comparison.primary_endpoint
+  reservoir.shared_defaults.network.Nvirt_resolved_from: exploration.search_space.Nvirt
+  families.heterogeneous.resolved_construction.morphology.reference_beta_param_resolved_from: exploration.search_space.beta_prime
