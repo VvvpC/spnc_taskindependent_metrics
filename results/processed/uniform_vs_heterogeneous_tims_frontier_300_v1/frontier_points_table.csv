@@ -1,0 +1,1 @@
+result_schema_version,study_id,run_id,frontier_point_id,frontier_scope,endpoint_ref,family,family_role,source_trial_id,source_optuna_trial_number,MC,CQ,KR,GR,beta_prime,theta,gamma,m0,Nvirt,geometry_mode,morphology_scheme,morphology_n_instances,morphology_beta_spread,morphology_weights_mode,pareto_rank,duplicate_count,frontier_algorithm,dominance_epsilon,generated_at_utc

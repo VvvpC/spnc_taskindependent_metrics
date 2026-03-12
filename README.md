@@ -54,6 +54,16 @@ This is code for the SPNC project!
   ```
 - `sitecustomize.py` also injects the main `src/` directories into `sys.path` when Python starts from the repo root.
 
+### VS Code direct-run workflow
+- The repo now includes a zero-argument study runner for the fixed-geometry TIMs comparison:
+  - `scripts/run_fixed_geometry_tims_study.py`
+- The study config it uses is:
+  - `configs/tims_frontier/fixed_geometry_beta20.yaml`
+- A portable VS Code launch configuration is provided in:
+  - `.vscode/launch.json`
+- On another computer, open the repo root in VS Code, select the correct Python environment, then launch:
+  - `TIMs Fixed Geometry Study`
+
 ## Jupyter notebooks
 - jupytext has been used to store python notebooks as text files for better version control.
 - Matching .ipynb files may exist and if so should update the text files when saved or committed

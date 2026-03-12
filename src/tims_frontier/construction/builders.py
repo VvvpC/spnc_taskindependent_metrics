@@ -87,6 +87,9 @@ def build_trial_spec(
         n_instances = int(morph["n_instances"])
         weights_mode = morph["weights_mode"]
         weights = [1.0 / n_instances] * n_instances if weights_mode == "equal" else []
+        morphology_seed = morph.get("morphology_seed_value")
+        if morphology_seed is None and morph.get("morphology_seed_mode") == "derived_from_trial_seed":
+            morphology_seed = seed_bundle.get("morphology_seed")
         morphology = MorphologySpec(
             geometry_mode=resolved_construction["geometry_mode"],
             scheme=morph["scheme"],
@@ -96,7 +99,7 @@ def build_trial_spec(
             beta_sampling_rule=morph["beta_sampling_rule"],
             clip_beta_to_positive=bool(morph["clip_beta_to_positive"]),
             weights_mode=weights_mode,
-            morphology_seed=seed_bundle.get("morphology_seed"),
+            morphology_seed=morphology_seed,
         )
 
     return TrialBuildSpec(

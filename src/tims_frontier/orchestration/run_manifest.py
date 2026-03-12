@@ -25,13 +25,14 @@ def create_run_manifest(resolved_config: Mapping[str, Any]) -> dict[str, Any]:
     exploration = resolved_config["exploration"]
     target_trials = int(exploration["optuna"]["n_trials_per_family"])
     baseline_family = resolved_config["comparison"]["baseline_family"]
+    study_suffix = f"{exploration['method']}_study"
 
     family_states: dict[str, Any] = {}
     for family_name, family_cfg in resolved_config["families"].items():
         family_states[family_name] = {
             "status": "pending",
             "family_role": "baseline" if family_name == baseline_family else "candidate",
-            "optuna_study_name": f"{family_name}_mc_cq_study",
+            "optuna_study_name": f"{family_name}_{study_suffix}",
             "target_trials": target_trials,
             "attempted_trials": 0,
             "completed_trials": 0,

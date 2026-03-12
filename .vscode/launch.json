@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TIMs Fixed Geometry Study",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run_fixed_geometry_tims_study.py",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "justMyCode": false
+    }
+  ]
+}

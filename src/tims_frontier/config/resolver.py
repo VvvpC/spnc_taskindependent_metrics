@@ -69,6 +69,8 @@ def resolve_study_config(
     reservoir.pop("parameter_binding", None)
 
     hetero = families["heterogeneous"]["construction"]["morphology"]
+    morphology_seed_cfg = hetero["morphology_seed"]
+    morphology_seed_value = morphology_seed_cfg.get("value")
     families["heterogeneous"]["resolved_construction"] = {
         "geometry_mode": families["heterogeneous"]["construction"]["geometry_mode"],
         "morphology": {
@@ -79,7 +81,8 @@ def resolve_study_config(
             "beta_sampling_rule": hetero["beta_sampling_rule"],
             "clip_beta_to_positive": bool(hetero["clip_beta_to_positive"]),
             "weights_mode": hetero["weights_mode"]["value"],
-            "morphology_seed_mode": hetero["morphology_seed"]["mode"],
+            "morphology_seed_mode": morphology_seed_cfg["mode"],
+            "morphology_seed_value": int(morphology_seed_value) if morphology_seed_value is not None else None,
         },
     }
     families["heterogeneous"].pop("construction", None)

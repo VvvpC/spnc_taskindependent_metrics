@@ -6,6 +6,7 @@ adapters at the workflow boundaries.
 """
 
 from .config.resolver import resolve_study_config
+from .orchestration.fixed_study import resolve_fixed_search_params, run_fixed_parameter_study
 from .orchestration.runner import finalize_run, initialize_run, persist_frontier_outputs, persist_trial_outputs, prepare_run
 from .orchestration.run_manifest import create_run_manifest
 from .construction.builders import TrialBuildSpec, build_trial_spec
@@ -23,5 +24,7 @@ __all__ = [
     "persist_frontier_outputs",
     "persist_trial_outputs",
     "prepare_run",
+    "resolve_fixed_search_params",
     "resolve_study_config",
+    "run_fixed_parameter_study",
 ]
