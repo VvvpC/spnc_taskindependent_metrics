@@ -1,6 +1,7 @@
 """Orchestration helpers for run preparation, manifests, and seed policies."""
 
 from .fixed_study import resolve_fixed_search_params, run_fixed_parameter_study
+from .fixed_geometry_seed_sweep import run_fixed_geometry_seed_sweep
 from .runner import finalize_run, initialize_run, persist_frontier_outputs, persist_trial_outputs, prepare_run
 from .run_manifest import (
     create_run_manifest,
@@ -25,6 +26,7 @@ __all__ = [
     "record_analysis_completed",
     "record_reporting_completed",
     "record_trial_persisted",
+    "run_fixed_geometry_seed_sweep",
     "resolve_fixed_search_params",
     "run_fixed_parameter_study",
 ]

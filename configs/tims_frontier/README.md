@@ -20,6 +20,12 @@ This directory contains the workflow configs for the uniform-vs-heterogeneous TI
   - Fixed settings: `beta_prime = 20`, `scheme = random`, `n_instances = 5`, `beta_spread = 3.0`, fixed morphology seed
   - Current budget: `100` matched repeated trials per family
 
+- [fixed_geometry_beta20_v2.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/fixed_geometry_beta20_v2.yaml)
+  - Fixed-parameter morphology-seed sweep meta-study
+  - Purpose: repeat the same uniform-vs-heterogeneous comparison across `5` heterogeneous realizations
+  - Fixed settings: same nominal `beta_prime = 20`, same `theta / gamma / m0 / Nvirt`, `scheme = random`, `n_instances = 5`, `beta_spread = 3.0`
+  - Current budget: `100` matched repeated trials per family for each morphology seed
+
 ## Baseline Rule
 
 Unless there is a strong reason not to, new workflow development should use [small_dev.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/small_dev.yaml) as the default runnable config.

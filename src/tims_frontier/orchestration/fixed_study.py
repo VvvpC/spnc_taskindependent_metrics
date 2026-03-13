@@ -77,6 +77,7 @@ def run_fixed_parameter_study(
     git_branch: str | None = None,
     python_version: str | None = None,
     hostname: str | None = None,
+    notify_on_completion: bool = True,
 ) -> dict[str, Any]:
     """Run a fixed-parameter repeated TIMs comparison for all enabled families."""
 
@@ -186,12 +187,13 @@ def run_fixed_parameter_study(
             hostname=hostname,
             status="completed",
         )
-        send_run_completion_notification(
-            study_id=str(resolved_config["study"]["study_id"]),
-            run_id=str(summary["run_id"]),
-            status="completed",
-            trial_counts=summary.get("trial_counts"),
-        )
+        if notify_on_completion:
+            send_run_completion_notification(
+                study_id=str(resolved_config["study"]["study_id"]),
+                run_id=str(summary["run_id"]),
+                status="completed",
+                trial_counts=summary.get("trial_counts"),
+            )
         return summary
     except Exception as exc:
         summary = finalize_run(
@@ -203,11 +205,12 @@ def run_fixed_parameter_study(
             hostname=hostname,
             status="failed",
         )
-        send_run_completion_notification(
-            study_id=str(resolved_config["study"]["study_id"]),
-            run_id=str(summary["run_id"]),
-            status="failed",
-            trial_counts=summary.get("trial_counts"),
-            extra_message=f"{type(exc).__name__}: {exc}",
-        )
+        if notify_on_completion:
+            send_run_completion_notification(
+                study_id=str(resolved_config["study"]["study_id"]),
+                run_id=str(summary["run_id"]),
+                status="failed",
+                trial_counts=summary.get("trial_counts"),
+                extra_message=f"{type(exc).__name__}: {exc}",
+            )
         raise
