@@ -70,6 +70,7 @@ def evaluate_trial_tims(
         build_spec.weights,
         signal_len=int(mc_cfg["signal_len"]),
         seed=int(seed_bundle["input_signal_seed"]),
+        mask_seed=int(seed_bundle["mask_seed"]),
         splits=list(mc_cfg["splits"]),
         delays=int(mc_cfg["delays"]),
     )
@@ -81,6 +82,7 @@ def evaluate_trial_tims(
         Nwash=int(kr_gr_cfg["n_wash"]),
         threshold=float(kr_gr_cfg["threshold"]),
         seed=int(seed_bundle["input_signal_seed"]),
+        mask_seed=int(seed_bundle["mask_seed"]),
     )
 
     kr = float(kr_gr_result["KR"])

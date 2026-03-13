@@ -77,6 +77,9 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
     """
     # 生成测试信号
     signal = generate_signal(signal_len, seed=kwargs.get('seed', 1234))
+    mask_seed = kwargs.get('mask_seed', 1234)
+    splits = kwargs.get('splits', [0.2, 0.6])
+    delays = kwargs.get('delays', 10)
     # 判断储层类型
     if config.morph_type == 'uniform':
         # 均质储层：使用 RunSpnc
@@ -100,7 +103,7 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
             transform_with_constant_rate,
             reservoir_params.params,
             fixed_mask=True,
-            seed_mask=1234
+            seed_mask=mask_seed
         )
 
     else:
@@ -141,10 +144,10 @@ def evaluate_heterogeneous_MC(reservoir_params: ReservoirParams, config: Morphol
             reservoir_params.params, 
             *weights,
             fixed_mask=True,
-            seed_mask=1234)
+            seed_mask=mask_seed)
     
     # calculate the MC
-    MC = linear_MC(signal, Output, splits=[0.2, 0.6], delays=10)
+    MC = linear_MC(signal, Output, splits=splits, delays=delays)
     
     return {'MC': MC}
 
@@ -157,6 +160,8 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
 
     # 使用reservoir的Nvirt作为Nreadouts
     Nreadouts = reservoir_params.Nvirt
+    mask_seed = kwargs.get('mask_seed', 1234)
+    threshold = kwargs.get('threshold', 0.001)
     
     # 生成KR和GR输入
     inputs = gen_KR_GR_input(Nreadouts, Nwash, seed=kwargs.get('seed', 1234))
@@ -191,7 +196,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
                 transform_with_constant_rate,
                 reservoir_params.params,
                 fixed_mask=True,
-                seed_mask=1234
+                seed_mask=mask_seed
             )
 
         else:
@@ -231,7 +236,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
                 reservoir_params.params, 
                 *weights,
                 fixed_mask=True,
-                seed_mask=1234)
+                seed_mask=mask_seed)
         
         outputs.append(output)
     
@@ -240,7 +245,7 @@ def evaluate_heterogeneous_KRandGR(reservoir_params: ReservoirParams, config: Mo
     States = States/np.amax(States)
     
     # 计算KR和GR
-    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=0.001)
+    KR, GR = Evaluate_KR_GR(States, Nreadouts, threshold=threshold)
     
     return {'KR': KR, 'GR': GR}
 

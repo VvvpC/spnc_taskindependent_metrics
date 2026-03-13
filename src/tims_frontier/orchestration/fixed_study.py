@@ -87,6 +87,9 @@ def run_fixed_parameter_study(
     )
     fixed_params = resolve_fixed_search_params(resolved_config)
     global_seed = int(resolved_config["execution"]["seed_policy"]["global_seed"])
+    matched_trial_seed_across_families = bool(
+        resolved_config["execution"]["seed_policy"]["matched_trial_seed_across_families"]
+    )
     logs_dir = str(resolved_config["storage"]["paths"]["logs_dir"])
 
     try:
@@ -106,6 +109,7 @@ def run_fixed_parameter_study(
                     global_seed=global_seed,
                     family=family,
                     family_trial_index=family_trial_index,
+                    matched_across_families=matched_trial_seed_across_families,
                 )
                 build_spec = build_trial_spec(
                     resolved_config,

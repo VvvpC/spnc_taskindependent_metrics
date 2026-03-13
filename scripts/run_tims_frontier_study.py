@@ -141,6 +141,9 @@ def _create_recording_objective(
     family: str,
 ) -> Any:
     global_seed = int(resolved_config["execution"]["seed_policy"]["global_seed"])
+    matched_trial_seed_across_families = bool(
+        resolved_config["execution"]["seed_policy"]["matched_trial_seed_across_families"]
+    )
     optuna_study_name = str(manifest["family_states"][family]["optuna_study_name"])
     logs_dir = str(resolved_config["storage"]["paths"]["logs_dir"])
 
@@ -154,6 +157,7 @@ def _create_recording_objective(
             global_seed=global_seed,
             family=family,
             family_trial_index=family_trial_index,
+            matched_across_families=matched_trial_seed_across_families,
         )
 
         build_spec = build_trial_spec(
