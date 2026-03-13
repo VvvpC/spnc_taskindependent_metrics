@@ -17,6 +17,7 @@ from tims_frontier.orchestration.runner import (
     persist_trial_outputs,
 )
 from tims_frontier.orchestration.seeds import derive_seed_bundle
+from tims_frontier.reporting import send_run_completion_notification
 from tims_frontier.storage.records import make_failure_record, make_trial_record
 
 
@@ -172,7 +173,7 @@ def run_fixed_parameter_study(
         trial_rows = _read_trial_rows(resolved_config["storage"]["paths"]["trial_results_table_path"])
         frontier_rows = extract_frontier_points(trial_rows, resolved_config)
         persist_frontier_outputs(resolved_config, manifest, frontier_rows)
-        return finalize_run(
+        summary = finalize_run(
             resolved_config,
             manifest,
             git_commit=git_commit,
@@ -181,8 +182,15 @@ def run_fixed_parameter_study(
             hostname=hostname,
             status="completed",
         )
-    except Exception:
-        finalize_run(
+        send_run_completion_notification(
+            study_id=str(resolved_config["study"]["study_id"]),
+            run_id=str(summary["run_id"]),
+            status="completed",
+            trial_counts=summary.get("trial_counts"),
+        )
+        return summary
+    except Exception as exc:
+        summary = finalize_run(
             resolved_config,
             manifest,
             git_commit=git_commit,
@@ -190,5 +198,12 @@ def run_fixed_parameter_study(
             python_version=python_version,
             hostname=hostname,
             status="failed",
+        )
+        send_run_completion_notification(
+            study_id=str(resolved_config["study"]["study_id"]),
+            run_id=str(summary["run_id"]),
+            status="failed",
+            trial_counts=summary.get("trial_counts"),
+            extra_message=f"{type(exc).__name__}: {exc}",
         )
         raise

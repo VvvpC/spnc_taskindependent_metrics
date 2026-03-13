@@ -49,6 +49,7 @@ from tims_frontier.orchestration.runner import (
     persist_trial_outputs,
 )
 from tims_frontier.orchestration.seeds import derive_seed_bundle
+from tims_frontier.reporting import send_run_completion_notification
 from tims_frontier.storage.records import make_failure_record, make_trial_record
 
 
@@ -287,6 +288,22 @@ def _emit_final_message(
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
+def _notify_run_completion(
+    resolved_config: dict[str, Any],
+    summary: dict[str, Any],
+    *,
+    status: str,
+    extra_message: str | None = None,
+) -> None:
+    send_run_completion_notification(
+        study_id=str(resolved_config["study"]["study_id"]),
+        run_id=str(summary["run_id"]),
+        status=status,
+        trial_counts=summary.get("trial_counts"),
+        extra_message=extra_message,
+    )
+
+
 def main() -> int:
     args = _parse_args()
     _set_optuna_verbosity(args.optuna_verbosity)
@@ -322,7 +339,8 @@ def main() -> int:
             hostname=provenance["hostname"],
             status="completed",
         )
-    except Exception:
+        _notify_run_completion(resolved, summary, status="completed")
+    except Exception as exc:
         if resolved is not None and manifest is not None:
             summary = finalize_run(
                 resolved,
@@ -332,6 +350,12 @@ def main() -> int:
                 python_version=provenance["python_version"],
                 hostname=provenance["hostname"],
                 status="failed",
+            )
+            _notify_run_completion(
+                resolved,
+                summary,
+                status="failed",
+                extra_message=f"{type(exc).__name__}: {exc}",
             )
         raise
 
