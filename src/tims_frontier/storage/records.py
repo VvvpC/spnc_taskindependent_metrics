@@ -139,7 +139,7 @@ def make_trial_record(
         "trial_seed": seed_bundle["trial_seed"],
         "input_signal_seed": seed_bundle["input_signal_seed"],
         "mask_seed": seed_bundle["mask_seed"],
-        "morphology_seed": seed_bundle.get("morphology_seed") if build_spec.family == "heterogeneous" else None,
+        "morphology_seed": build_spec.morphology.morphology_seed if build_spec.family == "heterogeneous" else None,
         "beta_prime": sampled_params["beta_prime"],
         "theta": sampled_params["theta"],
         "gamma": sampled_params["gamma"],

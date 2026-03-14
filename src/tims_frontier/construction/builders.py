@@ -47,6 +47,7 @@ def build_trial_spec(
     family: str,
     sampled_params: Mapping[str, float],
     seed_bundle: Mapping[str, int],
+    morphology_overrides: Mapping[str, Any] | None = None,
 ) -> TrialBuildSpec:
     """Build a workflow-native trial specification from resolved config."""
 
@@ -84,22 +85,23 @@ def build_trial_spec(
         weights: list[float] = []
     else:
         morph = resolved_construction["morphology"]
-        n_instances = int(morph["n_instances"])
-        weights_mode = morph["weights_mode"]
+        overrides = dict(morphology_overrides or {})
+        n_instances = int(overrides.get("n_instances", morph["n_instances"]))
+        weights_mode = str(overrides.get("weights_mode", morph["weights_mode"]))
         weights = [1.0 / n_instances] * n_instances if weights_mode == "equal" else []
-        morphology_seed = morph.get("morphology_seed_value")
+        morphology_seed = overrides.get("morphology_seed", morph.get("morphology_seed_value"))
         if morphology_seed is None and morph.get("morphology_seed_mode") == "derived_from_trial_seed":
             morphology_seed = seed_bundle.get("morphology_seed")
         morphology = MorphologySpec(
             geometry_mode=resolved_construction["geometry_mode"],
-            scheme=morph["scheme"],
-            reference_beta_param=morph["reference_beta_param"],
+            scheme=str(overrides.get("scheme", morph["scheme"])),
+            reference_beta_param=str(overrides.get("reference_beta_param", morph["reference_beta_param"])),
             n_instances=n_instances,
-            beta_spread=float(morph["beta_spread"]),
-            beta_sampling_rule=morph["beta_sampling_rule"],
-            clip_beta_to_positive=bool(morph["clip_beta_to_positive"]),
+            beta_spread=float(overrides.get("beta_spread", morph["beta_spread"])),
+            beta_sampling_rule=str(overrides.get("beta_sampling_rule", morph["beta_sampling_rule"])),
+            clip_beta_to_positive=bool(overrides.get("clip_beta_to_positive", morph["clip_beta_to_positive"])),
             weights_mode=weights_mode,
-            morphology_seed=morphology_seed,
+            morphology_seed=int(morphology_seed) if morphology_seed is not None else None,
         )
 
     return TrialBuildSpec(

@@ -18,6 +18,15 @@
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "justMyCode": false
+    },
+    {
+      "name": "TIMs Single-Factor Sweep",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run_single_factor_tims_sweep.py",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "justMyCode": false
     }
   ]
 }

@@ -26,6 +26,12 @@ This directory contains the workflow configs for the uniform-vs-heterogeneous TI
   - Fixed settings: same nominal `beta_prime = 20`, same `theta / gamma / m0 / Nvirt`, `scheme = random`, `n_instances = 5`, `beta_spread = 3.0`
   - Current budget: `100` matched repeated trials per family for each morphology seed
 
+- [uniform_vs_heterogeneous_single_factor_tims_sweep_v1.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/uniform_vs_heterogeneous_single_factor_tims_sweep_v1.yaml)
+  - Paired single-factor TIMs sweep
+  - Purpose: sweep one parameter at a time while recording both a heterogeneous reservoir and a matched uniform baseline
+  - Swept parameters: `beta_prime`, `theta`, `gamma`, `m0`, `n_instances`, `beta_spread`
+  - Current budget: each swept parameter now uses `10` effective values, for a total of `120` evaluations
+
 ## Baseline Rule
 
 Unless there is a strong reason not to, new workflow development should use [small_dev.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/small_dev.yaml) as the default runnable config.

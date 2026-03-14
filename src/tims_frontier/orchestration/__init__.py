@@ -12,6 +12,7 @@ from .run_manifest import (
     record_trial_persisted,
 )
 from .seeds import derive_seed_bundle
+from .single_factor_sweep import run_single_factor_sweep_study
 
 __all__ = [
     "create_run_manifest",
@@ -29,4 +30,5 @@ __all__ = [
     "run_fixed_geometry_seed_sweep",
     "resolve_fixed_search_params",
     "run_fixed_parameter_study",
+    "run_single_factor_sweep_study",
 ]
