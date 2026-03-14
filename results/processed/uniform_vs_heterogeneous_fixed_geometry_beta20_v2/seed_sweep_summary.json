@@ -1,0 +1,149 @@
+{
+  "meta_study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2",
+  "aggregate_run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep",
+  "source_config_path": "C:/Users/tom/Documents/GitHub/spnc_taskindependent_metrics/configs/tims_frontier/fixed_geometry_beta20_v2.yaml",
+  "morphology_seed_count": 5,
+  "morphology_seeds": [
+    3897761708,
+    2718281828,
+    3141592653,
+    1618033988,
+    1234567891
+  ],
+  "n_trials_per_family": 100,
+  "child_runs": [
+    {
+      "seed_index": 1,
+      "morphology_seed": 3897761708,
+      "study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_01",
+      "run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_01_3897761708",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_01/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_01_3897761708/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_01/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_01/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_01_3897761708/failure_log.jsonl"
+      }
+    },
+    {
+      "seed_index": 2,
+      "morphology_seed": 2718281828,
+      "study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_02",
+      "run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_02_2718281828",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_02/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_02_2718281828/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_02/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_02/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_02_2718281828/failure_log.jsonl"
+      }
+    },
+    {
+      "seed_index": 3,
+      "morphology_seed": 3141592653,
+      "study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_03",
+      "run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_03_3141592653",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_03/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_03_3141592653/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_03/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_03/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_03_3141592653/failure_log.jsonl"
+      }
+    },
+    {
+      "seed_index": 4,
+      "morphology_seed": 1618033988,
+      "study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_04",
+      "run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_04_1618033988",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_04/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_04_1618033988/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_04/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_04/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_04_1618033988/failure_log.jsonl"
+      }
+    },
+    {
+      "seed_index": 5,
+      "morphology_seed": 1234567891,
+      "study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05",
+      "run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 100,
+          "completed": 100,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891/failure_log.jsonl"
+      }
+    }
+  ],
+  "provenance": {
+    "git_commit": "5310b5028509636b2d7f8e02e2743fe7471827c9",
+    "git_branch": "codex/heterogeneous-vs-uniform-tims-broadening",
+    "python_version": "3.12.7",
+    "hostname": "DESKTOP-ICNLROQ"
+  },
+  "started_at_utc": "2026-03-13T10:14:36Z",
+  "finished_at_utc": "2026-03-14T18:32:15Z"
+}

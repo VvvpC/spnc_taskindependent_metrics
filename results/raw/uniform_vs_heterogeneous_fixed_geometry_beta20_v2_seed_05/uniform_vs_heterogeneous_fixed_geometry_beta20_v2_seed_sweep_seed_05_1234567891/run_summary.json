@@ -1,0 +1,51 @@
+{
+  "result_schema_version": "1.0",
+  "study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05",
+  "run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891",
+  "config_schema_version": "0.3.1",
+  "specification_ref": "reports/specifications/tims_frontier_specification.md",
+  "resolved_config_path": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891/resolved_config.yaml",
+  "exploration_method": "fixed_repeated_eval",
+  "primary_endpoint": {
+    "endpoint_ref": "comparison.primary_endpoint",
+    "frontier_objectives": [
+      "MC",
+      "CQ"
+    ],
+    "directions": {
+      "MC": "maximize",
+      "CQ": "maximize"
+    }
+  },
+  "families": [
+    "uniform",
+    "heterogeneous"
+  ],
+  "trial_counts": {
+    "uniform": {
+      "attempted": 100,
+      "completed": 100,
+      "failed": 0,
+      "pruned": 0
+    },
+    "heterogeneous": {
+      "attempted": 100,
+      "completed": 100,
+      "failed": 0,
+      "pruned": 0
+    }
+  },
+  "artifacts": {
+    "trial_results_table": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891/trial_results_table.csv",
+    "frontier_points_table": "results/processed/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/frontier_points_table.csv",
+    "failure_log": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891/failure_log.jsonl"
+  },
+  "provenance": {
+    "git_commit": "5310b5028509636b2d7f8e02e2743fe7471827c9",
+    "git_branch": "codex/heterogeneous-vs-uniform-tims-broadening",
+    "python_version": "3.12.7",
+    "hostname": "DESKTOP-ICNLROQ"
+  },
+  "started_at_utc": "2026-03-14T12:02:57Z",
+  "finished_at_utc": "2026-03-14T18:32:15Z"
+}

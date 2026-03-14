@@ -2,12 +2,12 @@
   "schema_version": "1.0",
   "study_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05",
   "run_id": "uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891",
-  "status": "running",
+  "status": "completed",
   "lifecycle": {
     "created_at_utc": "2026-03-14T12:02:57Z",
-    "updated_at_utc": "2026-03-14T13:39:32Z",
+    "updated_at_utc": "2026-03-14T18:32:15Z",
     "started_at_utc": "2026-03-14T12:02:57Z",
-    "finished_at_utc": null
+    "finished_at_utc": "2026-03-14T18:32:15Z"
   },
   "resolved_config_path": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891/resolved_config.yaml",
   "source_config_path": "C:/Users/tom/Documents/GitHub/spnc_taskindependent_metrics/configs/tims_frontier/fixed_geometry_beta20_v2.yaml",
@@ -16,38 +16,38 @@
   "result_schema_version": "1.0",
   "specification_ref": "reports/specifications/tims_frontier_specification.md",
   "execution_state": {
-    "current_stage": "running",
+    "current_stage": "completed",
     "resume_supported": true,
-    "last_persisted_trial_id": "uniform_trial_0061",
-    "last_persisted_at_utc": "2026-03-14T13:39:32Z"
+    "last_persisted_trial_id": "heterogeneous_trial_0100",
+    "last_persisted_at_utc": "2026-03-14T18:32:14Z"
   },
   "family_states": {
     "uniform": {
-      "status": "running",
+      "status": "completed",
       "family_role": "baseline",
       "optuna_study_name": "uniform_fixed_repeated_eval_study",
       "target_trials": 100,
-      "attempted_trials": 61,
-      "completed_trials": 61,
+      "attempted_trials": 100,
+      "completed_trials": 100,
       "failed_trials": 0,
       "pruned_trials": 0,
-      "next_family_trial_index": 62,
-      "last_optuna_trial_number": 60,
-      "frontier_extracted": false,
+      "next_family_trial_index": 101,
+      "last_optuna_trial_number": 99,
+      "frontier_extracted": true,
       "enabled": true
     },
     "heterogeneous": {
-      "status": "pending",
+      "status": "completed",
       "family_role": "candidate",
       "optuna_study_name": "heterogeneous_fixed_repeated_eval_study",
       "target_trials": 100,
-      "attempted_trials": 0,
-      "completed_trials": 0,
+      "attempted_trials": 100,
+      "completed_trials": 100,
       "failed_trials": 0,
       "pruned_trials": 0,
-      "next_family_trial_index": 1,
-      "last_optuna_trial_number": null,
-      "frontier_extracted": false,
+      "next_family_trial_index": 101,
+      "last_optuna_trial_number": 99,
+      "frontier_extracted": true,
       "enabled": true
     }
   },
@@ -60,11 +60,11 @@
     "logs_dir": "results/raw/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_05/uniform_vs_heterogeneous_fixed_geometry_beta20_v2_seed_sweep_seed_05_1234567891/logs"
   },
   "checkpoints": {
-    "trial_table_last_flush_utc": "2026-03-14T13:39:32Z",
+    "trial_table_last_flush_utc": "2026-03-14T18:32:14Z",
     "failure_log_last_flush_utc": null,
-    "analysis_started": false,
-    "analysis_completed": false,
-    "reporting_completed": false
+    "analysis_started": true,
+    "analysis_completed": true,
+    "reporting_completed": true
   },
   "latest_error": null,
   "notes": []
