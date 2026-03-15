@@ -36,6 +36,15 @@
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "justMyCode": false
+    },
+    {
+      "name": "TIMs Regime Mapping Study",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run_regime_mapping_study.py",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "justMyCode": false
     }
   ]
 }

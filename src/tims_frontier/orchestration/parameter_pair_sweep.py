@@ -293,6 +293,7 @@ def run_parameter_pair_sweep_study(
     git_branch: str | None = None,
     python_version: str | None = None,
     hostname: str | None = None,
+    notify_on_completion: bool = True,
 ) -> dict[str, Any]:
     """Run a paired uniform-vs-heterogeneous parameter-pair TIMs sweep."""
 
@@ -494,13 +495,14 @@ def run_parameter_pair_sweep_study(
         }
         manifest_path = _write_json(run_root / "pair_sweep_manifest.json", pair_manifest)
         summary_path = _write_json(run_root / "parameter_pair_sweep_summary.json", pair_manifest)
-        send_run_completion_notification(
-            study_id=str(resolved_config["study"]["study_id"]),
-            run_id=str(summary["run_id"]),
-            status="completed",
-            trial_counts=summary.get("trial_counts"),
-            extra_message=f"swept_pairs={len(pair_order)}",
-        )
+        if notify_on_completion:
+            send_run_completion_notification(
+                study_id=str(resolved_config["study"]["study_id"]),
+                run_id=str(summary["run_id"]),
+                status="completed",
+                trial_counts=summary.get("trial_counts"),
+                extra_message=f"swept_pairs={len(pair_order)}",
+            )
         return {
             "study_id": resolved_config["study"]["study_id"],
             "run_id": resolved_config["run"]["run_id"],
@@ -519,11 +521,12 @@ def run_parameter_pair_sweep_study(
             hostname=hostname,
             status="failed",
         )
-        send_run_completion_notification(
-            study_id=str(resolved_config["study"]["study_id"]),
-            run_id=str(summary["run_id"]),
-            status="failed",
-            trial_counts=summary.get("trial_counts"),
-            extra_message=f"{type(exc).__name__}: {exc}",
-        )
+        if notify_on_completion:
+            send_run_completion_notification(
+                study_id=str(resolved_config["study"]["study_id"]),
+                run_id=str(summary["run_id"]),
+                status="failed",
+                trial_counts=summary.get("trial_counts"),
+                extra_message=f"{type(exc).__name__}: {exc}",
+            )
         raise

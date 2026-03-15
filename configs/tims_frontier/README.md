@@ -39,6 +39,13 @@ This directory contains the workflow configs for the uniform-vs-heterogeneous TI
   - Fixed settings: `m0 = 0.01`, `n_instances = 5`, `Nvirt = 100`, `scheme = random`, fixed morphology seed
   - Current budget: `6` pairs x `25` grid points x `2` families = `300` evaluations
 
+- [uniform_vs_heterogeneous_regime_mapping_v1.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/uniform_vs_heterogeneous_regime_mapping_v1.yaml)
+  - High-resolution regime-mapping meta-study
+  - Purpose: focus on the two most important interaction pairs and map the heterogeneity effect on denser 11x11 grids
+  - Blocks: `beta_prime x theta`, `theta x beta_spread`
+  - Fixed settings: `gamma = 0.05`, `m0 = 0.01`, `n_instances = 5`, `Nvirt = 100`, `scheme = random`, fixed morphology seed
+  - Current budget: `2` blocks x `121` grid points x `2` families = `484` evaluations
+
 ## Baseline Rule
 
 Unless there is a strong reason not to, new workflow development should use [small_dev.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/small_dev.yaml) as the default runnable config.
