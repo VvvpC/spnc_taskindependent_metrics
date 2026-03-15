@@ -27,6 +27,15 @@
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "justMyCode": false
+    },
+    {
+      "name": "TIMs Parameter-Pair Sweep",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run_parameter_pair_tims_sweep.py",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "justMyCode": false
     }
   ]
 }
