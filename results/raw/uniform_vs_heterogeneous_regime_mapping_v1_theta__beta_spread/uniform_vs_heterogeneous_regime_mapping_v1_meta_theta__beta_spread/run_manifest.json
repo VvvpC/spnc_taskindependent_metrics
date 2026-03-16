@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "study_id": "uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread",
+  "run_id": "uniform_vs_heterogeneous_regime_mapping_v1_meta_theta__beta_spread",
+  "status": "completed",
+  "lifecycle": {
+    "created_at_utc": "2026-03-16T05:57:22Z",
+    "updated_at_utc": "2026-03-16T13:44:05Z",
+    "started_at_utc": "2026-03-16T05:57:22Z",
+    "finished_at_utc": "2026-03-16T13:44:05Z"
+  },
+  "resolved_config_path": "results/raw/uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread/uniform_vs_heterogeneous_regime_mapping_v1_meta_theta__beta_spread/resolved_config.yaml",
+  "source_config_path": "C:/Users/tom/Documents/GitHub/spnc_taskindependent_metrics/configs/tims_frontier/uniform_vs_heterogeneous_regime_mapping_v1.yaml",
+  "config_schema_version": "0.3.1",
+  "resolved_config_schema_version": "1.0",
+  "result_schema_version": "1.0",
+  "specification_ref": "reports/specifications/tims_frontier_specification.md",
+  "execution_state": {
+    "current_stage": "completed",
+    "resume_supported": true,
+    "last_persisted_trial_id": "theta__beta_spread_grid_121_heterogeneous",
+    "last_persisted_at_utc": "2026-03-16T13:44:05Z"
+  },
+  "family_states": {
+    "uniform": {
+      "status": "completed",
+      "family_role": "baseline",
+      "optuna_study_name": "uniform_parameter_pair_sweep_study",
+      "target_trials": 121,
+      "attempted_trials": 121,
+      "completed_trials": 121,
+      "failed_trials": 0,
+      "pruned_trials": 0,
+      "next_family_trial_index": 122,
+      "last_optuna_trial_number": 120,
+      "frontier_extracted": false,
+      "enabled": true
+    },
+    "heterogeneous": {
+      "status": "completed",
+      "family_role": "candidate",
+      "optuna_study_name": "heterogeneous_parameter_pair_sweep_study",
+      "target_trials": 121,
+      "attempted_trials": 121,
+      "completed_trials": 121,
+      "failed_trials": 0,
+      "pruned_trials": 0,
+      "next_family_trial_index": 122,
+      "last_optuna_trial_number": 120,
+      "frontier_extracted": false,
+      "enabled": true
+    }
+  },
+  "artifacts": {
+    "run_root": "results/raw/uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread/uniform_vs_heterogeneous_regime_mapping_v1_meta_theta__beta_spread",
+    "trial_results_table": "results/raw/uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread/uniform_vs_heterogeneous_regime_mapping_v1_meta_theta__beta_spread/trial_results_table.csv",
+    "failure_log": "results/raw/uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread/uniform_vs_heterogeneous_regime_mapping_v1_meta_theta__beta_spread/failure_log.jsonl",
+    "run_summary": "results/raw/uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread/uniform_vs_heterogeneous_regime_mapping_v1_meta_theta__beta_spread/run_summary.json",
+    "frontier_points_table": "results/processed/uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread/frontier_points_table.csv",
+    "logs_dir": "results/raw/uniform_vs_heterogeneous_regime_mapping_v1_theta__beta_spread/uniform_vs_heterogeneous_regime_mapping_v1_meta_theta__beta_spread/logs"
+  },
+  "checkpoints": {
+    "trial_table_last_flush_utc": "2026-03-16T13:44:05Z",
+    "failure_log_last_flush_utc": null,
+    "analysis_started": false,
+    "analysis_completed": false,
+    "reporting_completed": true
+  },
+  "latest_error": null,
+  "notes": []
+}
