@@ -46,6 +46,14 @@ This directory contains the workflow configs for the uniform-vs-heterogeneous TI
   - Fixed settings: `gamma = 0.05`, `m0 = 0.01`, `n_instances = 5`, `Nvirt = 100`, `scheme = random`, fixed morphology seed
   - Current budget: `2` blocks x `121` grid points x `2` families = `484` evaluations
 
+- [uniform_vs_heterogeneous_local_boundary_validation_v1.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/uniform_vs_heterogeneous_local_boundary_validation_v1.yaml)
+  - Window-based local TIMs boundary validation meta-study
+  - Purpose: validate whether heterogeneous reservoirs achieve local TIMs combinations that matched uniform reservoirs struggle to reach
+  - Windows: `window_1_beta_prime x theta`, `window_2_theta x beta_spread`, `window_3_beta_prime x theta`
+  - Resolution plan: `11x11`, `11x11`, `7x7`
+  - Fixed settings: `gamma = 0.05`, `m0 = 0.01`, `n_instances = 5`, `Nvirt = 100`, `scheme = random`, fixed morphology seed
+  - Current budget: `242 + 242 + 98 = 582` evaluations
+
 ## Baseline Rule
 
 Unless there is a strong reason not to, new workflow development should use [small_dev.yaml](/Users/Chen/Desktop/Repository/spnc_taskindependent_metrics_tims_broadening/configs/tims_frontier/small_dev.yaml) as the default runnable config.

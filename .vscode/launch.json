@@ -45,6 +45,15 @@
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "justMyCode": false
+    },
+    {
+      "name": "TIMs Local Boundary Validation",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run_local_boundary_validation_study.py",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "justMyCode": false
     }
   ]
 }

@@ -2,6 +2,7 @@
 
 from .fixed_study import resolve_fixed_search_params, run_fixed_parameter_study
 from .fixed_geometry_seed_sweep import run_fixed_geometry_seed_sweep
+from .local_boundary_validation import run_local_boundary_validation_study
 from .parameter_pair_sweep import run_parameter_pair_sweep_study
 from .regime_mapping import run_regime_mapping_study
 from .runner import finalize_run, initialize_run, persist_frontier_outputs, persist_trial_outputs, prepare_run
@@ -30,6 +31,7 @@ __all__ = [
     "record_reporting_completed",
     "record_trial_persisted",
     "run_fixed_geometry_seed_sweep",
+    "run_local_boundary_validation_study",
     "run_parameter_pair_sweep_study",
     "run_regime_mapping_study",
     "resolve_fixed_search_params",
