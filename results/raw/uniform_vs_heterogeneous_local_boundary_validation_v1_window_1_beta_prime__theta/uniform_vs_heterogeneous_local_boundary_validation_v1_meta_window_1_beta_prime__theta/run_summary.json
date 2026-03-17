@@ -1,0 +1,51 @@
+{
+  "result_schema_version": "1.0",
+  "study_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta",
+  "run_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta",
+  "config_schema_version": "0.3.1",
+  "specification_ref": "reports/specifications/tims_frontier_specification.md",
+  "resolved_config_path": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/resolved_config.yaml",
+  "exploration_method": "parameter_pair_sweep",
+  "primary_endpoint": {
+    "endpoint_ref": "comparison.primary_endpoint",
+    "frontier_objectives": [
+      "MC",
+      "CQ"
+    ],
+    "directions": {
+      "MC": "maximize",
+      "CQ": "maximize"
+    }
+  },
+  "families": [
+    "uniform",
+    "heterogeneous"
+  ],
+  "trial_counts": {
+    "uniform": {
+      "attempted": 121,
+      "completed": 121,
+      "failed": 0,
+      "pruned": 0
+    },
+    "heterogeneous": {
+      "attempted": 121,
+      "completed": 121,
+      "failed": 0,
+      "pruned": 0
+    }
+  },
+  "artifacts": {
+    "trial_results_table": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/trial_results_table.csv",
+    "frontier_points_table": "results/processed/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/frontier_points_table.csv",
+    "failure_log": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/failure_log.jsonl"
+  },
+  "provenance": {
+    "git_commit": "381582bc8eae62a4ebd3d2c3b049f57c65e79347",
+    "git_branch": "codex/heterogeneous-vs-uniform-tims-broadening",
+    "python_version": "3.12.7",
+    "hostname": "DESKTOP-ICNLROQ"
+  },
+  "started_at_utc": "2026-03-16T16:09:25Z",
+  "finished_at_utc": "2026-03-17T00:05:45Z"
+}

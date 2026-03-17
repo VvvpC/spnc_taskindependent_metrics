@@ -1,0 +1,76 @@
+{
+  "study_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta",
+  "run_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta",
+  "source_config_path": "C:/Users/tom/Documents/GitHub/spnc_taskindependent_metrics/configs/tims_frontier/uniform_vs_heterogeneous_local_boundary_validation_v1.yaml",
+  "baseline_nominal_values": {
+    "beta_prime": 20.0,
+    "theta": 0.2,
+    "gamma": 0.05,
+    "m0": 0.01,
+    "n_instances": 5,
+    "beta_spread": 3.0
+  },
+  "parameter_specs": {
+    "beta_prime": {
+      "kind": "float",
+      "low": 25.0,
+      "high": 45.0,
+      "num_points": 11,
+      "values": [
+        25.0,
+        27.0,
+        29.0,
+        31.0,
+        33.0,
+        35.0,
+        37.0,
+        39.0,
+        41.0,
+        43.0,
+        45.0
+      ]
+    },
+    "theta": {
+      "kind": "float",
+      "low": 0.005,
+      "high": 0.05,
+      "num_points": 11,
+      "values": [
+        0.005,
+        0.009500000000000001,
+        0.014000000000000002,
+        0.018500000000000003,
+        0.023000000000000003,
+        0.027500000000000004,
+        0.032,
+        0.0365,
+        0.041,
+        0.045500000000000006,
+        0.05
+      ]
+    }
+  },
+  "pair_order": [
+    "window_1_beta_prime__theta"
+  ],
+  "pair_definitions": {
+    "window_1_beta_prime__theta": {
+      "x_parameter": "beta_prime",
+      "y_parameter": "theta"
+    }
+  },
+  "families": [
+    "uniform",
+    "heterogeneous"
+  ],
+  "parameter_pair_artifacts": {
+    "window_1_beta_prime__theta": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/parameter_pairs/window_1_beta_prime__theta.csv"
+  },
+  "canonical_artifacts": {
+    "trial_results_table": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/trial_results_table.csv",
+    "frontier_points_table": "results/processed/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/frontier_points_table.csv",
+    "failure_log": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/failure_log.jsonl"
+  },
+  "started_at_utc": "2026-03-16T16:09:25Z",
+  "finished_at_utc": "2026-03-17T00:05:45Z"
+}

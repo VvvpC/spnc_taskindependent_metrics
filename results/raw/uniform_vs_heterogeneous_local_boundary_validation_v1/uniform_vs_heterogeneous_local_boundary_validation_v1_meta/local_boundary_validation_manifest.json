@@ -1,0 +1,224 @@
+{
+  "meta_study_id": "uniform_vs_heterogeneous_local_boundary_validation_v1",
+  "aggregate_run_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_meta",
+  "status": "completed",
+  "window_order": [
+    "window_1_beta_prime__theta",
+    "window_2_theta__beta_spread",
+    "window_3_beta_prime__theta"
+  ],
+  "window_count": 3,
+  "windows": {
+    "window_1_beta_prime__theta": {
+      "pair": "beta_prime__theta",
+      "x_parameter": "beta_prime",
+      "x": {
+        "kind": "float",
+        "low": 25.0,
+        "high": 45.0,
+        "num_points": 11
+      },
+      "y_parameter": "theta",
+      "y": {
+        "kind": "float",
+        "low": 0.005,
+        "high": 0.05,
+        "num_points": 11
+      },
+      "fixed": {
+        "beta_spread": 3.0
+      }
+    },
+    "window_2_theta__beta_spread": {
+      "pair": "theta__beta_spread",
+      "x_parameter": "theta",
+      "x": {
+        "kind": "float",
+        "low": 0.005,
+        "high": 0.05,
+        "num_points": 11
+      },
+      "y_parameter": "beta_spread",
+      "y": {
+        "kind": "float",
+        "low": 4.0,
+        "high": 10.0,
+        "num_points": 11
+      },
+      "fixed": {
+        "beta_prime": 20.0
+      }
+    },
+    "window_3_beta_prime__theta": {
+      "pair": "beta_prime__theta",
+      "x_parameter": "beta_prime",
+      "x": {
+        "kind": "float",
+        "low": 20.0,
+        "high": 35.0,
+        "num_points": 7
+      },
+      "y_parameter": "theta",
+      "y": {
+        "kind": "float",
+        "low": 0.005,
+        "high": 0.1,
+        "num_points": 7
+      },
+      "fixed": {
+        "beta_spread": 3.0
+      }
+    }
+  },
+  "child_runs": [
+    {
+      "window_name": "window_1_beta_prime__theta",
+      "pair": "beta_prime__theta",
+      "x_parameter": "beta_prime",
+      "x_range": {
+        "kind": "float",
+        "low": 25.0,
+        "high": 45.0,
+        "num_points": 11
+      },
+      "y_parameter": "theta",
+      "y_range": {
+        "kind": "float",
+        "low": 0.005,
+        "high": 0.05,
+        "num_points": 11
+      },
+      "fixed": {
+        "beta_spread": 3.0
+      },
+      "study_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta",
+      "run_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 121,
+          "completed": 121,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 121,
+          "completed": 121,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "canonical_artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/failure_log.jsonl"
+      },
+      "parameter_pair_artifacts": {
+        "window_1_beta_prime__theta": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/parameter_pairs/window_1_beta_prime__theta.csv"
+      },
+      "pair_sweep_manifest_path": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/pair_sweep_manifest.json",
+      "parameter_pair_sweep_summary_path": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_1_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_1_beta_prime__theta/parameter_pair_sweep_summary.json"
+    },
+    {
+      "window_name": "window_2_theta__beta_spread",
+      "pair": "theta__beta_spread",
+      "x_parameter": "theta",
+      "x_range": {
+        "kind": "float",
+        "low": 0.005,
+        "high": 0.05,
+        "num_points": 11
+      },
+      "y_parameter": "beta_spread",
+      "y_range": {
+        "kind": "float",
+        "low": 4.0,
+        "high": 10.0,
+        "num_points": 11
+      },
+      "fixed": {
+        "beta_prime": 20.0
+      },
+      "study_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_window_2_theta__beta_spread",
+      "run_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_2_theta__beta_spread",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 121,
+          "completed": 121,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 121,
+          "completed": 121,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "canonical_artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_2_theta__beta_spread/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_2_theta__beta_spread/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_local_boundary_validation_v1_window_2_theta__beta_spread/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_2_theta__beta_spread/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_2_theta__beta_spread/failure_log.jsonl"
+      },
+      "parameter_pair_artifacts": {
+        "window_2_theta__beta_spread": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_2_theta__beta_spread/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_2_theta__beta_spread/parameter_pairs/window_2_theta__beta_spread.csv"
+      },
+      "pair_sweep_manifest_path": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_2_theta__beta_spread/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_2_theta__beta_spread/pair_sweep_manifest.json",
+      "parameter_pair_sweep_summary_path": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_2_theta__beta_spread/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_2_theta__beta_spread/parameter_pair_sweep_summary.json"
+    },
+    {
+      "window_name": "window_3_beta_prime__theta",
+      "pair": "beta_prime__theta",
+      "x_parameter": "beta_prime",
+      "x_range": {
+        "kind": "float",
+        "low": 20.0,
+        "high": 35.0,
+        "num_points": 7
+      },
+      "y_parameter": "theta",
+      "y_range": {
+        "kind": "float",
+        "low": 0.005,
+        "high": 0.1,
+        "num_points": 7
+      },
+      "fixed": {
+        "beta_spread": 3.0
+      },
+      "study_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_window_3_beta_prime__theta",
+      "run_id": "uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_3_beta_prime__theta",
+      "trial_counts": {
+        "uniform": {
+          "attempted": 49,
+          "completed": 49,
+          "failed": 0,
+          "pruned": 0
+        },
+        "heterogeneous": {
+          "attempted": 49,
+          "completed": 49,
+          "failed": 0,
+          "pruned": 0
+        }
+      },
+      "canonical_artifacts": {
+        "trial_results_table": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_3_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_3_beta_prime__theta/trial_results_table.csv",
+        "frontier_points_table": "results/processed/uniform_vs_heterogeneous_local_boundary_validation_v1_window_3_beta_prime__theta/frontier_points_table.csv",
+        "failure_log": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_3_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_3_beta_prime__theta/failure_log.jsonl"
+      },
+      "parameter_pair_artifacts": {
+        "window_3_beta_prime__theta": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_3_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_3_beta_prime__theta/parameter_pairs/window_3_beta_prime__theta.csv"
+      },
+      "pair_sweep_manifest_path": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_3_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_3_beta_prime__theta/pair_sweep_manifest.json",
+      "parameter_pair_sweep_summary_path": "results/raw/uniform_vs_heterogeneous_local_boundary_validation_v1_window_3_beta_prime__theta/uniform_vs_heterogeneous_local_boundary_validation_v1_meta_window_3_beta_prime__theta/parameter_pair_sweep_summary.json"
+    }
+  ],
+  "provenance": {
+    "git_commit": "381582bc8eae62a4ebd3d2c3b049f57c65e79347",
+    "git_branch": "codex/heterogeneous-vs-uniform-tims-broadening",
+    "python_version": "3.12.7",
+    "hostname": "DESKTOP-ICNLROQ"
+  },
+  "started_at_utc": "2026-03-16T16:09:25Z",
+  "finished_at_utc": "2026-03-17T11:16:59Z"
+}
