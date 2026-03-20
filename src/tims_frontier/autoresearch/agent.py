@@ -15,11 +15,28 @@ from .archive import AutoResearchArchive
 from .common import REPO_ROOT, read_json_if_exists, write_json
 from .config import load_autoresearch_config
 from .loop import init_run, load_current_proposal, run_step
+from .models import Proposal, SUPPORTED_EDIT_TYPES
 from .summary import build_next_context_summary
+from .validator import ProposalValidationError, validate_proposal
 
 
 class LLMBackendError(RuntimeError):
     """Raised when the configured LLM backend fails or returns unusable output."""
+
+
+EDIT_TYPE_ALIASES = {
+    "parameter_range_narrowing": "scalar_tune",
+    "parameter_range_widening": "scalar_tune",
+    "parameter_range_shift": "scalar_tune",
+    "parameter_tune": "scalar_tune",
+    "numeric_tune": "scalar_tune",
+    "structure_expansion": "structural_expand",
+    "structure_reduction": "structural_reduce",
+    "coupling_rule_change": "coupling_change",
+    "correlation_change": "coupling_change",
+    "distribution_swap": "distribution_change",
+    "distribution_form_change": "distribution_change",
+}
 
 
 @dataclass(frozen=True)
@@ -252,6 +269,36 @@ def request_proposal_from_llm(
     }
 
 
+def _normalize_proposal_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = json.loads(json.dumps(dict(payload)))
+    raw_edit_type = normalized.get("edit_type")
+    if isinstance(raw_edit_type, str):
+        edit_key = raw_edit_type.strip()
+        normalized["edit_type"] = EDIT_TYPE_ALIASES.get(edit_key, edit_key)
+    return normalized
+
+
+def _load_parent_proposal_from_state(state: Mapping[str, Any]) -> Proposal | None:
+    payload_path = state.get("last_attempted_proposal_path")
+    if not payload_path:
+        return None
+    payload = read_json_if_exists(str(payload_path))
+    if payload is None:
+        return None
+    return Proposal.from_mapping(payload)
+
+
+def _prevalidate_agent_proposal(
+    proposal_payload: Mapping[str, Any],
+    runtime_config: Mapping[str, Any],
+    state: Mapping[str, Any],
+) -> Proposal:
+    proposal = Proposal.from_mapping(proposal_payload)
+    parent_proposal = _load_parent_proposal_from_state(state)
+    validate_proposal(proposal, runtime_config, parent_proposal=parent_proposal)
+    return proposal
+
+
 def _latest_round_payload(state: Mapping[str, Any], filename: str) -> dict[str, Any] | None:
     for round_record in reversed(list(state.get("history", []))):
         round_dir = round_record.get("round_dir")
@@ -309,6 +356,7 @@ def build_agent_context(
 
 
 def build_agent_messages(context: Mapping[str, Any]) -> list[dict[str, str]]:
+    allowed_edit_types = ", ".join(sorted(SUPPORTED_EDIT_TYPES))
     system_prompt = (
         "You are the single-file autoresearch agent for heterogeneous nanodot reservoir family search.\n"
         "You must follow program.md exactly.\n"
@@ -317,6 +365,8 @@ def build_agent_messages(context: Mapping[str, Any]) -> list[dict[str, str]]:
         "Return either the raw proposal object or {'proposal': <proposal>}.\n"
         "The proposal must include proposal_id, parent_proposal_id, edit_type, primary_edit, rationale, "
         "expected_effect, family_definition, sampling_plan, notes, and metadata if needed.\n"
+        f"edit_type MUST be exactly one of: {allowed_edit_types}.\n"
+        "Do not invent new edit_type labels like parameter_range_narrowing.\n"
         "Every new round must make exactly one minimal semantic edit relative to the last attempted proposal.\n"
         "If the previous round crashed, repair only the smallest issue needed and use the traceback tail.\n"
         "Do not propose evaluator/runtime/framework changes. Do not mention editing any file other than train.py."
@@ -413,6 +463,7 @@ def ai_step(config_path: str | None = None) -> dict[str, Any]:
         )
         raise
 
+    normalized_proposal = _normalize_proposal_payload(response["proposal"])
     archive.write_round_json(
         round_index,
         "agent_response.json",
@@ -420,15 +471,28 @@ def ai_step(config_path: str | None = None) -> dict[str, Any]:
             "model": response["model"],
             "reasoning_content": response["reasoning_content"],
             "content": response["content"],
-            "proposal": response["proposal"],
+            "proposal": normalized_proposal,
             "raw_response": response["raw_response"],
         },
     )
+    try:
+        validated_proposal = _prevalidate_agent_proposal(normalized_proposal, runtime_config, state)
+    except (ProposalValidationError, ValueError) as exc:
+        archive.write_round_json(
+            round_index,
+            "agent_validation_error.json",
+            {
+                "error_type": type(exc).__name__,
+                "message": str(exc),
+                "proposal": normalized_proposal,
+            },
+        )
+        raise LLMBackendError(f"LLM returned an invalid proposal before execution: {exc}") from exc
 
-    changed = replace_current_proposal_in_train(REPO_ROOT / "train.py", response["proposal"])
+    changed = replace_current_proposal_in_train(REPO_ROOT / "train.py", validated_proposal.to_dict())
     if not changed:
         raise LLMBackendError("The LLM returned a proposal identical to the current train.py payload.")
-    archive.write_round_json(round_index, "agent_proposal.json", dict(response["proposal"]))
+    archive.write_round_json(round_index, "agent_proposal.json", validated_proposal.to_dict())
     return run_step(config_path)
 
 
