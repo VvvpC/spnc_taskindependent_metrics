@@ -4,10 +4,20 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import sys
 from typing import Any, Iterable
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+LEGACY_SOURCE_SUBDIRS = [
+    "src",
+    "src/Morphology_Research",
+    "src/Project",
+    "src/Optuna_TaskIndependent_Metrics",
+    "src/ParetoFront_CQandMC",
+    "src/Plot_Functions",
+    "src/Test_Temporary",
+]
 
 
 def utc_now_iso() -> str:
@@ -103,3 +113,15 @@ def derive_seed_bundle(
         "mask_seed": stable_seed(trial_seed, "mask"),
         "morphology_seed": stable_seed(trial_seed, "morphology"),
     }
+
+
+def bootstrap_legacy_source_paths() -> list[str]:
+    inserted: list[str] = []
+    for relative_path in reversed(LEGACY_SOURCE_SUBDIRS):
+        absolute_path = (REPO_ROOT / relative_path).resolve()
+        absolute_text = absolute_path.as_posix()
+        if absolute_text in sys.path:
+            continue
+        sys.path.insert(0, absolute_text)
+        inserted.append(absolute_text)
+    return inserted

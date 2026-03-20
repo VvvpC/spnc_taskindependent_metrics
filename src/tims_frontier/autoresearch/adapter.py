@@ -5,7 +5,7 @@ from typing import Any, Mapping
 
 from tims_frontier.construction.builders import ReservoirParameterSet
 
-from .common import derive_seed_bundle
+from .common import bootstrap_legacy_source_paths, derive_seed_bundle
 from .models import SampledInstance
 
 
@@ -58,6 +58,7 @@ def _evaluate_mock_instance(instance: SampledInstance) -> dict[str, float]:
 
 
 def _evaluate_real_instance(instance: SampledInstance, runtime_config: Mapping[str, Any], *, seed_bundle: Mapping[str, int]) -> dict[str, float | str]:
+    bootstrap_legacy_source_paths()
     import numpy as np
 
     from Reservoirs_morphology_evaluation import RunSpnc_heterogenous

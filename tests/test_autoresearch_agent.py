@@ -20,6 +20,7 @@ from tims_frontier.autoresearch.agent import (
     replace_current_proposal_in_train,
     resolve_llm_settings,
 )
+from tims_frontier.autoresearch.common import LEGACY_SOURCE_SUBDIRS, REPO_ROOT, bootstrap_legacy_source_paths
 
 
 class AgentHelperTests(unittest.TestCase):
@@ -232,6 +233,21 @@ class AgentHelperTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         mock_run_step.assert_called_once_with("dummy-config.json")
         mock_request.assert_not_called()
+
+    def test_bootstrap_legacy_source_paths_includes_morphology_research(self) -> None:
+        import sys
+
+        original_path = list(sys.path)
+        try:
+            for relative_path in LEGACY_SOURCE_SUBDIRS:
+                absolute = (REPO_ROOT / relative_path).resolve().as_posix()
+                while absolute in sys.path:
+                    sys.path.remove(absolute)
+            inserted = bootstrap_legacy_source_paths()
+            self.assertIn((REPO_ROOT / "src" / "Morphology_Research").resolve().as_posix(), inserted)
+            self.assertIn((REPO_ROOT / "src" / "Morphology_Research").resolve().as_posix(), sys.path)
+        finally:
+            sys.path[:] = original_path
 
 
 if __name__ == "__main__":

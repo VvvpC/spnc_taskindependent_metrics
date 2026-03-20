@@ -4,9 +4,19 @@ from pathlib import Path
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parent
-SOURCE_DIR = REPO_ROOT / "src"
-if str(SOURCE_DIR) not in sys.path:
-    sys.path.insert(0, str(SOURCE_DIR))
+for relative_path in [
+    "src",
+    "src/Morphology_Research",
+    "src/Project",
+    "src/Optuna_TaskIndependent_Metrics",
+    "src/ParetoFront_CQandMC",
+    "src/Plot_Functions",
+    "src/Test_Temporary",
+]:
+    source_dir = REPO_ROOT / relative_path
+    source_text = str(source_dir)
+    if source_text not in sys.path:
+        sys.path.insert(0, source_text)
 
 from tims_frontier.autoresearch import run_train_file
 
