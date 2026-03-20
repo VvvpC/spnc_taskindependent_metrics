@@ -12,9 +12,9 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
- 'parent_proposal_id': 'proposal_0001',
- 'edit_type': 'parameter_range_narrowing',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
+ 'parent_proposal_id': 'None',
+ 'edit_type': 'initial_seed',
  'primary_edit': {'target': 'subgroup.core.spread.high', 'before': 3.5, 'after': 3.0},
  'rationale': 'Narrow the maximum spread in the core subgroup from 3.5 to 3.0 to reduce risk of '
               'numerical instability while maintaining heterogeneity. This conservative adjustment '
