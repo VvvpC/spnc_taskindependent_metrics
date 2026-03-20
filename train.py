@@ -23,19 +23,19 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
- 'parent_proposal_id': 'proposal_0001',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0003',
+ 'parent_proposal_id': 'proposal_0002',
  'edit_type': 'scalar_tune',
- 'primary_edit': {'target': 'continuous_parameters.gamma.high', 'before': 0.08, 'after': 0.09},
- 'rationale': 'Following the theta expansion, we slightly increase the upper bound of gamma '
-              '(inter-dot coupling strength) from 0.08 to 0.09 to explore configurations with '
-              'stronger coupling. This minimal expansion may enable designs with improved MC '
-              'performance by allowing tighter dot clustering while maintaining conservative '
-              'constraints.',
- 'expected_effect': 'The expanded gamma range should enable sampling of configurations with '
-                    'stronger inter-dot coupling, potentially pushing the Pareto frontier outward '
-                    'in the MC dimension. The hypervolume contribution S_abs is expected to be '
-                    'positive but modest due to the minimal nature of this scalar tune.',
+ 'primary_edit': {'target': 'continuous_parameters.beta_prime.high', 'before': 32.0, 'after': 33.0},
+ 'rationale': 'Following the gamma tune that improved MC but decreased CQ, we slightly increase '
+              'the upper bound of beta_prime (inverse temperature/energy scaling) from 32.0 to '
+              '33.0. This minimal expansion explores configurations with stronger energy '
+              'confinement, potentially recovering CQ performance while building upon the recent '
+              'MC gains.',
+ 'expected_effect': 'The expanded beta_prime range should enable sampling of configurations with '
+                    'sharper energy distributions, potentially pushing the Pareto frontier outward '
+                    'in the CQ dimension and consolidating the recent MC improvements. The '
+                    'hypervolume contribution S_abs is expected to be positive.',
  'family_definition': {'family_type': 'single_distribution',
                        'topology_name': 'single_group',
                        'subgroups': [{'name': 'core',
@@ -50,7 +50,7 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
                        'coupling_rule': {'rule': 'independent', 'metadata': {}},
                        'continuous_parameters': {'beta_prime': {'kind': 'uniform_float',
                                                                 'low': 28.0,
-                                                                'high': 32.0},
+                                                                'high': 33.0},
                                                  'theta': {'kind': 'uniform_float',
                                                            'low': 0.16,
                                                            'high': 0.25},
@@ -66,7 +66,7 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
                    'seed': 1234,
                    'metadata': {}},
  'auto_completed_fields': [],
- 'notes': 'Minimal scalar tune of gamma parameter following theta expansion strategy.',
+ 'notes': 'Minimal scalar tune of beta_prime parameter following gamma adjustment strategy.',
  'metadata': {}}
 
 
