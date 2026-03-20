@@ -23,9 +23,9 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0005',
- 'parent_proposal_id': 'proposal_0004',
- 'edit_type': 'scalar_tune',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
+ 'parent_proposal_id': None,
+ 'edit_type': 'initial_seed',
  'primary_edit': {'target': 'continuous_parameters.m0.low', 'before': 0.008, 'after': 0.007},
  'rationale': 'Following the pattern where expanding upper bounds improved MC at CQ expense, we '
               'now explore reducing the lower bound of m0 to allow lighter mass configurations. '

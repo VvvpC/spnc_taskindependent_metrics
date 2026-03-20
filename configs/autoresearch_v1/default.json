@@ -37,9 +37,9 @@
     "temperature": 1.0,
     "max_tokens": 16000,
     "timeout_seconds": 300,
-    "max_retries": 3,
-    "retry_backoff_seconds": 5,
-    "retry_max_backoff_seconds": 30,
+    "max_retries": 6,
+    "retry_backoff_seconds": 15,
+    "retry_max_backoff_seconds": 120,
     "use_json_mode": false
   },
   "constraints": {
