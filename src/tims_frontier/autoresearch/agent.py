@@ -433,6 +433,20 @@ def ai_step(config_path: str | None = None) -> dict[str, Any]:
         init_run(config_path)
         archive, state = AutoResearchArchive.from_active(runtime_config)
 
+    is_bootstrap_round = (
+        int(state.get("round_index", 0)) == 0
+        and not state.get("history")
+        and state.get("baseline_round_id") is None
+        and state.get("last_attempted_proposal_id") is None
+    )
+    if is_bootstrap_round:
+        bootstrap_proposal = load_current_proposal(REPO_ROOT / "train.py")
+        if bootstrap_proposal.edit_type != "initial_seed":
+            raise LLMBackendError(
+                "The bootstrap ai-step requires train.py to contain an initial_seed proposal before baseline exists."
+            )
+        return run_step(config_path)
+
     settings = resolve_llm_settings(runtime_config)
     round_index = int(state["round_index"]) + 1
     round_dir = archive.round_dir(round_index)

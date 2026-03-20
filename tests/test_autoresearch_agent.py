@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 for entry in [REPO_ROOT / "src"]:
@@ -15,6 +16,7 @@ from tims_frontier.autoresearch.agent import (
     _decode_json_like,
     _normalize_proposal_payload,
     _prevalidate_agent_proposal,
+    ai_step,
     replace_current_proposal_in_train,
     resolve_llm_settings,
 )
@@ -202,6 +204,34 @@ class AgentHelperTests(unittest.TestCase):
         }
         proposal = _prevalidate_agent_proposal(initial, self._runtime_config(), state)
         self.assertEqual(proposal.edit_type, "initial_seed")
+
+    def test_ai_step_bootstrap_round_uses_existing_initial_seed_without_llm(self) -> None:
+        state = {
+            "round_index": 0,
+            "history": [],
+            "baseline_round_id": None,
+            "last_attempted_proposal_id": None,
+        }
+        with patch("tims_frontier.autoresearch.agent.load_autoresearch_config", return_value={"storage": {}}), patch(
+            "tims_frontier.autoresearch.agent.AutoResearchArchive.from_active",
+            return_value=(object(), state),
+        ), patch(
+            "tims_frontier.autoresearch.agent.load_current_proposal"
+        ) as mock_load_current_proposal, patch(
+            "tims_frontier.autoresearch.agent.run_step",
+            return_value={"status": "completed", "round_index": 1},
+        ) as mock_run_step, patch(
+            "tims_frontier.autoresearch.agent.request_proposal_from_llm"
+        ) as mock_request:
+            mock_load_current_proposal.return_value = type(
+                "BootstrapProposal",
+                (),
+                {"edit_type": "initial_seed"},
+            )()
+            result = ai_step("dummy-config.json")
+        self.assertEqual(result["status"], "completed")
+        mock_run_step.assert_called_once_with("dummy-config.json")
+        mock_request.assert_not_called()
 
 
 if __name__ == "__main__":
