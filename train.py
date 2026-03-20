@@ -28,11 +28,12 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
                                       'role': 'core',
                                       'count': {'kind': 'uniform_int', 'low': 3, 'high': 5},
                                       'offset_center': {'kind': 'fixed', 'value': 0.0},
-                                      'spread': {'kind': 'uniform_float',
-                                                 'low': 2.0,
-                                                 'high': 3.5}}],
-                       'distribution_rule': {'form': 'random', 'clip_beta_to_positive': True},
-                       'coupling_rule': {'rule': 'independent'},
+                                      'spread': {'kind': 'uniform_float', 'low': 2.0, 'high': 3.5},
+                                      'metadata': {}}],
+                       'distribution_rule': {'form': 'random',
+                                             'clip_beta_to_positive': True,
+                                             'metadata': {}},
+                       'coupling_rule': {'rule': 'independent', 'metadata': {}},
                        'continuous_parameters': {'beta_prime': {'kind': 'uniform_float',
                                                                 'low': 28.0,
                                                                 'high': 32.0},
@@ -44,10 +45,12 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
                                                            'high': 0.08},
                                                  'm0': {'kind': 'uniform_float',
                                                         'low': 0.008,
-                                                        'high': 0.015}}},
- 'sampling_plan': {'sampler_name': 'latin_hypercube', 'n_samples': 3, 'seed': 1234},
+                                                        'high': 0.015}},
+                       'metadata': {}},
+ 'sampling_plan': {'sampler_name': 'latin_hypercube', 'n_samples': 3, 'seed': 1234, 'metadata': {}},
  'notes': 'Subsequent rounds should keep proposal_id monotonic and apply only one minimal semantic '
-          'edit.'}
+          'edit.',
+ 'metadata': {}}
 
 
 def main() -> None:
