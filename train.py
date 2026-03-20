@@ -23,9 +23,9 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
- 'parent_proposal_id': 'proposal_0001',
- 'edit_type': 'scalar_tune',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
+ 'parent_proposal_id': None,
+ 'edit_type': 'initial_seed',
  'primary_edit': {'target': 'continuous_parameters.theta.high', 'before': 0.24, 'after': 0.25},
  'rationale': 'Slightly expand the theta parameter upper bound from 0.24 to 0.25 to increase the '
               'exploration space for rotational coupling strength. This minimal expansion may '
