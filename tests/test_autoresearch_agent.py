@@ -16,8 +16,10 @@ from tims_frontier.autoresearch.agent import (
     _decode_json_like,
     _normalize_proposal_payload,
     _prevalidate_agent_proposal,
+    LLMSettings,
     ai_step,
     replace_current_proposal_in_train,
+    request_proposal_from_llm,
     resolve_llm_settings,
 )
 from tims_frontier.autoresearch.common import LEGACY_SOURCE_SUBDIRS, REPO_ROOT, bootstrap_legacy_source_paths
@@ -134,6 +136,40 @@ class AgentHelperTests(unittest.TestCase):
             self.assertEqual(settings.api_key, "file-key")
             self.assertEqual(settings.base_url, "https://api.moonshot.ai/v1")
             self.assertEqual(settings.model, "kimi-k2.5")
+            self.assertEqual(settings.max_retries, 3)
+
+    def test_request_proposal_from_llm_retries_timeout_then_succeeds(self) -> None:
+        settings = LLMSettings(
+            base_url="https://api.moonshot.ai/v1",
+            api_key="secret",
+            model="kimi-k2-thinking",
+            temperature=1.0,
+            max_tokens=1024,
+            timeout_seconds=300.0,
+            use_json_mode=False,
+            max_retries=2,
+            retry_backoff_seconds=0.0,
+            retry_max_backoff_seconds=0.0,
+        )
+
+        class _FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self) -> bytes:
+                return (
+                    b'{"model":"kimi-k2-thinking","choices":[{"message":{"content":"{\\"proposal_id\\": \\"proposal_0002\\", \\"parent_proposal_id\\": \\"proposal_0001\\", \\"edit_type\\": \\"scalar_tune\\", \\"primary_edit\\": {\\"target\\": \\"theta\\", \\"before\\": 0.24, \\"after\\": 0.22}, \\"rationale\\": \\"narrow theta\\", \\"expected_effect\\": \\"reduce variance\\", \\"family_definition\\": {\\"family_type\\": \\"single_distribution\\", \\"topology_name\\": \\"single_group\\", \\"subgroups\\": [], \\"distribution_rule\\": {\\"form\\": \\"random\\"}, \\"coupling_rule\\": {\\"rule\\": \\"independent\\"}, \\"continuous_parameters\\": {}}, \\"sampling_plan\\": {\\"sampler_name\\": \\"random\\", \\"n_samples\\": 2, \\"seed\\": 1}}"} }]}'
+                )
+
+        side_effects = [TimeoutError("timed out"), _FakeResponse()]
+
+        with patch("tims_frontier.autoresearch.agent.urllib.request.urlopen", side_effect=side_effects) as mock_urlopen:
+            response = request_proposal_from_llm([{"role": "user", "content": "test"}], settings)
+        self.assertEqual(mock_urlopen.call_count, 2)
+        self.assertEqual(response["proposal"]["proposal_id"], "proposal_0002")
 
     def test_normalize_proposal_payload_maps_edit_type_alias(self) -> None:
         payload = _normalize_proposal_payload(

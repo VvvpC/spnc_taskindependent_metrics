@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import pprint
 import re
+import socket
+import time
 from typing import Any, Mapping
 import urllib.error
 import urllib.request
@@ -48,6 +50,9 @@ class LLMSettings:
     max_tokens: int
     timeout_seconds: float
     use_json_mode: bool
+    max_retries: int
+    retry_backoff_seconds: float
+    retry_max_backoff_seconds: float
 
     def redacted(self) -> dict[str, Any]:
         return {
@@ -57,6 +62,9 @@ class LLMSettings:
             "max_tokens": self.max_tokens,
             "timeout_seconds": self.timeout_seconds,
             "use_json_mode": self.use_json_mode,
+            "max_retries": self.max_retries,
+            "retry_backoff_seconds": self.retry_backoff_seconds,
+            "retry_max_backoff_seconds": self.retry_max_backoff_seconds,
         }
 
 
@@ -149,6 +157,9 @@ def resolve_llm_settings(runtime_config: Mapping[str, Any], *, env: Mapping[str,
         max_tokens=int(llm_config.get("max_tokens", 16000)),
         timeout_seconds=float(llm_config.get("timeout_seconds", 120.0)),
         use_json_mode=bool(llm_config.get("use_json_mode", False)),
+        max_retries=max(0, int(llm_config.get("max_retries", 3))),
+        retry_backoff_seconds=max(0.0, float(llm_config.get("retry_backoff_seconds", 5.0))),
+        retry_max_backoff_seconds=max(0.0, float(llm_config.get("retry_max_backoff_seconds", 30.0))),
     )
 
 
@@ -239,14 +250,33 @@ def request_proposal_from_llm(
         },
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=settings.timeout_seconds) as response:
-            raw_body = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        error_body = exc.read().decode("utf-8", errors="replace")
-        raise LLMBackendError(f"LLM backend returned HTTP {exc.code}: {error_body}") from exc
-    except urllib.error.URLError as exc:
-        raise LLMBackendError(f"Unable to reach the configured LLM backend: {exc}") from exc
+    raw_body = ""
+    total_attempts = settings.max_retries + 1
+    for attempt_index in range(total_attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=settings.timeout_seconds) as response:
+                raw_body = response.read().decode("utf-8")
+            break
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace")
+            is_retryable = exc.code in {408, 409, 425, 429, 500, 502, 503, 504}
+            if not is_retryable or attempt_index >= settings.max_retries:
+                raise LLMBackendError(f"LLM backend returned HTTP {exc.code}: {error_body}") from exc
+            _sleep_before_retry(settings, attempt_index)
+        except (TimeoutError, socket.timeout) as exc:
+            if attempt_index >= settings.max_retries:
+                raise LLMBackendError(
+                    f"LLM backend timed out after {total_attempts} attempts at {settings.timeout_seconds:.1f}s each."
+                ) from exc
+            _sleep_before_retry(settings, attempt_index)
+        except urllib.error.URLError as exc:
+            reason_text = str(getattr(exc, "reason", exc)).lower()
+            is_retryable = any(token in reason_text for token in ["timed out", "timeout", "tempor", "reset", "unreachable"])
+            if not is_retryable or attempt_index >= settings.max_retries:
+                raise LLMBackendError(f"Unable to reach the configured LLM backend: {exc}") from exc
+            _sleep_before_retry(settings, attempt_index)
+    else:
+        raise LLMBackendError("LLM backend request failed before a response body was received.")
 
     try:
         parsed = json.loads(raw_body)
@@ -267,6 +297,13 @@ def request_proposal_from_llm(
         "proposal": proposal_payload,
         "raw_response": parsed,
     }
+
+
+def _sleep_before_retry(settings: LLMSettings, attempt_index: int) -> None:
+    backoff = settings.retry_backoff_seconds * (2 ** attempt_index)
+    capped_backoff = min(backoff, settings.retry_max_backoff_seconds)
+    if capped_backoff > 0:
+        time.sleep(capped_backoff)
 
 
 def _normalize_proposal_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
