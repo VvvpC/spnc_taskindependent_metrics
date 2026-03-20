@@ -12,23 +12,24 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
- 'parent_proposal_id': None,
- 'edit_type': 'initial_seed',
- 'primary_edit': {'target': 'initialization',
-                  'before': None,
-                  'after': 'single_distribution_random_independent'},
- 'rationale': 'Start from a simple heterogeneous family with one subgroup and a random beta spread '
-              'so the first successful round can freeze the baseline frontier.',
- 'expected_effect': 'Establishes the fixed baseline for all later relative hypervolume '
-                    'comparisons.',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
+ 'parent_proposal_id': 'proposal_0001',
+ 'edit_type': 'parameter_range_narrowing',
+ 'primary_edit': {'target': 'subgroup.core.spread.high', 'before': 3.5, 'after': 3.0},
+ 'rationale': 'Narrow the maximum spread in the core subgroup from 3.5 to 3.0 to reduce risk of '
+              'numerical instability while maintaining heterogeneity. This conservative adjustment '
+              'improves first-run success probability without sacrificing design diversity.',
+ 'expected_effect': 'Produces a slightly more constrained family that generates safer initial '
+                    'configurations. The reduced upper bound on spread should prevent extreme '
+                    'parameter configurations while preserving sufficient exploration space. '
+                    'Hypervolume potential should remain comparable but with improved robustness.',
  'family_definition': {'family_type': 'single_distribution',
                        'topology_name': 'single_group',
                        'subgroups': [{'name': 'core',
                                       'role': 'core',
                                       'count': {'kind': 'uniform_int', 'low': 3, 'high': 5},
                                       'offset_center': {'kind': 'fixed', 'value': 0.0},
-                                      'spread': {'kind': 'uniform_float', 'low': 2.0, 'high': 3.5},
+                                      'spread': {'kind': 'uniform_float', 'low': 2.0, 'high': 3.0},
                                       'metadata': {}}],
                        'distribution_rule': {'form': 'random',
                                              'clip_beta_to_positive': True,
