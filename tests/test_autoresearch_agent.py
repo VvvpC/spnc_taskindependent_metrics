@@ -21,6 +21,7 @@ from tims_frontier.autoresearch.agent import (
     resolve_llm_settings,
 )
 from tims_frontier.autoresearch.common import LEGACY_SOURCE_SUBDIRS, REPO_ROOT, bootstrap_legacy_source_paths
+from tims_frontier.autoresearch.common import write_json
 
 
 class AgentHelperTests(unittest.TestCase):
@@ -205,6 +206,80 @@ class AgentHelperTests(unittest.TestCase):
         }
         proposal = _prevalidate_agent_proposal(initial, self._runtime_config(), state)
         self.assertEqual(proposal.edit_type, "initial_seed")
+
+    def test_prevalidate_agent_proposal_autocorrects_edit_type_from_semantic_diff(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            parent_path = Path(tmp_dir) / "proposal_raw.json"
+            write_json(
+                parent_path,
+                {
+                    "proposal_id": "proposal_0001",
+                    "parent_proposal_id": None,
+                    "edit_type": "initial_seed",
+                    "primary_edit": {"target": "initialization", "before": None, "after": "single_distribution_random_independent"},
+                    "rationale": "baseline",
+                    "expected_effect": "baseline",
+                    "family_definition": {
+                        "family_type": "single_distribution",
+                        "topology_name": "single_group",
+                        "subgroups": [
+                            {
+                                "name": "core",
+                                "role": "core",
+                                "count": {"kind": "uniform_int", "low": 3, "high": 5},
+                                "offset_center": {"kind": "fixed", "value": 0.0},
+                                "spread": {"kind": "uniform_float", "low": 2.0, "high": 3.5},
+                            }
+                        ],
+                        "distribution_rule": {"form": "random"},
+                        "coupling_rule": {"rule": "independent"},
+                        "continuous_parameters": {
+                            "beta_prime": {"kind": "uniform_float", "low": 28.0, "high": 32.0},
+                            "theta": {"kind": "uniform_float", "low": 0.16, "high": 0.24},
+                            "gamma": {"kind": "uniform_float", "low": 0.04, "high": 0.08},
+                            "m0": {"kind": "uniform_float", "low": 0.008, "high": 0.015},
+                        },
+                    },
+                    "sampling_plan": {"sampler_name": "latin_hypercube", "n_samples": 3, "seed": 1234},
+                },
+            )
+            state = {"last_attempted_proposal_path": parent_path.as_posix()}
+            child = {
+                "proposal_id": "proposal_0002",
+                "parent_proposal_id": "proposal_0001",
+                "edit_type": "distribution_change",
+                "primary_edit": {
+                    "target": "continuous_parameters.theta.high",
+                    "before": 0.24,
+                    "after": 0.22,
+                },
+                "rationale": "slightly narrow theta",
+                "expected_effect": "reduce dispersion",
+                "family_definition": {
+                    "family_type": "single_distribution",
+                    "topology_name": "single_group",
+                    "subgroups": [
+                        {
+                            "name": "core",
+                            "role": "core",
+                            "count": {"kind": "uniform_int", "low": 3, "high": 5},
+                            "offset_center": {"kind": "fixed", "value": 0.0},
+                            "spread": {"kind": "uniform_float", "low": 2.0, "high": 3.5},
+                        }
+                    ],
+                    "distribution_rule": {"form": "random"},
+                    "coupling_rule": {"rule": "independent"},
+                    "continuous_parameters": {
+                        "beta_prime": {"kind": "uniform_float", "low": 28.0, "high": 32.0},
+                        "theta": {"kind": "uniform_float", "low": 0.16, "high": 0.22},
+                        "gamma": {"kind": "uniform_float", "low": 0.04, "high": 0.08},
+                        "m0": {"kind": "uniform_float", "low": 0.008, "high": 0.015},
+                    },
+                },
+                "sampling_plan": {"sampler_name": "latin_hypercube", "n_samples": 3, "seed": 1234},
+            }
+            proposal = _prevalidate_agent_proposal(child, self._runtime_config(), state)
+            self.assertEqual(proposal.edit_type, "scalar_tune")
 
     def test_ai_step_bootstrap_round_uses_existing_initial_seed_without_llm(self) -> None:
         state = {

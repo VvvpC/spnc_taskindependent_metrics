@@ -17,7 +17,7 @@ from .config import load_autoresearch_config
 from .loop import init_run, load_current_proposal, run_step
 from .models import Proposal, SUPPORTED_EDIT_TYPES
 from .summary import build_next_context_summary
-from .validator import ProposalValidationError, validate_proposal
+from .validator import ProposalValidationError, infer_allowed_edit_types, validate_proposal
 
 
 class LLMBackendError(RuntimeError):
@@ -293,10 +293,25 @@ def _prevalidate_agent_proposal(
     runtime_config: Mapping[str, Any],
     state: Mapping[str, Any],
 ) -> Proposal:
-    proposal = Proposal.from_mapping(proposal_payload)
+    normalized_payload = dict(proposal_payload)
+    proposal = Proposal.from_mapping(normalized_payload)
     parent_proposal = _load_parent_proposal_from_state(state)
-    validate_proposal(proposal, runtime_config, parent_proposal=parent_proposal)
-    return proposal
+    try:
+        validate_proposal(proposal, runtime_config, parent_proposal=parent_proposal)
+        return proposal
+    except ProposalValidationError as exc:
+        allowed_types, diagnostics = infer_allowed_edit_types(
+            proposal,
+            runtime_config,
+            parent_proposal=parent_proposal,
+        )
+        if proposal.edit_type not in allowed_types and len(allowed_types) == 1:
+            corrected_payload = dict(normalized_payload)
+            corrected_payload["edit_type"] = next(iter(allowed_types))
+            corrected_proposal = Proposal.from_mapping(corrected_payload)
+            validate_proposal(corrected_proposal, runtime_config, parent_proposal=parent_proposal)
+            return corrected_proposal
+        raise ProposalValidationError(f"{exc}. Inferred allowed edit types: {sorted(allowed_types)}. Diagnostics: {diagnostics}") from exc
 
 
 def _latest_round_payload(state: Mapping[str, Any], filename: str) -> dict[str, Any] | None:

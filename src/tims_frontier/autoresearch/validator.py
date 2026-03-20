@@ -165,6 +165,21 @@ def _classify_semantic_diff(parent: CompiledFamilySpec, child: CompiledFamilySpe
     return allowed_types, diagnostics
 
 
+def infer_allowed_edit_types(
+    proposal: Proposal,
+    runtime_config: Mapping[str, Any],
+    *,
+    parent_proposal: Proposal | None = None,
+) -> tuple[set[str], dict[str, Any]]:
+    """Infer which edit types are semantically valid for a proposal relative to its parent."""
+
+    if parent_proposal is None:
+        return ({"initial_seed"} if proposal.parent_proposal_id is None else set()), {"bootstrap": True}
+    compiled_parent = compile_proposal(parent_proposal, runtime_config)
+    compiled_child = compile_proposal(proposal, runtime_config)
+    return _classify_semantic_diff(compiled_parent, compiled_child)
+
+
 def validate_proposal(
     proposal: Proposal,
     runtime_config: Mapping[str, Any],
