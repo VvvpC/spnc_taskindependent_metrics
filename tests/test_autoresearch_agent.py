@@ -11,10 +11,26 @@ for entry in [REPO_ROOT / "src"]:
     if entry_text not in sys.path:
         sys.path.insert(0, entry_text)
 
-from tims_frontier.autoresearch.agent import _decode_json_like, replace_current_proposal_in_train, resolve_llm_settings
+from tims_frontier.autoresearch.agent import (
+    _decode_json_like,
+    _normalize_proposal_payload,
+    _prevalidate_agent_proposal,
+    replace_current_proposal_in_train,
+    resolve_llm_settings,
+)
 
 
 class AgentHelperTests(unittest.TestCase):
+    def _runtime_config(self) -> dict[str, object]:
+        return {
+            "constraints": {
+                "beta_prime": {"min": 5.0, "max": 50.0},
+                "theta": {"min": 0.01, "max": 0.8},
+                "gamma": {"min": 0.001, "max": 0.3},
+                "m0": {"min": 0.001, "max": 0.05},
+            }
+        }
+
     def test_decode_json_like_handles_fenced_wrapper(self) -> None:
         payload = _decode_json_like(
             """```json
@@ -114,6 +130,78 @@ class AgentHelperTests(unittest.TestCase):
             self.assertEqual(settings.api_key, "file-key")
             self.assertEqual(settings.base_url, "https://api.moonshot.ai/v1")
             self.assertEqual(settings.model, "kimi-k2.5")
+
+    def test_normalize_proposal_payload_maps_edit_type_alias(self) -> None:
+        payload = _normalize_proposal_payload(
+            {
+                "proposal_id": "proposal_0002",
+                "parent_proposal_id": "proposal_0001",
+                "edit_type": "parameter_range_narrowing",
+                "primary_edit": {"target": "continuous_parameters.gamma.high", "before": 0.08, "after": 0.07},
+                "rationale": "narrow the gamma range",
+                "expected_effect": "reduce dispersion",
+                "family_definition": {
+                    "family_type": "single_distribution",
+                    "topology_name": "single_group",
+                    "subgroups": [
+                        {
+                            "name": "core",
+                            "role": "core",
+                            "count": {"kind": "uniform_int", "low": 3, "high": 5},
+                            "offset_center": {"kind": "fixed", "value": 0.0},
+                            "spread": {"kind": "uniform_float", "low": 2.0, "high": 3.5},
+                        }
+                    ],
+                    "distribution_rule": {"form": "random"},
+                    "coupling_rule": {"rule": "independent"},
+                    "continuous_parameters": {
+                        "beta_prime": {"kind": "uniform_float", "low": 28.0, "high": 32.0},
+                        "theta": {"kind": "uniform_float", "low": 0.16, "high": 0.24},
+                        "gamma": {"kind": "uniform_float", "low": 0.04, "high": 0.07},
+                        "m0": {"kind": "uniform_float", "low": 0.008, "high": 0.015},
+                    },
+                },
+                "sampling_plan": {"sampler_name": "latin_hypercube", "n_samples": 3, "seed": 1234},
+            }
+        )
+        self.assertEqual(payload["edit_type"], "scalar_tune")
+
+    def test_prevalidate_agent_proposal_accepts_normalized_scalar_tune(self) -> None:
+        state = {
+            "last_attempted_proposal_path": None,
+        }
+        initial = {
+            "proposal_id": "proposal_0001",
+            "parent_proposal_id": None,
+            "edit_type": "initial_seed",
+            "primary_edit": {"target": "initialization", "before": None, "after": "single_distribution_random_independent"},
+            "rationale": "baseline",
+            "expected_effect": "baseline",
+            "family_definition": {
+                "family_type": "single_distribution",
+                "topology_name": "single_group",
+                "subgroups": [
+                    {
+                        "name": "core",
+                        "role": "core",
+                        "count": {"kind": "uniform_int", "low": 3, "high": 5},
+                        "offset_center": {"kind": "fixed", "value": 0.0},
+                        "spread": {"kind": "uniform_float", "low": 2.0, "high": 3.5},
+                    }
+                ],
+                "distribution_rule": {"form": "random"},
+                "coupling_rule": {"rule": "independent"},
+                "continuous_parameters": {
+                    "beta_prime": {"kind": "uniform_float", "low": 28.0, "high": 32.0},
+                    "theta": {"kind": "uniform_float", "low": 0.16, "high": 0.24},
+                    "gamma": {"kind": "uniform_float", "low": 0.04, "high": 0.08},
+                    "m0": {"kind": "uniform_float", "low": 0.008, "high": 0.015},
+                },
+            },
+            "sampling_plan": {"sampler_name": "latin_hypercube", "n_samples": 3, "seed": 1234},
+        }
+        proposal = _prevalidate_agent_proposal(initial, self._runtime_config(), state)
+        self.assertEqual(proposal.edit_type, "initial_seed")
 
 
 if __name__ == "__main__":
