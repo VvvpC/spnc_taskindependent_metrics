@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping
 from tims_frontier.storage.records import make_frontier_record
 
 
-def _dominates(
+def dominates(
     left: Mapping[str, Any],
     right: Mapping[str, Any],
     *,
@@ -35,6 +35,28 @@ def _dominates(
     return better_or_equal and strictly_better
 
 
+def extract_nondominated_rows(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    metrics: list[str],
+    directions: Mapping[str, str],
+    epsilon: float = 0.0,
+) -> list[Mapping[str, Any]]:
+    """Return the nondominated subset under the supplied multi-objective definition."""
+
+    materialized = list(rows)
+    nondominated: list[Mapping[str, Any]] = []
+    for row in materialized:
+        dominated = any(
+            dominates(other, row, metrics=metrics, directions=directions, epsilon=epsilon)
+            for other in materialized
+            if other is not row
+        )
+        if not dominated:
+            nondominated.append(row)
+    return nondominated
+
+
 def extract_frontier_points(
     trial_rows: Iterable[Mapping[str, Any]],
     resolved_config: Mapping[str, Any],
@@ -57,15 +79,12 @@ def extract_frontier_points(
     frontier_rows: list[dict[str, Any]] = []
     for family in {row["family"] for row in completed}:
         family_rows = [row for row in completed if row["family"] == family]
-        nondominated: list[Mapping[str, Any]] = []
-        for row in family_rows:
-            dominated = any(
-                _dominates(other, row, metrics=metrics, directions=directions, epsilon=epsilon)
-                for other in family_rows
-                if other["trial_id"] != row["trial_id"]
-            )
-            if not dominated:
-                nondominated.append(row)
+        nondominated = extract_nondominated_rows(
+            family_rows,
+            metrics=metrics,
+            directions=directions,
+            epsilon=epsilon,
+        )
         for index, row in enumerate(nondominated, start=1):
             duplicate_count = key_counts[(row["family"], float(row["MC"]), float(row["CQ"]))]
             frontier_rows.append(

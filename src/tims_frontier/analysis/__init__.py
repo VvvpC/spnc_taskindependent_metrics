@@ -1,5 +1,5 @@
 """Frontier extraction utilities for the TIMs frontier workflow."""
 
-from .frontier import extract_frontier_points
+from .frontier import dominates, extract_frontier_points, extract_nondominated_rows
 
-__all__ = ["extract_frontier_points"]
+__all__ = ["dominates", "extract_frontier_points", "extract_nondominated_rows"]

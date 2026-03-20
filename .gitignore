@@ -238,3 +238,9 @@ static
 *.npz
 *.npz
 *.png
+run.log
+results.tsv
+results/raw/autoresearch_v1/
+results/processed/autoresearch_v1/
+results/raw/autoresearch_v1_demo/
+results/processed/autoresearch_v1_demo/
