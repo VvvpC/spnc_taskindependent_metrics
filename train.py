@@ -23,19 +23,17 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0003',
- 'parent_proposal_id': 'proposal_0002',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0005',
+ 'parent_proposal_id': 'proposal_0004',
  'edit_type': 'scalar_tune',
- 'primary_edit': {'target': 'continuous_parameters.beta_prime.high', 'before': 32.0, 'after': 33.0},
- 'rationale': 'Following the gamma tune that improved MC but decreased CQ, we slightly increase '
-              'the upper bound of beta_prime (inverse temperature/energy scaling) from 32.0 to '
-              '33.0. This minimal expansion explores configurations with stronger energy '
-              'confinement, potentially recovering CQ performance while building upon the recent '
-              'MC gains.',
- 'expected_effect': 'The expanded beta_prime range should enable sampling of configurations with '
-                    'sharper energy distributions, potentially pushing the Pareto frontier outward '
-                    'in the CQ dimension and consolidating the recent MC improvements. The '
-                    'hypervolume contribution S_abs is expected to be positive.',
+ 'primary_edit': {'target': 'continuous_parameters.m0.low', 'before': 0.008, 'after': 0.007},
+ 'rationale': 'Following the pattern where expanding upper bounds improved MC at CQ expense, we '
+              'now explore reducing the lower bound of m0 to allow lighter mass configurations. '
+              'This could improve dynamic responsiveness and potentially recover some CQ '
+              'performance while maintaining MC gains from previous parameter expansions.',
+ 'expected_effect': 'The expanded m0 range at the lower end should sample configurations with '
+                    'lighter effective masses, potentially improving sensitivity and pushing the '
+                    'Pareto frontier to achieve better CQ-MC balance.',
  'family_definition': {'family_type': 'single_distribution',
                        'topology_name': 'single_group',
                        'subgroups': [{'name': 'core',
@@ -52,13 +50,13 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0003',
                                                                 'low': 28.0,
                                                                 'high': 33.0},
                                                  'theta': {'kind': 'uniform_float',
-                                                           'low': 0.16,
+                                                           'low': 0.15,
                                                            'high': 0.25},
                                                  'gamma': {'kind': 'uniform_float',
                                                            'low': 0.04,
                                                            'high': 0.09},
                                                  'm0': {'kind': 'uniform_float',
-                                                        'low': 0.008,
+                                                        'low': 0.007,
                                                         'high': 0.015}},
                        'metadata': {}},
  'sampling_plan': {'sampler_name': 'latin_hypercube',
@@ -66,7 +64,7 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0003',
                    'seed': 1234,
                    'metadata': {}},
  'auto_completed_fields': [],
- 'notes': 'Minimal scalar tune of beta_prime parameter following gamma adjustment strategy.',
+ 'notes': 'Minimal scalar tune of m0.low following theta.low adjustment, targeting CQ recovery.',
  'metadata': {}}
 
 
