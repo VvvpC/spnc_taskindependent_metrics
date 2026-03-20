@@ -54,6 +54,21 @@ Or a bounded loop:
 python scripts/run_autoresearch_v1.py loop --iterations 3
 ```
 
+For the automatic AI-authored path, configure a Kimi-compatible OpenAI endpoint and run:
+
+```bash
+cp configs/autoresearch_v1/kimi.env.example configs/autoresearch_v1/kimi.env
+# then edit configs/autoresearch_v1/kimi.env with your real key
+python scripts/run_autoresearch_v1.py init
+python scripts/run_autoresearch_v1.py ai-step
+```
+
+Or a bounded automatic loop:
+
+```bash
+python scripts/run_autoresearch_v1.py ai-loop --iterations 3
+```
+
 The step order is fixed:
 
 1. Validate that only `train.py` changed.
@@ -73,6 +88,8 @@ If a run crashes:
 - inspect the tail
 - look at the saved `crash_tail.txt` and `crash_context.json`
 - make a minimal fix in `train.py`
+
+If you are using `ai-step` or `ai-loop`, the framework automatically injects the most recent crash tail, failure metadata, and last attempted proposal into the next LLM prompt.
 
 Do not respond to a crash by editing framework files. The fixed runtime is intentionally sealed.
 

@@ -3,8 +3,11 @@
 __all__ = [
     "AutoResearchArchive",
     "DEFAULT_CONFIG_PATH",
+    "LLMBackendError",
     "ProposalValidationError",
     "SUMMARY_PREFIX",
+    "ai_loop",
+    "ai_step",
     "compile_proposal",
     "compute_frontier",
     "compute_hypervolume",
@@ -26,6 +29,14 @@ def __getattr__(name: str):
         from .archive import AutoResearchArchive
 
         return AutoResearchArchive
+    if name in {"LLMBackendError", "ai_loop", "ai_step"}:
+        from .agent import LLMBackendError, ai_loop, ai_step
+
+        return {
+            "LLMBackendError": LLMBackendError,
+            "ai_loop": ai_loop,
+            "ai_step": ai_step,
+        }[name]
     if name in {"DEFAULT_CONFIG_PATH", "load_autoresearch_config"}:
         from .config import DEFAULT_CONFIG_PATH, load_autoresearch_config
 

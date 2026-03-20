@@ -28,7 +28,7 @@ def _bootstrap_sys_path() -> None:
 _bootstrap_sys_path()
 
 
-from tims_frontier.autoresearch import export_lineage, init_run, run_loop, run_step, show_best
+from tims_frontier.autoresearch import ai_loop, ai_step, export_lineage, init_run, run_loop, run_step, show_best
 
 
 def _parse_args() -> argparse.Namespace:
@@ -41,8 +41,11 @@ def _parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("init", help="Initialize an autoresearch run.")
     subparsers.add_parser("step", help="Run one autoresearch keep/discard step.")
+    subparsers.add_parser("ai-step", help="Ask the configured LLM to update train.py, then run one step.")
     loop_parser = subparsers.add_parser("loop", help="Run multiple consecutive steps.")
     loop_parser.add_argument("--iterations", type=int, default=1, help="How many steps to attempt.")
+    ai_loop_parser = subparsers.add_parser("ai-loop", help="Run multiple automatic AI-authored steps.")
+    ai_loop_parser.add_argument("--iterations", type=int, default=1, help="How many AI-authored steps to attempt.")
     subparsers.add_parser("best", help="Show the current best kept proposal.")
     subparsers.add_parser("export", help="Export the lineage summary.")
     return parser.parse_args()
@@ -54,8 +57,12 @@ def main() -> int:
         payload = init_run(args.config)
     elif args.command == "step":
         payload = run_step(args.config)
+    elif args.command == "ai-step":
+        payload = ai_step(args.config)
     elif args.command == "loop":
         payload = run_loop(args.config, iterations=int(args.iterations))
+    elif args.command == "ai-loop":
+        payload = ai_loop(args.config, iterations=int(args.iterations))
     elif args.command == "best":
         payload = show_best(args.config)
     else:

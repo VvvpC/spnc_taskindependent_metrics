@@ -88,6 +88,7 @@ It handles:
 - Pareto and hypervolume scoring
 - run archive
 - traceback injection
+- automatic LLM prompting for `train.py`
 - keep/discard loop helpers
 
 The AI must not edit these files during the experiment loop.
@@ -110,6 +111,21 @@ Run several steps:
 
 ```bash
 python scripts/run_autoresearch_v1.py loop --iterations 3
+```
+
+Automatic AI-authored step with a Kimi-compatible OpenAI endpoint:
+
+```bash
+cp configs/autoresearch_v1/kimi.env.example configs/autoresearch_v1/kimi.env
+# then edit configs/autoresearch_v1/kimi.env with your real key
+python scripts/run_autoresearch_v1.py init
+python scripts/run_autoresearch_v1.py ai-step
+```
+
+Automatic AI-authored loop:
+
+```bash
+python scripts/run_autoresearch_v1.py ai-loop --iterations 3
 ```
 
 Inspect the current best:
@@ -183,9 +199,19 @@ This makes the next round act like a closed-loop debugger.
 
 ## Replacing the AI backend
 
-The current v1 expects the agent to edit `train.py` directly.
+The current v1 supports two frontends:
 
-That is the main backend.
+- manual or chat-driven editing of `train.py`
+- `ai-step` / `ai-loop`, which call an OpenAI-compatible API and then rewrite only `CURRENT_PROPOSAL` inside `train.py`
+
+The automatic backend reads:
+
+- `program.md`
+- current `train.py`
+- the last attempted proposal
+- the latest context summary
+- the latest crash tail and failure payload
+- `configs/autoresearch_v1/kimi.env` if present
 
 Later extensions can still build other frontends on top of the fixed runtime, but they should preserve the same constraints:
 
@@ -196,6 +222,7 @@ Later extensions can still build other frontends on top of the fixed runtime, bu
 ## Current limitations
 
 - The loop currently uses direct `train.py` editing instead of a richer external proposal API.
+- The automatic backend assumes an OpenAI-compatible chat-completions endpoint. The default config targets Moonshot/Kimi, but the exact API key and base URL are supplied through environment variables.
 - The supported family compiler is intentionally small: `single_distribution` and `bimodal_core_tail`.
 - The real evaluator is slow, so tests use lightweight logic and should not depend on long physics runs.
 - Keep/discard uses git state, so autonomous operation assumes a clean dedicated branch.
