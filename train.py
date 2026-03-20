@@ -23,17 +23,19 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
- 'parent_proposal_id': None,
- 'edit_type': 'initial_seed',
- 'primary_edit': {'target': 'subgroup.core.spread.high', 'before': 3.5, 'after': 3.0},
- 'rationale': 'Narrow the maximum spread in the core subgroup from 3.5 to 3.0 to reduce risk of '
-              'numerical instability while maintaining heterogeneity. This conservative adjustment '
-              'improves first-run success probability without sacrificing design diversity.',
- 'expected_effect': 'Produces a slightly more constrained family that generates safer initial '
-                    'configurations. The reduced upper bound on spread should prevent extreme '
-                    'parameter configurations while preserving sufficient exploration space. '
-                    'Hypervolume potential should remain comparable but with improved robustness.',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
+ 'parent_proposal_id': 'proposal_0001',
+ 'edit_type': 'scalar_tune',
+ 'primary_edit': {'target': 'continuous_parameters.theta.high', 'before': 0.24, 'after': 0.25},
+ 'rationale': 'Slightly expand the theta parameter upper bound from 0.24 to 0.25 to increase the '
+              'exploration space for rotational coupling strength. This minimal expansion may '
+              'allow discovery of designs with improved MC performance while maintaining the '
+              'conservative spread constraints established in the baseline.',
+ 'expected_effect': 'The expanded theta range should enable sampling of configurations with '
+                    'slightly stronger rotational coupling, potentially pushing the Pareto '
+                    'frontier outward in the MC dimension. The hypervolume contribution S_abs is '
+                    'expected to be positive but modest due to the minimal nature of this scalar '
+                    'tune.',
  'family_definition': {'family_type': 'single_distribution',
                        'topology_name': 'single_group',
                        'subgroups': [{'name': 'core',
@@ -51,7 +53,7 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
                                                                 'high': 32.0},
                                                  'theta': {'kind': 'uniform_float',
                                                            'low': 0.16,
-                                                           'high': 0.24},
+                                                           'high': 0.25},
                                                  'gamma': {'kind': 'uniform_float',
                                                            'low': 0.04,
                                                            'high': 0.08},
@@ -60,6 +62,7 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
                                                         'high': 0.015}},
                        'metadata': {}},
  'sampling_plan': {'sampler_name': 'latin_hypercube', 'n_samples': 3, 'seed': 1234, 'metadata': {}},
+ 'auto_completed_fields': [],
  'notes': 'Subsequent rounds should keep proposal_id monotonic and apply only one minimal semantic '
           'edit.',
  'metadata': {}}
