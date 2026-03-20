@@ -23,19 +23,19 @@ from tims_frontier.autoresearch import run_train_file
 
 
 # This is the only file the autoresearch agent is allowed to edit.
-CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
- 'parent_proposal_id': None,
- 'edit_type': 'initial_seed',
- 'primary_edit': {'target': 'continuous_parameters.theta.high', 'before': 0.24, 'after': 0.25},
- 'rationale': 'Slightly expand the theta parameter upper bound from 0.24 to 0.25 to increase the '
-              'exploration space for rotational coupling strength. This minimal expansion may '
-              'allow discovery of designs with improved MC performance while maintaining the '
-              'conservative spread constraints established in the baseline.',
- 'expected_effect': 'The expanded theta range should enable sampling of configurations with '
-                    'slightly stronger rotational coupling, potentially pushing the Pareto '
-                    'frontier outward in the MC dimension. The hypervolume contribution S_abs is '
-                    'expected to be positive but modest due to the minimal nature of this scalar '
-                    'tune.',
+CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
+ 'parent_proposal_id': 'proposal_0001',
+ 'edit_type': 'scalar_tune',
+ 'primary_edit': {'target': 'continuous_parameters.gamma.high', 'before': 0.08, 'after': 0.09},
+ 'rationale': 'Following the theta expansion, we slightly increase the upper bound of gamma '
+              '(inter-dot coupling strength) from 0.08 to 0.09 to explore configurations with '
+              'stronger coupling. This minimal expansion may enable designs with improved MC '
+              'performance by allowing tighter dot clustering while maintaining conservative '
+              'constraints.',
+ 'expected_effect': 'The expanded gamma range should enable sampling of configurations with '
+                    'stronger inter-dot coupling, potentially pushing the Pareto frontier outward '
+                    'in the MC dimension. The hypervolume contribution S_abs is expected to be '
+                    'positive but modest due to the minimal nature of this scalar tune.',
  'family_definition': {'family_type': 'single_distribution',
                        'topology_name': 'single_group',
                        'subgroups': [{'name': 'core',
@@ -56,15 +56,17 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0001',
                                                            'high': 0.25},
                                                  'gamma': {'kind': 'uniform_float',
                                                            'low': 0.04,
-                                                           'high': 0.08},
+                                                           'high': 0.09},
                                                  'm0': {'kind': 'uniform_float',
                                                         'low': 0.008,
                                                         'high': 0.015}},
                        'metadata': {}},
- 'sampling_plan': {'sampler_name': 'latin_hypercube', 'n_samples': 10, 'seed': 1234, 'metadata': {}},
+ 'sampling_plan': {'sampler_name': 'latin_hypercube',
+                   'n_samples': 10,
+                   'seed': 1234,
+                   'metadata': {}},
  'auto_completed_fields': [],
- 'notes': 'Subsequent rounds should keep proposal_id monotonic and apply only one minimal semantic '
-          'edit.',
+ 'notes': 'Minimal scalar tune of gamma parameter following theta expansion strategy.',
  'metadata': {}}
 
 
