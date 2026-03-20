@@ -10,8 +10,12 @@ Thic script contains a framework for evaluating the MC, KRandGR and computationa
 
 # import necessary libraries
 import os
-import torch 
-import torch.nn as nn
+try:
+    import torch
+    import torch.nn as nn
+except Exception:
+    torch = None
+    nn = None
 from spnc import spnc_anisotropy
 import numpy as np
 import matplotlib.pyplot as plt
@@ -72,9 +76,9 @@ def generate_signal(I,washout = 50,seed=1234):
 
 def RidgeRegression(states, target, l, bias=True):
     # Ensure numpy
-    if torch.is_tensor(states):
+    if torch is not None and torch.is_tensor(states):
         states = states.detach().cpu().numpy()
-    if torch.is_tensor(target):
+    if torch is not None and torch.is_tensor(target):
         target = target.detach().cpu().numpy()
     if bias==True:
         # Add bias to states
@@ -708,6 +712,5 @@ if __name__ == "__main__":
 #         nrmse.append(run['results']['NRMSE'])
 
 # print(nrmse[0])
-
 
 
