@@ -61,7 +61,7 @@ CURRENT_PROPOSAL = {'proposal_id': 'proposal_0002',
                                                         'low': 0.008,
                                                         'high': 0.015}},
                        'metadata': {}},
- 'sampling_plan': {'sampler_name': 'latin_hypercube', 'n_samples': 3, 'seed': 1234, 'metadata': {}},
+ 'sampling_plan': {'sampler_name': 'latin_hypercube', 'n_samples': 10, 'seed': 1234, 'metadata': {}},
  'auto_completed_fields': [],
  'notes': 'Subsequent rounds should keep proposal_id monotonic and apply only one minimal semantic '
           'edit.',

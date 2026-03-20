@@ -59,7 +59,7 @@
   },
   "evaluator": {
     "mode": "real",
-    "nvirt": 25,
+    "nvirt": 20,
     "shared_defaults": {
       "physical": {
         "h": 0.4,
