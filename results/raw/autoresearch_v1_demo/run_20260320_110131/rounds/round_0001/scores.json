@@ -1,0 +1,63 @@
+{
+  "baseline_points": [
+    {
+      "MC": 0.4382079764816778,
+      "CQ": 0.92249746916097
+    },
+    {
+      "MC": 0.3943120379027808,
+      "CQ": 0.8161467073791954
+    },
+    {
+      "MC": 0.4235279962937506,
+      "CQ": 0.8616074461616978
+    }
+  ],
+  "baseline_frontier": [
+    {
+      "MC": 0.4382079764816778,
+      "CQ": 0.92249746916097
+    }
+  ],
+  "baseline_hv": 0.4042457492704976,
+  "family_points": [
+    {
+      "MC": 0.4382079764816778,
+      "CQ": 0.92249746916097
+    },
+    {
+      "MC": 0.3943120379027808,
+      "CQ": 0.8161467073791954
+    },
+    {
+      "MC": 0.4235279962937506,
+      "CQ": 0.8616074461616978
+    }
+  ],
+  "family_frontier": [
+    {
+      "MC": 0.4382079764816778,
+      "CQ": 0.92249746916097
+    }
+  ],
+  "family_hv": 0.4042457492704976,
+  "combined_frontier": [
+    {
+      "MC": 0.4382079764816778,
+      "CQ": 0.92249746916097
+    }
+  ],
+  "combined_hv": 0.4042457492704976,
+  "score_s_abs": 0.0,
+  "audit_metrics": {
+    "score_s_marg": null,
+    "frontier_external_span": {
+      "mc_gain": 0.0,
+      "cq_gain": 0.0
+    },
+    "repeat_consistency": 1.0,
+    "point_count_beyond_baseline": 1,
+    "continuous_expansion_flag": false,
+    "baseline_mode": "first_round_family"
+  }
+}

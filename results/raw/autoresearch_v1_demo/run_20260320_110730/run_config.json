@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "study": {
+    "study_id": "heterogeneous_nanodot_autoresearch_v1_demo",
+    "title": "Autoresearch V1 Demo"
+  },
+  "storage": {
+    "run_root": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/raw/autoresearch_v1_demo",
+    "processed_root": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/processed/autoresearch_v1_demo",
+    "active_run_pointer": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/raw/autoresearch_v1_demo/_active_run.json",
+    "config_path": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/configs/autoresearch_v1/demo.json"
+  },
+  "runtime": {
+    "editable_paths": [
+      "train.py"
+    ],
+    "crash_tail_lines": 100
+  },
+  "summary": {
+    "recent_rounds": 5
+  },
+  "constraints": {
+    "beta_prime": {
+      "min": 5.0,
+      "max": 50.0
+    },
+    "theta": {
+      "min": 0.01,
+      "max": 0.8
+    },
+    "gamma": {
+      "min": 0.001,
+      "max": 0.3
+    },
+    "m0": {
+      "min": 0.001,
+      "max": 0.05
+    }
+  },
+  "evaluator": {
+    "mode": "mock",
+    "nvirt": 10,
+    "shared_defaults": {
+      "physical": {
+        "h": 0.4,
+        "theta_H": 90,
+        "k_s_0": 0,
+        "phi": 45
+      },
+      "network": {
+        "bias": true,
+        "Nwarmup": 0
+      },
+      "simulation": {
+        "delay_feedback": 0,
+        "voltage_noise": false,
+        "johnson_noise": false,
+        "thermal_noise": false
+      }
+    },
+    "tims": {
+      "mc": {
+        "signal_len": 40,
+        "delays": 10,
+        "splits": [
+          0.2,
+          0.6
+        ]
+      },
+      "kr_gr": {
+        "n_wash": 5,
+        "threshold": 0.001
+      }
+    }
+  },
+  "scoring": {
+    "reference_point": {
+      "MC": 0.0,
+      "CQ": 0.0
+    },
+    "normalization": {
+      "mode": "fixed_bounds",
+      "bounds": {
+        "MC": {
+          "min": 0.0,
+          "max": 10.0
+        },
+        "CQ": {
+          "min": 0.0,
+          "max": 100.0
+        }
+      }
+    }
+  }
+}

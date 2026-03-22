@@ -1,0 +1,7 @@
+{
+  "proposal_id": "proposal_0001",
+  "status": "failed",
+  "exception_type": "TypeError",
+  "message": "can't multiply sequence by non-int of type 'float'",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/runtime.py\", line 81, in run_train_file\n    sampled_instances = sample_family(compiled)\n  File \"/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/sampler.py\", line 137, in sample_family\n    continuous_sequences = {\n  File \"/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/sampler.py\", line 138, in <dictcomp>\n    key: _sample_parameter_sequence(spec, n_samples=n_samples, sampler_name=plan.sampler_name, rng=rng)\n  File \"/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/sampler.py\", line 34, in _sample_parameter_sequence\n    values = low + (high - low) * unit\nTypeError: can't multiply sequence by non-int of type 'float'\n"
+}

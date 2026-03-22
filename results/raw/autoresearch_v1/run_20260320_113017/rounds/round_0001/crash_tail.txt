@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/train.py", line 58, in <module>
+    main()
+  File "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/train.py", line 54, in main
+    run_train_file(CURRENT_PROPOSAL)
+  File "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/runtime.py", line 87, in run_train_file
+    evaluation_results = evaluate_sampled_instances(
+  File "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/adapter.py", line 144, in evaluate_sampled_instances
+    metrics = _evaluate_real_instance(instance, runtime_config, seed_bundle=seed_bundle)
+  File "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/adapter.py", line 61, in _evaluate_real_instance
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'

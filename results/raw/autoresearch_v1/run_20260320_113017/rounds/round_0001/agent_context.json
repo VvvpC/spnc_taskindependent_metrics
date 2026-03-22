@@ -1,0 +1,98 @@
+{
+  "program_md": "# Autoresearch V1 Program\n\nThis repository now follows a narrowed autoresearch-style loop for heterogeneous nanodot reservoir design.\n\n## Core rules\n\n1. Only edit `train.py`.\n2. Do not edit evaluator/runtime/framework files.\n3. Each round proposes exactly one heterogeneous design family, not a single point.\n4. The new proposal must be a minimal semantic change relative to the last attempted proposal.\n5. The first successful round becomes the fixed baseline.\n6. From the second successful round onward, the only primary objective is:\n\n   `S_abs = HV(frontier(baseline ∪ P(G))) - HV(frontier(baseline))`\n\n7. Keep a commit only if:\n   - it is the first successful baseline round, or\n   - its `S_abs` strictly improves over the current best kept round.\n\nIf not, discard it and reset back to the current best commit.\n\n## Editable surface\n\n`train.py` must always export:\n\n- `CURRENT_PROPOSAL`\n- `main()`\n\n`CURRENT_PROPOSAL` must contain:\n\n- `proposal_id`\n- `parent_proposal_id`\n- `edit_type`\n- `primary_edit`\n- `rationale`\n- `expected_effect`\n- `family_definition`\n- `sampling_plan`\n\nDo not move the runtime call out of `main()`. The framework depends on `python train.py`.\n\n## Run loop\n\nUse the fixed runner:\n\n```bash\npython scripts/run_autoresearch_v1.py init\npython scripts/run_autoresearch_v1.py step\n```\n\nOr a bounded loop:\n\n```bash\npython scripts/run_autoresearch_v1.py loop --iterations 3\n```\n\nFor the automatic AI-authored path, configure a Kimi-compatible OpenAI endpoint and run:\n\n```bash\ncp configs/autoresearch_v1/kimi.env.example configs/autoresearch_v1/kimi.env\n# then edit configs/autoresearch_v1/kimi.env with your real key\npython scripts/run_autoresearch_v1.py init\npython scripts/run_autoresearch_v1.py ai-step\n```\n\nOr a bounded automatic loop:\n\n```bash\npython scripts/run_autoresearch_v1.py ai-loop --iterations 3\n```\n\nThe step order is fixed:\n\n1. Validate that only `train.py` changed.\n2. Commit the `train.py` experiment.\n3. Run `python train.py > run.log 2>&1`.\n4. Parse the machine-readable summary from the log.\n5. If the summary is missing, treat the run as a crash.\n6. Capture the last 50-100 lines from `run.log` and feed that traceback context into the next proposal attempt.\n7. Append one row to `results.tsv`.\n8. Keep or discard the commit based on the rule above.\n\n## Crash handling\n\nIf a run crashes:\n\n- read `run.log`\n- inspect the tail\n- look at the saved `crash_tail.txt` and `crash_context.json`\n- make a minimal fix in `train.py`\n\nIf you are using `ai-step` or `ai-loop`, the framework automatically injects the most recent crash tail, failure metadata, and last attempted proposal into the next LLM prompt.\n\nDo not respond to a crash by editing framework files. The fixed runtime is intentionally sealed.\n\n## Output contract\n\nSuccessful `train.py` runs print one structured line:\n\n`AUTORESEARCH_SUMMARY {...}`\n\nThe loop runner extracts:\n\n- `proposal_id`\n- `status`\n- `baseline_hv`\n- `family_hv`\n- `score_s_abs`\n- `frontier_size`\n- `round_dir`\n\nIf that line is absent, the run is treated as a crash.\n\n## Design intent\n\nThe goal is not generic agent behavior. The goal is an interpretable scientific search loop:\n\n- one editable file\n- one proposal per round\n- one minimal semantic edit per round\n- fixed evaluator\n- fixed baseline after the first successful round\n- fixed scoring target\n",
+  "train_source": "from __future__ import annotations\n\nfrom pathlib import Path\nimport sys\n\nREPO_ROOT = Path(__file__).resolve().parent\nSOURCE_DIR = REPO_ROOT / \"src\"\nif str(SOURCE_DIR) not in sys.path:\n    sys.path.insert(0, str(SOURCE_DIR))\n\nfrom tims_frontier.autoresearch import run_train_file\n\n\n# This is the only file the autoresearch agent is allowed to edit.\nCURRENT_PROPOSAL = {\n    \"proposal_id\": \"proposal_0001\",\n    \"parent_proposal_id\": None,\n    \"edit_type\": \"initial_seed\",\n    \"primary_edit\": {\n        \"target\": \"initialization\",\n        \"before\": None,\n        \"after\": \"single_distribution_random_independent\",\n    },\n    \"rationale\": (\n        \"Start from a simple heterogeneous family with one subgroup and a random beta spread \"\n        \"so the first successful round can freeze the baseline frontier.\"\n    ),\n    \"expected_effect\": (\n        \"Establishes the fixed baseline for all later relative hypervolume comparisons.\"\n    ),\n    \"family_definition\": {\n        \"family_type\": \"single_distribution\",\n        \"topology_name\": \"single_group\",\n        \"subgroups\": [\n            {\n                \"name\": \"core\",\n                \"role\": \"core\",\n                \"count\": {\"kind\": \"uniform_int\", \"low\": 3, \"high\": 5},\n                \"offset_center\": {\"kind\": \"fixed\", \"value\": 0.0},\n                \"spread\": {\"kind\": \"uniform_float\", \"low\": 2.0, \"high\": 3.5},\n            }\n        ],\n        \"distribution_rule\": {\n            \"form\": \"random\",\n            \"clip_beta_to_positive\": True,\n        },\n        \"coupling_rule\": {\n            \"rule\": \"independent\",\n        },\n        \"continuous_parameters\": {\n            \"beta_prime\": {\"kind\": \"uniform_float\", \"low\": 28.0, \"high\": 32.0},\n            \"theta\": {\"kind\": \"uniform_float\", \"low\": 0.16, \"high\": 0.24},\n            \"gamma\": {\"kind\": \"uniform_float\", \"low\": 0.04, \"high\": 0.08},\n            \"m0\": {\"kind\": \"uniform_float\", \"low\": 0.008, \"high\": 0.015},\n        },\n    },\n    \"sampling_plan\": {\n        \"sampler_name\": \"latin_hypercube\",\n        \"n_samples\": 3,\n        \"seed\": 1234,\n    },\n    \"notes\": (\n        \"Subsequent rounds should keep proposal_id monotonic and apply only one minimal semantic edit.\"\n    ),\n}\n\n\ndef main() -> None:\n    run_train_file(CURRENT_PROPOSAL)\n\n\nif __name__ == \"__main__\":\n    main()\n",
+  "current_train_proposal": {
+    "proposal_id": "proposal_0001",
+    "parent_proposal_id": null,
+    "edit_type": "initial_seed",
+    "primary_edit": {
+      "target": "initialization",
+      "before": null,
+      "after": "single_distribution_random_independent"
+    },
+    "rationale": "Start from a simple heterogeneous family with one subgroup and a random beta spread so the first successful round can freeze the baseline frontier.",
+    "expected_effect": "Establishes the fixed baseline for all later relative hypervolume comparisons.",
+    "family_definition": {
+      "family_type": "single_distribution",
+      "topology_name": "single_group",
+      "subgroups": [
+        {
+          "name": "core",
+          "role": "core",
+          "count": {
+            "kind": "uniform_int",
+            "low": 3,
+            "high": 5
+          },
+          "offset_center": {
+            "kind": "fixed",
+            "value": 0.0
+          },
+          "spread": {
+            "kind": "uniform_float",
+            "low": 2.0,
+            "high": 3.5
+          },
+          "metadata": {}
+        }
+      ],
+      "distribution_rule": {
+        "form": "random",
+        "clip_beta_to_positive": true,
+        "metadata": {}
+      },
+      "coupling_rule": {
+        "rule": "independent",
+        "metadata": {}
+      },
+      "continuous_parameters": {
+        "beta_prime": {
+          "kind": "uniform_float",
+          "low": 28.0,
+          "high": 32.0
+        },
+        "theta": {
+          "kind": "uniform_float",
+          "low": 0.16,
+          "high": 0.24
+        },
+        "gamma": {
+          "kind": "uniform_float",
+          "low": 0.04,
+          "high": 0.08
+        },
+        "m0": {
+          "kind": "uniform_float",
+          "low": 0.008,
+          "high": 0.015
+        }
+      },
+      "metadata": {}
+    },
+    "sampling_plan": {
+      "sampler_name": "latin_hypercube",
+      "n_samples": 3,
+      "seed": 1234,
+      "metadata": {}
+    },
+    "auto_completed_fields": [],
+    "notes": "Subsequent rounds should keep proposal_id monotonic and apply only one minimal semantic edit.",
+    "metadata": {}
+  },
+  "last_attempted_proposal": null,
+  "next_context_summary": null,
+  "baseline_payload": null,
+  "latest_crash_context": null,
+  "latest_failure_payload": null,
+  "run_state_excerpt": {
+    "run_id": "run_20260320_113017",
+    "branch_name": "codex/autoresearch-v1",
+    "round_index": 0,
+    "best_commit": null,
+    "best_score": null,
+    "best_proposal_id": null,
+    "baseline_round_id": null,
+    "baseline_hv": null,
+    "last_attempted_proposal_id": null
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "proposal_id": "proposal_0001",
+  "status": "failed",
+  "exception_type": "ModuleNotFoundError",
+  "message": "No module named 'numpy'",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/runtime.py\", line 87, in run_train_file\n    evaluation_results = evaluate_sampled_instances(\n  File \"/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/adapter.py\", line 144, in evaluate_sampled_instances\n    metrics = _evaluate_real_instance(instance, runtime_config, seed_bundle=seed_bundle)\n  File \"/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/src/tims_frontier/autoresearch/adapter.py\", line 61, in _evaluate_real_instance\n    import numpy as np\nModuleNotFoundError: No module named 'numpy'\n"
+}

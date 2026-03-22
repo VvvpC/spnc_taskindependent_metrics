@@ -1,0 +1,39 @@
+{
+  "current_proposal": {
+    "proposal_id": "proposal_0001",
+    "parent_proposal_id": null,
+    "edit_type": "initial_seed",
+    "primary_edit": {
+      "target": "initialization",
+      "before": null,
+      "after": "single_distribution_random_independent"
+    },
+    "score_s_abs": 0.0,
+    "branch_decision": "pending"
+  },
+  "best_proposal": {
+    "proposal_id": null,
+    "best_score": null,
+    "best_commit": null
+  },
+  "baseline": {
+    "baseline_round_id": "round_0001",
+    "baseline_hv": 0.4042457492704976,
+    "baseline_point_count": 3
+  },
+  "recent_score_trend": [
+    {
+      "round_index": 1,
+      "proposal_id": "proposal_0001",
+      "score_s_abs": 0.0,
+      "status": "completed",
+      "branch_decision": "pending"
+    }
+  ],
+  "latest_frontier_expansion": {
+    "mc_gain": 0.0,
+    "cq_gain": 0.0
+  },
+  "recent_failures": [],
+  "reminder": "Next edit must be a minimal semantic change relative to the last attempted proposal. Only edit train.py."
+}

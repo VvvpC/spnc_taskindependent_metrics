@@ -1,0 +1,38 @@
+{
+  "run_id": "manual_20260320_110131",
+  "branch_name": "codex/autoresearch-v1",
+  "round_index": 1,
+  "best_commit": null,
+  "best_score": null,
+  "best_proposal_id": null,
+  "last_attempted_proposal_id": "proposal_0001",
+  "baseline_round_id": null,
+  "baseline_hv": null,
+  "recent_failures": [
+    {
+      "round_index": 1,
+      "proposal_id": "proposal_0001",
+      "exception_type": "TypeError",
+      "message": "can't multiply sequence by non-int of type 'float'",
+      "round_dir": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/raw/autoresearch_v1_demo/manual_20260320_110131/rounds/round_0001"
+    }
+  ],
+  "history": [
+    {
+      "round_index": 1,
+      "proposal_id": "proposal_0001",
+      "parent_proposal_id": null,
+      "edit_type": "initial_seed",
+      "primary_edit": {
+        "target": "initialization",
+        "before": null,
+        "after": "single_distribution_random_independent"
+      },
+      "status": "failed",
+      "branch_decision": "pending",
+      "proposal_raw_path": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/raw/autoresearch_v1_demo/manual_20260320_110131/rounds/round_0001/proposal_raw.json",
+      "round_dir": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/raw/autoresearch_v1_demo/manual_20260320_110131/rounds/round_0001",
+      "failed_at_utc": "2026-03-20T11:01:31Z"
+    }
+  ]
+}

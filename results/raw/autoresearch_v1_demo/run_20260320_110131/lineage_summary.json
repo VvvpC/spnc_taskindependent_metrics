@@ -1,0 +1,43 @@
+{
+  "run_id": "run_20260320_110131",
+  "branch_name": "codex/autoresearch-v1",
+  "round_index": 1,
+  "best_commit": null,
+  "best_score": null,
+  "best_proposal_id": null,
+  "last_attempted_proposal_id": "proposal_0001",
+  "baseline_round_id": "round_0001",
+  "baseline_hv": 0.4042457492704976,
+  "recent_failures": [],
+  "history": [
+    {
+      "round_index": 1,
+      "proposal_id": "proposal_0001",
+      "parent_proposal_id": null,
+      "edit_type": "initial_seed",
+      "primary_edit": {
+        "target": "initialization",
+        "before": null,
+        "after": "single_distribution_random_independent"
+      },
+      "family_type": "single_distribution",
+      "score_s_abs": 0.0,
+      "status": "completed",
+      "branch_decision": "pending",
+      "audit_metrics": {
+        "score_s_marg": null,
+        "frontier_external_span": {
+          "mc_gain": 0.0,
+          "cq_gain": 0.0
+        },
+        "repeat_consistency": 1.0,
+        "point_count_beyond_baseline": 1,
+        "continuous_expansion_flag": false,
+        "baseline_mode": "first_round_family"
+      },
+      "proposal_raw_path": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/raw/autoresearch_v1_demo/run_20260320_110131/rounds/round_0001/proposal_raw.json",
+      "round_dir": "/Users/vvvp/Documents/GitHub/spnc_taskindependent_metrics/results/raw/autoresearch_v1_demo/run_20260320_110131/rounds/round_0001",
+      "completed_at_utc": "2026-03-20T11:01:49Z"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+timestamp_utc	round_index	commit	proposal_id	score_s_abs	baseline_hv	family_hv	status	description
+2026-03-20T11:31:58Z	1	e7b56de	proposal_0001	0.0	0.0	0.0	crash	"{""target"": ""initialization"", ""before"": null, ""after"": ""single_distribution_random_independent""}"

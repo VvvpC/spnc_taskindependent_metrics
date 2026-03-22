@@ -1,0 +1,13 @@
+{
+  "run_id": "run_20260320_110008",
+  "branch_name": "codex/autoresearch-v1",
+  "round_index": 0,
+  "best_commit": null,
+  "best_score": null,
+  "best_proposal_id": null,
+  "last_attempted_proposal_id": null,
+  "baseline_round_id": null,
+  "baseline_hv": null,
+  "recent_failures": [],
+  "history": []
+}
